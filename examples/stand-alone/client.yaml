@@ -1,0 +1,7 @@
+s3.ak: <>
+s3.sk: <>
+s3.endpoint: nos-eastchina1.126.net
+s3.bucket_name: curvefs
+container_image: opencurvedocker/curvefs:beta
+mdsOpt.rpcRetryOpt.addrs: 10.0.1.1:16700,10.0.1.1:26700,10.0.1.1:36700
+log_dir: /home/curve/curvefs/logs/client

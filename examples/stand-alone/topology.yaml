@@ -1,0 +1,45 @@
+global:
+  user: curve
+  ssh_port: 22
+  private_key_file: /home/curve/.ssh/id_rsa
+  data_dir: /home/curve/curvefs/data/${service_role}${service_sequence}
+  log_dir: /home/curve/curvefs/logs/${service_role}${service_sequence}
+  container_image: opencurvedocker/curvefs:beta
+  s3.ak: <>
+  s3.sk: <>
+  s3.endpoint: nos-eastchina1.126.net
+  s3.bucket_name: curvefs
+  variable:
+    target: 10.0.1.1
+
+etcd_services:
+  config:
+    listen.ip: ${target}
+    listen.port: ${service_sequence}2380  # 12380,22380,32380
+    listen.client_port: ${service_sequence}2379  # 12379,22379,32379
+  deploy:
+    - host: ${target}
+    - host: ${target}
+    - host: ${target}
+
+mds_services:
+  config:
+    listen.ip: ${target}
+    listen.port: ${service_sequence}6700  # 16700,26700,36700
+    listen.dummy_port: ${service_sequence}7700  # 17700,27700,37700
+  deploy:
+    - host: ${target}
+    - host: ${target}
+    - host: ${target}
+
+metaserver_services:
+  config:
+    listen.ip: ${target}
+    listen.port: ${service_sequence}6701
+    metaserver.loglevel: 0
+  deploy:
+    - host: ${target}
+    - host: ${target}
+    - host: ${target}
+      config:
+        metaserver.loglevel: 3
