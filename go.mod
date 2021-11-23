@@ -11,13 +11,13 @@ require (
 	github.com/docker/docker-credential-helpers v0.6.4 // indirect
 	github.com/fatih/color v1.7.0
 	github.com/fvbommel/sortorder v1.0.2 // indirect
+	github.com/go-resty/resty/v2 v2.7.0
 	github.com/mattn/go-sqlite3 v1.6.0
 	github.com/melbahja/goph v1.2.1
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/moby/sys/mount v0.2.0 // indirect
 	github.com/moby/term v0.0.0-20210619224110-3f7ff695adc6
 	github.com/pingcap/log v0.0.0-20210906054005-afc726e70354
-	github.com/pkg/sftp v1.12.0
 	github.com/sergi/go-diff v1.2.0
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/viper v1.8.1

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 ############################  GLOBAL VARIABLES
+g_upgrade="$CURVEADM_UPGRADE"
 g_curveadm_home="$HOME/.curveadm"
 g_bin_dir="$g_curveadm_home/bin"
 g_profile="${HOME}/.profile"
@@ -54,7 +55,7 @@ function install_binray() {
     local tempfile="/tmp/curveadm-$(date +%s%6N).tar.gz"
     curl $g_download_url -sLo $tempfile
     if [ $? -eq 0 ]; then
-        tar -zxvf $tempfile -C $g_bin_dir 1>/dev/null
+        tar -zxvf $tempfile -C $g_curveadm_home --strip-components=1 1>/dev/null
         ret=$?
     fi
 
@@ -62,7 +63,7 @@ function install_binray() {
     if [ $ret -eq 0 ]; then
         chmod 755 "$g_bin_dir/curveadm"
     else
-        die "Download curveadm binray failed\n"
+        die "Download curveadm failed\n"
     fi
 }
 
@@ -82,15 +83,35 @@ function set_profile() {
     esac
 }
 
-function print_success() {
+function print_install_success() {
     success "Install curveadm success, please run 'source $g_profile'\n"
 }
 
-function main() {
+function print_upgrade_success() {
+    echo ""
+    cat "$g_curveadm_home/CHANGELOG"
+    echo ""
+    success "Upgrade curveadm success\n"
+}
+
+function install() {
     setup
     install_binray
     set_profile
-    print_success
+    print_install_success
+}
+
+function upgrade() {
+    install_binray
+    print_upgrade_success
+}
+
+function main() {
+    if [[ $g_upgrade == "true" ]]; then
+        upgrade
+    else
+        install
+    fi
 }
 
 ############################  MAIN()
