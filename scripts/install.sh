@@ -4,7 +4,7 @@
 g_curveadm_home="$HOME/.curveadm"
 g_bin_dir="$g_curveadm_home/bin"
 g_profile="${HOME}/.profile"
-g_download_url="https://curveadm.nos-eastchina1.126.net/release/curveadm.tar.gz"
+g_download_url="https://curveadm.nos-eastchina1.126.net/release/curveadm-latest.tar.gz"
 g_color_yellow=`printf '\033[33m'`
 g_color_red=`printf '\033[31m'`
 g_color_normal=`printf '\033[0m'`
