@@ -26,12 +26,11 @@ import (
 	"fmt"
 	"strings"
 
-	cliutil "github.com/opencurve/curveadm/internal/utils"
-
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/configure"
 	"github.com/opencurve/curveadm/internal/tasks"
 	tui "github.com/opencurve/curveadm/internal/tui/common"
+	cliutil "github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/cobra"
 )
 

@@ -41,6 +41,8 @@ func NewClusterCommand(curveadm *cli.CurveAdm) *cobra.Command {
 		NewCheckoutCommand(curveadm),
 		NewListCommand(curveadm),
 		NewRemoveCommand(curveadm),
+		NewExportCommand(curveadm),
+		NewImportCommand(curveadm),
 	)
 	return cmd
 }

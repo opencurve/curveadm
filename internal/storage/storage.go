@@ -39,6 +39,12 @@ type Cluster struct {
 	Current     bool
 }
 
+type Service struct {
+	Id          string
+	ClusterId   int
+	ContainerId string
+}
+
 type Storage struct {
 	db    *sql.DB
 	mutex *sync.Mutex
@@ -138,12 +144,12 @@ func (s *Storage) SetClusterTopology(id int, topology string) error {
 	return s.execSQL(SET_CLUSTER_TOPOLOGY, topology, id)
 }
 
-// container
-func (s *Storage) InsertContainer(clusterId int, serviceId, containerId string) error {
-	return s.execSQL(INSERT_CONTAINER, serviceId, clusterId, containerId)
+// service
+func (s *Storage) InsertService(clusterId int, serviceId, containerId string) error {
+	return s.execSQL(INSERT_SERVICE, serviceId, clusterId, containerId)
 }
 
-func (s *Storage) getContainerIds(query string, args ...interface{}) ([]string, error) {
+func (s *Storage) getServices(query string, args ...interface{}) ([]Service, error) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	rows, err := s.db.Query(query, args...)
@@ -152,29 +158,32 @@ func (s *Storage) getContainerIds(query string, args ...interface{}) ([]string, 
 	}
 
 	defer rows.Close()
-	containerIds := []string{}
-	var clusterId int
-	var id, containerId string
+	services := []Service{}
+	var service Service
 	for rows.Next() {
-		err = rows.Scan(&id, &clusterId, &containerId)
+		err = rows.Scan(&service.Id, &service.ClusterId, &service.ContainerId)
 		if err != nil {
 			return nil, err
 		}
-		containerIds = append(containerIds, containerId)
+		services = append(services, service)
 	}
 
-	return containerIds, nil
+	return services, nil
+}
+
+func (s *Storage) GetServices(clusterId int) ([]Service, error) {
+	return s.getServices(SELECT_SERVICE_IN_CLUSTER, clusterId)
 }
 
 func (s *Storage) GetContainerId(serviceId string) (string, error) {
-	ids, err := s.getContainerIds(SELECT_CONTAINER, serviceId)
-	if err != nil || len(ids) == 0 {
+	services, err := s.getServices(SELECT_SERVICE, serviceId)
+	if err != nil || len(services) == 0 {
 		return "", err
 	}
 
-	return ids[0], nil
+	return services[0].ContainerId, nil
 }
 
-func (s *Storage) SetConatinId(serviceId, containerId string) error {
+func (s *Storage) SetContainId(serviceId, containerId string) error {
 	return s.execSQL(SET_CONTAINER_ID, containerId, serviceId)
 }

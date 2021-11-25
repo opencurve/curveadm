@@ -120,12 +120,12 @@ func (s *step2CreateContainer) Execute(ctx *task.Context) error {
 	} else { // insert container to sqlite
 		containerId := utils.TrimNewline(out)
 		if oldContainerId == "" { // not exist
-			err = s.storage.InsertContainer(clusterId, serviceId, containerId)
+			err = s.storage.InsertService(clusterId, serviceId, containerId)
 		} else { // removed
-			err = s.storage.SetConatinId(serviceId, containerId)
+			err = s.storage.SetContainId(serviceId, containerId)
 		}
 
-		log.SwitchLevel(err)("InsertContainer",
+		log.SwitchLevel(err)("InsertService",
 			log.Field("clusterId", clusterId),
 			log.Field("dcId", dcId),
 			log.Field("containerId", containerId))

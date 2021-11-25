@@ -73,7 +73,7 @@ func (s *step2CleanService) cleanContainer(ctx *task.Context) error {
 	if out, err := ctx.Module().SshShell("sudo docker rm %s", containerId); err != nil &&
 		!strings.Contains(out, "No such container") {
 		return err
-	} else if err := s.storage.SetConatinId(s.serviceId, "-"); err != nil {
+	} else if err := s.storage.SetContainId(s.serviceId, "-"); err != nil {
 		return err
 	}
 	return nil

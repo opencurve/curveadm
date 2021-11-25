@@ -79,9 +79,11 @@ var (
 	SET_CLUSTER_TOPOLOGY = `UPDATE clusters SET topology = ? WHERE id = ?`
 
 	// container
-	INSERT_CONTAINER = `INSERT INTO containers(id, cluster_id, container_id) VALUES(?, ?, ?)`
+	INSERT_SERVICE = `INSERT INTO containers(id, cluster_id, container_id) VALUES(?, ?, ?)`
 
-	SELECT_CONTAINER = `SELECT * FROM containers WHERE id = ?`
+	SELECT_SERVICE = `SELECT * FROM containers WHERE id = ?`
+
+	SELECT_SERVICE_IN_CLUSTER = `SELECT * FROM containers WHERE cluster_id = ?`
 
 	SET_CONTAINER_ID = `UPDATE containers SET container_id = ? WHERE id = ?`
 )
