@@ -23,6 +23,8 @@
 package client
 
 import (
+	"fmt"
+
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/tasks/task"
 )
@@ -38,8 +40,14 @@ func (s *step2UmountFS) Execute(ctx *task.Context) error {
 	} else if status.Status == STATUS_UNMOUNTED {
 		return nil
 	} else if status.Status == STATUS_NORMAL { // stop container
-		_, err = ctx.Module().LocalShell("sudo docker stop %s", status.ContainerId)
-		if err != nil {
+		// TODO(@Wine93): improve the umount logic
+		containerId := status.ContainerId
+		binary := "/usr/local/bin/fusermount3"
+		containerPath := "/usr/local/curvefs/client/mnt"
+		cmd2umount := fmt.Sprintf("sudo docker exec %s %s -u %s", containerId, binary, containerPath)
+		if _, err := ctx.Module().LocalShell(cmd2umount); err != nil {
+			return err
+		} else if _, err := ctx.Module().LocalShell("sudo docker stop %s", containerId); err != nil {
 			return err
 		}
 	}
