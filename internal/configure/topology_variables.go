@@ -124,7 +124,7 @@ func getValue(name string, dcs []*DeployConfig, idx int) string {
 	case "user":
 		return dc.GetConfig(KEY_USER)
 	case "prefix":
-		return dc.GetProjectPrefix()
+		return dc.GetServicePrefix()
 	case "service_id":
 		return dc.GetId()
 	case "service_sequence":

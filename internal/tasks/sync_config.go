@@ -222,7 +222,7 @@ func NewSyncConfigTask(curveadm *cli.CurveAdm, dc *configure.DeployConfig) (*tas
 		// ex: /usr/local/curvefs/conf/etcd.conf
 		containerSrcPath: fmt.Sprintf("%s/conf/%s.conf", dc.GetCurveFSPrefix(), dc.GetRole()),
 		// ex: /usr/local/curvefs/etcd/conf/etcd.conf
-		containerDstPath: fmt.Sprintf("%s/conf/%s.conf", dc.GetProjectPrefix(), dc.GetRole()),
+		containerDstPath: fmt.Sprintf("%s/conf/%s.conf", dc.GetServicePrefix(), dc.GetRole()),
 	})
 	t.AddStep(&step2CopyFileFromRemote{containerId: containerId})
 	t.AddStep(&step2RenderingConfig{})

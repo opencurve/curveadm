@@ -343,7 +343,7 @@ func (dc *DeployConfig) GetCurveFSPrefix() string {
 }
 
 // /usr/local/curvefs/mds
-func (dc *DeployConfig) GetProjectPrefix() string {
+func (dc *DeployConfig) GetServicePrefix() string {
 	return fmt.Sprintf("%s/%s", DEFAULT_CURVEFS_DIR, dc.GetRole())
 }
 

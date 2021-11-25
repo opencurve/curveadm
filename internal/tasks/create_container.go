@@ -63,7 +63,7 @@ func (s *step2CreateContainer) createDirectory(ctx *task.Context) error {
 func (s *step2CreateContainer) volumeArgs(ctx *task.Context) string {
 	volumes := []string{}
 	config := ctx.Config()
-	prefix := config.GetProjectPrefix()
+	prefix := config.GetServicePrefix()
 	logDir := config.GetLogDir()
 	dataDir := config.GetDataDir()
 

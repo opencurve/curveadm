@@ -36,7 +36,8 @@ type enterOptions struct {
 }
 
 const (
-	FORMAT_ENTER_CMD = "ssh -tt %s@%s -p %d -i %s sudo docker exec -it %s /bin/bash"
+	FORMAT_ENTER_CMD = "ssh -tt %s@%s -p %d -i %s " +
+		"sudo docker exec -it %s /bin/bash -c \"cd %s; /bin/bash\""
 )
 
 func NewEnterCommand(curveadm *cli.CurveAdm) *cobra.Command {
@@ -62,7 +63,7 @@ func connectContainer(curveadm *cli.CurveAdm, dc *configure.DeployConfig, contai
 	sshPort := dc.GetSshPort()
 	privateKeyFile := dc.GetPrivateKeyFile()
 
-	cmd := utils.NewCommand(FORMAT_ENTER_CMD, user, host, sshPort, privateKeyFile, containerId)
+	cmd := utils.NewCommand(FORMAT_ENTER_CMD, user, host, sshPort, privateKeyFile, containerId, dc.GetServicePrefix())
 	cmd.Stdout = curveadm.Out()
 	cmd.Stderr = curveadm.Err()
 	cmd.Stdin = curveadm.In()
