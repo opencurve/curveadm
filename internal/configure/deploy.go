@@ -347,6 +347,11 @@ func (dc *DeployConfig) GetServicePrefix() string {
 	return fmt.Sprintf("%s/%s", DEFAULT_CURVEFS_DIR, dc.GetRole())
 }
 
+// /usr/local/curvefs/mds/sbin
+func (dc *DeployConfig) GetServiceSbinDir() string {
+	return dc.GetServicePrefix() + "/sbin"
+}
+
 func FilterDeployConfig(deployConfigs []*DeployConfig, options FilterOption) []*DeployConfig {
 	dcs := []*DeployConfig{}
 	for _, dc := range deployConfigs {

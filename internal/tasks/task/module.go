@@ -28,6 +28,7 @@ import (
 
 	ssh "github.com/melbahja/goph"
 	"github.com/opencurve/curveadm/internal/log"
+	"github.com/opencurve/curveadm/internal/scripts"
 )
 
 type Module struct {
@@ -114,6 +115,21 @@ func (c *Module) LocalShell(format string, a ...interface{}) (string, error) {
 		log.Field("error", err))
 
 	return string(out), err
+}
+
+func (c *Module) SshMountScript(name, remotePath string) error {
+	script, ok := scripts.Get(name)
+	if !ok {
+		return fmt.Errorf("script '%s' not found", name)
+	}
+
+	_, err := c.SshShell("echo '%s' > %s", script, remotePath)
+	log.SwitchLevel(err)("SshMountScript",
+		log.Field("script", name),
+		log.Field("remotePath", remotePath),
+		log.Field("error", err))
+
+	return err
 }
 
 func (m *Module) SshCreateDir(dir string) error {

@@ -24,8 +24,10 @@ package tasks
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/configure"
@@ -39,7 +41,8 @@ type (
 		clusterName string
 		data        string
 	}
-	step2BuildTopology struct{ containerId string }
+	step2WaitMdsElectionDone struct{ containerId string }
+	step2BuildTopology       struct{ containerId string }
 )
 
 func (s *step2CreateCurveFSTopology) Execute(ctx *task.Context) error {
@@ -67,6 +70,32 @@ func (s *step2CreateCurveFSTopology) Execute(ctx *task.Context) error {
 }
 
 func (s *step2CreateCurveFSTopology) Rollback(ctx *task.Context) {
+}
+
+func (s *step2WaitMdsElectionDone) Execute(ctx *task.Context) error {
+	config := ctx.Config()
+	tempfile := fmt.Sprintf("/tmp/%d", rand.Intn(10000))
+	containerPath := fmt.Sprintf("%s/tools/sbin/wait.sh", config.GetCurveFSPrefix())
+	clusterMdsAddrs, err := config.GetVariables().Get("cluster_mds_addr")
+	if err != nil {
+		return err
+	}
+	clusterMdsAddrs = strings.Replace(clusterMdsAddrs, ",", " ", -1)
+
+	cmd1 := fmt.Sprintf("sudo docker cp %s %s:%s", tempfile, s.containerId, containerPath)
+	cmd2 := fmt.Sprintf("sudo docker exec %s /bin/bash %s %s", s.containerId, containerPath, clusterMdsAddrs)
+	if err := ctx.Module().SshMountScript("wait", tempfile); err != nil {
+		return err
+	} else if _, err := ctx.Module().SshShell(cmd1); err != nil {
+		return err
+	} else if _, err := ctx.Module().SshShell(cmd2); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *step2WaitMdsElectionDone) Rollback(ctx *task.Context) {
 }
 
 // TODO(@Wine93): refactor build topology
@@ -116,7 +145,10 @@ func NewCreateTopologyTask(curveadm *cli.CurveAdm, dc *configure.DeployConfig) (
 	})
 	t.AddStep(&step2CopyFileToRemote{containerId: containerId})
 
-	// (3): create topology
+	// (3): wait mds leader election success
+	t.AddStep(&step2WaitMdsElectionDone{containerId: containerId})
+
+	// (4): create topology
 	t.AddStep(&step2BuildTopology{containerId: containerId})
 
 	return t, nil
