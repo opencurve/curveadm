@@ -140,7 +140,7 @@ func (m *Module) SshCreateDir(dir string) error {
 	return err
 }
 
-func (m *Module) SshRemoveDir(dir string, root bool) error {
+func (m *Module) SshRemovePath(dir string, root bool) error {
 	if dir == "" {
 		return nil
 	}

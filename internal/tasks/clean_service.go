@@ -54,14 +54,14 @@ func (s *step2CleanService) cleanLogDir(ctx *task.Context) error {
 	if !s.clean[KEY_LOG] {
 		return nil
 	}
-	return ctx.Module().SshRemoveDir(ctx.Config().GetLogDir(), true)
+	return ctx.Module().SshRemovePath(ctx.Config().GetLogDir(), true)
 }
 
 func (s *step2CleanService) cleanDataDir(ctx *task.Context) error {
 	if !s.clean[KEY_DATA] {
 		return nil
 	}
-	return ctx.Module().SshRemoveDir(ctx.Config().GetDataDir(), true)
+	return ctx.Module().SshRemovePath(ctx.Config().GetDataDir(), true)
 }
 
 func (s *step2CleanService) cleanContainer(ctx *task.Context) error {
@@ -102,8 +102,7 @@ func NewCleanServiceTask(curveadm *cli.CurveAdm, dc *configure.DeployConfig) (*t
 		return nil, fmt.Errorf("service(id=%s) not found", serviceId)
 	}
 
-	v, _ := curveadm.MemStorage().Get(KEY_CLEAN_ITEMS)
-	only := v.([]string)
+	only := curveadm.MemStorage().Get(KEY_CLEAN_ITEMS).([]string)
 	subname := fmt.Sprintf("host=%s role=%s containerId=%s clean=%s",
 		dc.GetHost(), dc.GetRole(), tui.TrimContainerId(containerId), strings.Join(only, ","))
 	t := task.NewTask("Clean Service", subname, dc)

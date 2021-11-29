@@ -31,7 +31,8 @@ var scripts = map[string]string{}
 
 func init() {
 	scripts = map[string]string{
-		"wait": WAIT,
+		"wait":    WAIT,
+		"collect": COLLECT,
 	}
 }
 

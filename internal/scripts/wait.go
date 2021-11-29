@@ -22,6 +22,10 @@
 
 package scripts
 
+/*
+ * Usage: wait ADDR...
+ * Example: wait 10.0.10.1:2379 10.0.10.2:2379
+ */
 var WAIT = `
 [[ -z $(which curl) ]] && apt-get install -y curl
 wait=0

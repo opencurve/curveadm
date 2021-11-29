@@ -60,7 +60,7 @@ func runCheck(curveadm *cli.CurveAdm, options checkOptions) error {
 		return err
 	}
 
-	v, _ := curveadm.MemStorage().Get(client.KEY_MOUNT_STATUS)
+	v := curveadm.MemStorage().Get(client.KEY_MOUNT_STATUS)
 	status := v.(client.MountStatus)
 	curveadm.WriteOut("\n")
 	curveadm.WriteOut("Mount Point : %s\n", status.MountPoint)

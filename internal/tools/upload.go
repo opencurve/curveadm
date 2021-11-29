@@ -16,34 +16,38 @@
 
 /*
  * Project: CurveAdm
- * Created Date: 2021-10-15
+ * Created Date: 2021-11-26
  * Author: Jingli Chen (Wine93)
  */
 
-package utils
+package tools
 
 import (
-	"sync"
+	"fmt"
+	"os"
+
+	"github.com/go-resty/resty/v2"
 )
 
-type SafeMap struct {
-	sync.RWMutex
-	Map map[string]interface{}
-}
+const (
+	URL_UPLOAD_SUPPORT_TARBALL = "http://curveadm.aspirer.wang:19301/upload?path=/"
+)
 
-func NewSafeMap() *SafeMap {
-	return &SafeMap{Map: map[string]interface{}{}}
-}
+func Upload(filepath string) error {
+	file, err := os.Open(filepath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
 
-func (m *SafeMap) Get(key string) interface{} {
-	m.RLock()
-	defer m.RUnlock()
-	val, _ := m.Map[key]
-	return val
-}
-
-func (m *SafeMap) Set(key string, value interface{}) {
-	m.Lock()
-	defer m.Unlock()
-	m.Map[key] = value
+	client := resty.New()
+	resp, err := client.R().
+		SetFile(filepath, filepath).
+		Post(URL_UPLOAD_SUPPORT_TARBALL)
+	if err != nil {
+		return err
+	} else if resp.StatusCode() != 200 {
+		return fmt.Errorf("upload failed, return %d", resp.StatusCode())
+	}
+	return nil
 }

@@ -42,6 +42,7 @@ const (
 	CREATE_TOPOLOGY
 	GET_SERVICE_STATUS
 	CLEAN_SERVICE
+	COLLECT_SERVICE
 	UNKNOWN
 )
 
@@ -98,6 +99,8 @@ func ExecParallelTasks(taskType int, curveadm *cli.CurveAdm, dcs []*configure.De
 			t, err = NewGetServiceStatusTask(curveadm, dc)
 		case CLEAN_SERVICE:
 			t, err = NewCleanServiceTask(curveadm, dc)
+		case COLLECT_SERVICE:
+			t, err = NewCollectServiceTask(curveadm, dc)
 		default:
 			return fmt.Errorf("unknown task type %d", taskType)
 		}
