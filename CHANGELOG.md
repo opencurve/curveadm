@@ -1,3 +1,11 @@
+v0.0.4
+---
+
+* feature(*): now we can get support from curve team (issue #6)
+* feature(*): support replace service binary without re-deploy (issue #2)
+
+---
+
 v0.0.3
 ---
 * feature(*): support export and import cluster database
