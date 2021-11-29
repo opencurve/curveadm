@@ -1,3 +1,4 @@
+kind: curvefs
 global:
   user: curve
   ssh_port: 22
