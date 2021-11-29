@@ -34,9 +34,10 @@ import (
 )
 
 type reloadOptions struct {
-	id   string
-	role string
-	host string
+	id         string
+	role       string
+	host       string
+	binaryPath string
 }
 
 func NewReloadCommand(curveadm *cli.CurveAdm) *cobra.Command {
@@ -56,6 +57,7 @@ func NewReloadCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	flags.StringVarP(&options.id, "id", "", "*", "Specify service id")
 	flags.StringVarP(&options.role, "role", "", "*", "Specify service role")
 	flags.StringVarP(&options.host, "host", "", "*", "Specify service host")
+	flags.StringVarP(&options.binaryPath, "binary", "", "*", "Specify binary file path")
 
 	return cmd
 }
@@ -74,9 +76,18 @@ func runReload(curveadm *cli.CurveAdm, options reloadOptions) error {
 
 	if len(dcs) == 0 {
 		return fmt.Errorf("service not found")
-	} else if err := tasks.ExecParallelTasks(tasks.SYNC_CONFIG, curveadm, dcs); err != nil {
+	}
+	if len(options.binaryPath) != 0 {
+		memStorage := curveadm.MemStorage()
+		memStorage.Set(tasks.KEY_BINARY_PATH, options.binaryPath)
+		if err := tasks.ExecParallelTasks(tasks.SYNC_BINARY, curveadm, dcs); err != nil {
+			return curveadm.NewPromptError(err, "")
+		}
+	}
+	if err := tasks.ExecParallelTasks(tasks.SYNC_CONFIG, curveadm, dcs); err != nil {
 		return curveadm.NewPromptError(err, "")
-	} else if err := tasks.ExecParallelTasks(tasks.RESTART_SERVICE, curveadm, dcs); err != nil {
+	}
+	if err := tasks.ExecParallelTasks(tasks.RESTART_SERVICE, curveadm, dcs); err != nil {
 		return curveadm.NewPromptError(err, "")
 	}
 
