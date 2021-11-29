@@ -4,7 +4,7 @@ global:
   private_key_file: /home/curve/.ssh/id_rsa
   data_dir: /home/curve/curvefs/data/${service_role}${service_sequence}
   log_dir: /home/curve/curvefs/logs/${service_role}${service_sequence}
-  container_image: opencurvedocker/curvefs:beta
+  container_image: opencurvedocker/curvefs:latest
   s3.ak: <>
   s3.sk: <>
   s3.endpoint: nos-eastchina1.126.net
