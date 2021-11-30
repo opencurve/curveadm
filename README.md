@@ -23,7 +23,7 @@ CurveAdm depends on docker, please [install docker](https://docs.docker.com/engi
 Please make sure the docker daemon has running, you can run the below command to verify:
 
 ```shell
-$ sudo docker run hello-world
+sudo docker run hello-world
 ```
 
 This command downloads a test image and runs it in a container. When the container runs, it prints a message and exits.
@@ -32,7 +32,7 @@ Installation
 ---
 
 ```shell
-$ sh -c "$(curl -fsSL https://curveadm.nos-eastchina1.126.net/script/install.sh)"
+sh -c "$(curl -fsSL https://curveadm.nos-eastchina1.126.net/script/install.sh)"
 ```
 
 Usage
@@ -46,24 +46,24 @@ Prepare cluster topology, you can refer to the sample configuration:
 * [stand-alone](examples/stand-alone/topology.yaml)
 
 ```shell
-$ vi topology.yaml
+vi topology.yaml
 ```
 
 Add cluster with specified topology:
 
 ```shell
-$ curveadm cluster add c1 -f topology.yaml
+curveadm cluster add c1 -f topology.yaml
 ```
 
 Switch cluster:
 
 ```shell
-$ curveadm cluster checkout c1
+curveadm cluster checkout c1
 ```
 
 Deploy cluster:
 ```shell
-$ curveadm deploy
+curveadm deploy
 ```
 
 ### Mount FileSystem
@@ -74,19 +74,19 @@ Prepare client config, you can refer to the sample configuration:
 * [stand-alone](examples/stand-alone/client.yaml)
 
 ```shell
-$ vi client.yaml
+vi client.yaml
 ```
 
 Mount filesystem:
 
 ```shell
-$ sudo curveadm mount NAME-OF-CURVEFS MOUNTPONT -c client.yaml
+sudo curveadm mount NAME-OF-CURVEFS MOUNTPONT -c client.yaml
 ```
 
 ### Umount FileSystem
 
 ```shell
-$ sudo curveadm umount MOUNTPOINT
+sudo curveadm umount MOUNTPOINT
 ```
 
 
