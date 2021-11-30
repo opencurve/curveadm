@@ -38,6 +38,26 @@ metaserver_services:
     listen.ip: ${target}
     listen.port: ${service_sequence}6701
     metaserver.loglevel: 0
+    disks:
+      - /data0:21474836480
+      - /data1:21474836480
+      - /data3:21474836480
+      - /data4:21474836480
+      - /data5:21474836480
+      - /data6:21474836480
+      - /data7:21474836480
+      - /data8:21474836480
+      - /data9:21474836480
+      - /data10:21474836480
+      - /data11:21474836480
+      - /data12:21474836480
+      - /data13:21474836480
+      - /data14:21474836480
+      - /data15:21474836480
+      - /data16:21474836480
+      - /data17:21474836480
+      - /data18:21474836480
+      - /data19:21474836480
   deploy:
     - host: ${target}
     - host: ${target}

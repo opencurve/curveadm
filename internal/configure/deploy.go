@@ -31,9 +31,13 @@ import (
 )
 
 const (
-	ROLE_ETCD       string = "etcd"
-	ROLE_MDS        string = "mds"
-	ROLE_METASERVER string = "metaserver"
+	KIND_CURVEFS = "curvefs"
+	KIND_CURVEBS = "curvebs"
+
+	ROLE_ETCD        string = "etcd"
+	ROLE_MDS         string = "mds"
+	ROLE_METASERVER  string = "metaserver"  // curvefs only
+	ROLE_CHUNKSERVER string = "chunkserver" // curvebs only
 
 	KEY_USER               string = "user"
 	KEY_SSH_PORT           string = "ssh_port"

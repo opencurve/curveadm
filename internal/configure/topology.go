@@ -44,11 +44,14 @@ type (
 	}
 
 	Topology struct {
+		Kind string `mapstructure:"kind"`
+
 		Global map[string]interface{} `mapstructure:"global"`
 
-		EtcdServices       Service `mapstructure:"etcd_services"`
-		MdsServices        Service `mapstructure:"mds_services"`
-		MetaserverServices Service `mapstructure:"metaserver_services"`
+		EtcdServices        Service `mapstructure:"etcd_services"`
+		MdsServices         Service `mapstructure:"mds_services"`
+		MetaserverServices  Service `mapstructure:"metaserver_services"`
+		ChunkserverServices Service `mapstructure:"chunkserver_services"`
 
 		Pools []Pool `mapstructure:"pools"`
 	}
@@ -88,9 +91,12 @@ func ParseTopology(data string) ([]*DeployConfig, error) {
 		return nil, err
 	}
 
+	kind := topology.Kind
+	if topology.Kind != KIND_CURVEBS ||
+
 	dcs := []*DeployConfig{}
 	globalConfig := newIfNil(topology.Global)
-	for _, role := range []string{ROLE_ETCD, ROLE_MDS, ROLE_METASERVER} {
+	for _, role := range []string{ROLE_ETCD, ROLE_MDS, ROLE_METASERVER, ROLE_CHUNKSERVER} {
 		services := Service{}
 		switch role {
 		case ROLE_ETCD:
@@ -99,6 +105,8 @@ func ParseTopology(data string) ([]*DeployConfig, error) {
 			services = topology.MdsServices
 		case ROLE_METASERVER:
 			services = topology.MetaserverServices
+		case ROLE_CHUNKSERVER:
+			services = topology.ChunkserverServices
 		}
 
 		// merge global config into services config

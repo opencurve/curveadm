@@ -42,8 +42,8 @@ Usage
 
 Prepare cluster topology, you can refer to the sample configuration:
 
-* [cluster](examples/cluster/topology.yaml)
-* [stand-alone](examples/stand-alone/topology.yaml)
+* [cluster](examples/curvefs/cluster/topology.yaml)
+* [stand-alone](examples/curvefs/stand-alone/topology.yaml)
 
 ```shell
 $ vi topology.yaml
@@ -70,8 +70,8 @@ $ curveadm deploy
 
 Prepare client config, you can refer to the sample configuration:
 
-* [cluster](examples/cluster/client.yaml)
-* [stand-alone](examples/stand-alone/client.yaml)
+* [cluster](examples/curvefs/cluster/client.yaml)
+* [stand-alone](examples/curvefs/stand-alone/client.yaml)
 
 ```shell
 $ vi client.yaml
