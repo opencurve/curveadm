@@ -121,6 +121,14 @@ func (c *ClientConfig) GetLogDir() string {
 	return c.GetConfig(KEY_LOG_DIR)
 }
 
+func (c *ClientConfig) GetDataDir() string {
+	return c.GetConfig(KEY_DATA_DIR)
+}
+
+func (c *ClientConfig) GetClientPrefix() string {
+	return fmt.Sprintf("%s/client", DEFAULT_CURVEFS_DIR)
+}
+
 func (c *ClientConfig) GetCurveFSConfPath() string {
 	return fmt.Sprintf("%s/conf/client.conf", DEFAULT_CURVEFS_DIR)
 }
