@@ -57,7 +57,7 @@ func NewReloadCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	flags.StringVarP(&options.id, "id", "", "*", "Specify service id")
 	flags.StringVarP(&options.role, "role", "", "*", "Specify service role")
 	flags.StringVarP(&options.host, "host", "", "*", "Specify service host")
-	flags.StringVarP(&options.binaryPath, "binary", "", "*", "Specify binary file path")
+	flags.StringVarP(&options.binaryPath, "binary", "", "", "Specify binary file path")
 
 	return cmd
 }
