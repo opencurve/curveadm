@@ -23,6 +23,8 @@
 package command
 
 import (
+	"strings"
+
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/tasks/client"
 	"github.com/opencurve/curveadm/internal/tasks/task"
@@ -52,7 +54,7 @@ func NewUmountCommand(curveadm *cli.CurveAdm) *cobra.Command {
 }
 
 func runUmount(curveadm *cli.CurveAdm, options umountOptions) error {
-	mountPoint := options.mountPoint
+	mountPoint := strings.TrimSuffix(options.mountPoint, "/")
 
 	if t, err := client.NewUmountFSTask(curveadm, mountPoint); err != nil {
 		return err
