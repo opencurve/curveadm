@@ -90,6 +90,16 @@ sudo curveadm umount MOUNTPOINT
 ```
 
 
+# Ask for help
+
+If you encounter an unsolvable problem during deployment or using Curve, you can use the `support` command to seek help from the curve team. After executing this command, all Curve service logs and configuration files will be packaged and collected, and encrypted and uploaded to On our log collection server, so that the Curve team can analyze and solve problems.
+
+```shell
+curveadm support
+```
+After the `support` command is executed, the logs and config files will be packaged and uploaded. If the upload is successful, a secret key will be returned. You can get help by telling the secret key to the Curve team. You can contact the Curve team by adding the WeChat account `opencurve`.
+
+
 Devops
 ---
 
