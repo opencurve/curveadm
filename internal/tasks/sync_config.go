@@ -24,6 +24,7 @@ package tasks
 
 import (
 	"bufio"
+	"container/list"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -46,6 +47,16 @@ const (
 	KEY_REMOTE_PATH        = "REMOTE_PATH"
 	KEY_CONTAINER_SRC_PATH = "CONTAINER_SRC_PATH"
 	KEY_CONTAINER_DST_PATH = "CONTAINER_DST_PATH"
+)
+
+type (
+	syncConfig struct {
+		srcPath     string
+		tmpPath     string
+		dstPath     string
+		containerId string
+		serviceId   string
+	}
 )
 
 type (
@@ -216,16 +227,35 @@ func NewSyncConfigTask(curveadm *cli.CurveAdm, dc *configure.DeployConfig) (*tas
 	subname := fmt.Sprintf("host=%s role=%s containerId=%s",
 		dc.GetHost(), dc.GetRole(), tui.TrimContainerId(containerId))
 	t := task.NewTask("Sync Config", subname, dc)
-	t.AddStep(&step2InitSyncConfig{
-		tempDir:   curveadm.TempDir(),
-		serviceId: serviceId,
-		// ex: /usr/local/curvefs/conf/etcd.conf
-		containerSrcPath: fmt.Sprintf("%s/conf/%s.conf", dc.GetCurveFSPrefix(), dc.GetRole()),
-		// ex: /usr/local/curvefs/etcd/conf/etcd.conf
-		containerDstPath: fmt.Sprintf("%s/conf/%s.conf", dc.GetServicePrefix(), dc.GetRole()),
-	})
-	t.AddStep(&step2CopyFileFromRemote{containerId: containerId})
-	t.AddStep(&step2RenderingConfig{})
-	t.AddStep(&step2CopyFileToRemote{containerId: containerId})
+
+	l := list.New()
+
+	srcPath := fmt.Sprintf("%s/conf/%s.conf", dc.GetCurveFSPrefix(), dc.GetRole())
+	dstPath := fmt.Sprintf("%s/conf/%s.conf", dc.GetServicePrefix(), dc.GetRole())
+	tmpPath := curveadm.TempDir()
+	l.PushBack(syncConfig{srcPath, tmpPath, dstPath, containerId, serviceId})
+
+	// tools.conf
+	srcPath = fmt.Sprintf("%s/conf/tools.conf", dc.GetCurveFSPrefix())
+	dstPath = "/etc/curvefs/tools.conf"
+	l.PushBack(syncConfig{srcPath, tmpPath, dstPath, containerId, serviceId})
+	SyncConfigList(t, l)
 	return t, nil
+}
+
+func SyncConfigList(t *task.Task, l *list.List) {
+	for e := l.Front(); e != nil; e = e.Next() {
+		item := syncConfig(e.Value.(syncConfig))
+		t.AddStep(&step2InitSyncConfig{
+			tempDir:   item.tmpPath,
+			serviceId: item.serviceId,
+			// ex: /usr/local/curvefs/conf/etcd.conf
+			containerSrcPath: item.srcPath,
+			// ex: /usr/local/curvefs/etcd/conf/etcd.conf
+			containerDstPath: item.dstPath,
+		})
+		t.AddStep(&step2CopyFileFromRemote{containerId: item.containerId})
+		t.AddStep(&step2RenderingConfig{})
+		t.AddStep(&step2CopyFileToRemote{containerId: item.containerId})
+	}
 }
