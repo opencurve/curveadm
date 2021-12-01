@@ -54,6 +54,7 @@ var (
 
 	CREATE_CONTAINER_AGRS = []string{
 		"--mount type=bind,source=%s,target=%s,bind-propagation=rshared", // host mount path, container mount path
+		"%s", // mount volumes (dataDir and logDir)
 		"--cap-add SYS_ADMIN",
 		"--device=/dev/fuse",
 		"--security-opt apparmor:unconfined",
@@ -80,6 +81,29 @@ func (s *step2CreateContainer) fuseArgs() string {
 	return fmt.Sprintf(format, s.mountFSName, s.config.GetProjectConfPath(), s.config.GetProjectMountPath())
 }
 
+// -v hostPath1:conatinerPath1 -v hostPath2:conatinerPath2
+func (s *step2CreateContainer) volumeArgs(ctx *task.Context) string {
+	volumes := []string{}
+	config := s.config
+	prefix := config.GetClientPrefix()
+	logDir := config.GetLogDir()
+	dataDir := config.GetDataDir()
+
+	if logDir != "" {
+		hostPath := logDir
+		containerPath := prefix + "/logs"
+		volumes = append(volumes, fmt.Sprintf("-v %s:%s", hostPath, containerPath))
+	}
+
+	if dataDir != "" {
+		hostPath := dataDir
+		containerPath := prefix + "/data"
+		volumes = append(volumes, fmt.Sprintf("-v %s:%s", hostPath, containerPath))
+	}
+
+	return strings.Join(volumes, " ")
+}
+
 func (s *step2CreateContainer) Execute(ctx *task.Context) error {
 	status, err := getMountStatus(ctx, s.mountPoint)
 	if err != nil {
@@ -90,10 +114,11 @@ func (s *step2CreateContainer) Execute(ctx *task.Context) error {
 
 	hostMountPath := s.mountPoint
 	containerMountPath := s.config.GetProjectMountPath()
+	mountVolumes := s.volumeArgs(ctx)
 	containerName := status.ContainerName
 	containerImage := s.config.GetContainerImage()
 	format := strings.Join(CREATE_CONTAINER_AGRS, " ")
-	args := fmt.Sprintf(format, hostMountPath, containerMountPath, containerName, containerImage, s.fuseArgs())
+	args := fmt.Sprintf(format, hostMountPath, containerMountPath, mountVolumes, containerName, containerImage, s.fuseArgs())
 	if out, err := ctx.Module().LocalShell("sudo docker create %s", args); err != nil {
 		return err
 	} else {
