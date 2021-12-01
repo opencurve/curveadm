@@ -24,6 +24,7 @@ package command
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/configure"
@@ -67,7 +68,7 @@ func NewMountCommand(curveadm *cli.CurveAdm) *cobra.Command {
 }
 
 func runMount(curveadm *cli.CurveAdm, options mountOptions) error {
-	mountPoint := options.mountPoint
+	mountPoint := strings.TrimSuffix(options.mountPoint, "/")
 	mountFSName := options.mountFSName
 
 	if !utils.PathExist(mountPoint) {

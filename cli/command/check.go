@@ -23,6 +23,8 @@
 package command
 
 import (
+	"strings"
+
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/tasks/client"
 	"github.com/opencurve/curveadm/internal/tasks/task"
@@ -52,7 +54,7 @@ func NewCheckCommand(curveadm *cli.CurveAdm) *cobra.Command {
 }
 
 func runCheck(curveadm *cli.CurveAdm, options checkOptions) error {
-	mountPoint := options.mountPoint
+	mountPoint := strings.TrimSuffix(options.mountPoint, "/")
 
 	if t, err := client.NewGetMountStatusTask(curveadm, mountPoint); err != nil {
 		return err
