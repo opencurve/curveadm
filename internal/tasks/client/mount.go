@@ -58,6 +58,7 @@ var (
 		"--cap-add SYS_ADMIN",
 		"--device=/dev/fuse",
 		"--security-opt apparmor:unconfined",
+		"--network=host",
 		"--name %s",                    // container name
 		"%s --role=client --args='%s'", // container image, start arguments
 	}
