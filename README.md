@@ -28,6 +28,21 @@ sudo docker run hello-world
 
 This command downloads a test image and runs it in a container. When the container runs, it prints a message and exits.
 
+
+Current version CurveFS only supports S3 storage backend, so you need deploy a S3 storage service or use object storage of public cloud provider, eg. AWS S3, Alibaba cloud OSS, Tencent cloud COS and so on. Here we use MinIO for S3 storage backend to deploy a CurveFS cluster:
+
+```shell
+# deploy a standalone MinIO S3 storage service
+sudo docker run -d --name minio \
+    -p 9000:9000 \
+    -p 9900:9900 \
+    -v minio-data:/data \     # minio-data is a local path, you should create this directory before runing the minio container
+    --restart unless-stopped \
+    minio/minio server /data --console-address ":9900"
+
+```
+The default Access Key and Secret Key of the root user are both `minioadmin`, the endpoint of S3 service is `http://$IP:9000`, you should create a bucket on browser with URL `http://$IP:9900`, then you can use these infomation to deploy a CurveFS cluster. You can get more reference at https://docs.min.io/minio/baremetal/installation/deploy-minio-standalone.html
+
 Installation
 ---
 
