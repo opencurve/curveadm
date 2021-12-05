@@ -134,7 +134,7 @@ func NewCreateTopologyTask(curveadm *cli.CurveAdm, dc *configure.DeployConfig) (
 		containerDstPath: fmt.Sprintf("%s/tools/conf/tools.conf", dc.GetCurveFSPrefix()),
 	})
 	t.AddStep(&step2CopyFileFromRemote{containerId: containerId})
-	t.AddStep(&step2RenderingConfig{})
+	t.AddStep(&step2RenderingConfig{delimiter: DEFAULT_DSV})
 	t.AddStep(&step2CopyFileToRemote{containerId: containerId})
 
 	// (2): generate curvefs topology

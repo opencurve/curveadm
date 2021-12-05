@@ -24,7 +24,6 @@ package tasks
 
 import (
 	"bufio"
-	"container/list"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -36,6 +35,7 @@ import (
 	"github.com/opencurve/curveadm/internal/log"
 	"github.com/opencurve/curveadm/internal/tasks/task"
 	tui "github.com/opencurve/curveadm/internal/tui/common"
+	"github.com/opencurve/curveadm/internal/utils"
 )
 
 const (
@@ -50,12 +50,13 @@ const (
 )
 
 type (
-	syncConfig struct {
-		srcPath     string
-		tmpPath     string
-		dstPath     string
-		containerId string
-		serviceId   string
+	syncItem struct {
+		tempDir          string
+		serviceId        string
+		containerId      string
+		containerSrcPath string
+		containerDstPath string
+		configDelimiter  string
 	}
 )
 
@@ -67,8 +68,13 @@ type (
 		containerDstPath string
 	}
 	step2CopyFileFromRemote struct{ containerId string }
-	step2RenderingConfig    struct{}
+	step2RenderingConfig    struct{ delimiter string }
 	step2CopyFileToRemote   struct{ containerId string }
+
+	step2CreateDirectory struct {
+		containerDstDir string
+		containerId     string
+	}
 )
 
 func (s *step2InitSyncConfig) Execute(ctx *task.Context) error {
@@ -139,14 +145,6 @@ func (s *step2RenderingConfig) replace(r *regexp.Regexp, line string, dc *config
 	return fmt.Sprintf("%s%s", mu[1], value), nil
 }
 
-func (s *step2RenderingConfig) formatPattern(role string) string {
-	pattern := fmt.Sprintf(REGEX_FORMAT, DEFAULT_DSV, DEFAULT_DSV)
-	if role == configure.ROLE_ETCD {
-		pattern = fmt.Sprintf(REGEX_FORMAT, ETCD_DSV, ETCD_DSV)
-	}
-	return pattern
-}
-
 func (s *step2RenderingConfig) readConfigFile(ctx *task.Context) (string, error) {
 	localPath := ctx.Register().Get(KEY_LOCAL_PATH).(string)
 	file, err := os.Open(localPath)
@@ -156,8 +154,7 @@ func (s *step2RenderingConfig) readConfigFile(ctx *task.Context) (string, error)
 	defer file.Close()
 
 	// regex
-	role := ctx.Config().GetRole()
-	pattern := s.formatPattern(role)
+	pattern := fmt.Sprintf(REGEX_FORMAT, s.delimiter, s.delimiter)
 	r, err := regexp.Compile(pattern)
 	if err != nil {
 		return "", err
@@ -215,6 +212,36 @@ func (s *step2CopyFileToRemote) Execute(ctx *task.Context) error {
 func (s *step2CopyFileToRemote) Rollback(ctx *task.Context) {
 }
 
+func (s *step2CreateDirectory) Execute(ctx *task.Context) error {
+	tempDir := fmt.Sprintf("/tmp/%s", utils.RandString(10))
+	_, err := ctx.Module().SshShell("mkdir -p %s", tempDir)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		ctx.Module().SshShell("rm -r %s", tempDir)
+	}()
+
+	cmd := fmt.Sprintf("sudo docker cp %s %s:%s", tempDir, s.containerId, s.containerDstDir)
+	_, err = ctx.Module().SshShell(cmd)
+	return err
+}
+
+func (s *step2CreateDirectory) Rollback(ctx *task.Context) {
+}
+
+func addSyncItem(t *task.Task, item syncItem) {
+	t.AddStep(&step2InitSyncConfig{
+		tempDir:          item.tempDir,
+		serviceId:        item.serviceId,
+		containerSrcPath: item.containerSrcPath,
+		containerDstPath: item.containerDstPath,
+	})
+	t.AddStep(&step2CopyFileFromRemote{containerId: item.containerId})
+	t.AddStep(&step2RenderingConfig{delimiter: item.configDelimiter})
+	t.AddStep(&step2CopyFileToRemote{containerId: item.containerId})
+}
+
 func NewSyncConfigTask(curveadm *cli.CurveAdm, dc *configure.DeployConfig) (*task.Task, error) {
 	serviceId := configure.ServiceId(curveadm.ClusterId(), dc.GetId())
 	containerId, err := curveadm.Storage().GetContainerId(serviceId)
@@ -228,34 +255,33 @@ func NewSyncConfigTask(curveadm *cli.CurveAdm, dc *configure.DeployConfig) (*tas
 		dc.GetHost(), dc.GetRole(), tui.TrimContainerId(containerId))
 	t := task.NewTask("Sync Config", subname, dc)
 
-	l := list.New()
-
-	srcPath := fmt.Sprintf("%s/conf/%s.conf", dc.GetCurveFSPrefix(), dc.GetRole())
-	dstPath := fmt.Sprintf("%s/conf/%s.conf", dc.GetServicePrefix(), dc.GetRole())
-	tmpPath := curveadm.TempDir()
-	l.PushBack(syncConfig{srcPath, tmpPath, dstPath, containerId, serviceId})
-
-	// tools.conf
-	srcPath = fmt.Sprintf("%s/conf/tools.conf", dc.GetCurveFSPrefix())
-	dstPath = "/etc/curvefs/tools.conf"
-	l.PushBack(syncConfig{srcPath, tmpPath, dstPath, containerId, serviceId})
-	SyncConfigList(t, l)
-	return t, nil
-}
-
-func SyncConfigList(t *task.Task, l *list.List) {
-	for e := l.Front(); e != nil; e = e.Next() {
-		item := syncConfig(e.Value.(syncConfig))
-		t.AddStep(&step2InitSyncConfig{
-			tempDir:   item.tmpPath,
-			serviceId: item.serviceId,
-			// ex: /usr/local/curvefs/conf/etcd.conf
-			containerSrcPath: item.srcPath,
-			// ex: /usr/local/curvefs/etcd/conf/etcd.conf
-			containerDstPath: item.dstPath,
-		})
-		t.AddStep(&step2CopyFileFromRemote{containerId: item.containerId})
-		t.AddStep(&step2RenderingConfig{})
-		t.AddStep(&step2CopyFileToRemote{containerId: item.containerId})
+	delimiter := DEFAULT_DSV
+	if dc.GetRole() == configure.ROLE_ETCD {
+		delimiter = ETCD_DSV
 	}
+	addSyncItem(t, syncItem{
+		tempDir:     curveadm.TempDir(),
+		serviceId:   serviceId,
+		containerId: containerId,
+		// ex: /usr/local/curvefs/conf/mds.conf
+		containerSrcPath: fmt.Sprintf("%s/conf/%s.conf", dc.GetCurveFSPrefix(), dc.GetRole()),
+		// ex: /usr/local/curvefs/mds/conf/mds.conf
+		containerDstPath: fmt.Sprintf("%s/conf/%s.conf", dc.GetServicePrefix(), dc.GetRole()),
+		configDelimiter:  delimiter,
+	})
+
+	t.AddStep(&step2CreateDirectory{ // it's a trick
+		containerId:     containerId,
+		containerDstDir: "/etc/curvefs",
+	})
+	addSyncItem(t, syncItem{
+		tempDir:          curveadm.TempDir(),
+		serviceId:        serviceId,
+		containerId:      containerId,
+		containerSrcPath: fmt.Sprintf("%s/conf/tools.conf", dc.GetCurveFSPrefix()),
+		containerDstPath: "/etc/curvefs/tools.conf",
+		configDelimiter:  DEFAULT_DSV,
+	})
+
+	return t, nil
 }
