@@ -1,3 +1,15 @@
+v0.0.5
+---
+
+* improve(fs): synchronize tools config to its default path
+* imporve(fs): trim ending slash of mountpoint when mount/umount/check
+* bugfix(fs): added volume for log dir and data dir for client container
+* bugfix(fs): specify host network for client container
+* bugfix(fs): create the missing configure directory when synchronize tools config
+* bugfix(*): use empty string for default binary option of reload command (issue #11)
+
+---
+
 v0.0.4
 ---
 
