@@ -91,6 +91,17 @@ Deploy cluster:
 curveadm deploy
 ```
 
+Show cluster status:
+```shell
+curveadm status
+```
+
+Show cluster status with detail(show log dir and data dir used by service):
+```shell
+curveadm status -v
+```
+
+
 ### Mount FileSystem
 
 Prepare client config, you can refer to the sample configuration:
