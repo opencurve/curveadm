@@ -33,6 +33,7 @@ import (
 
 type (
 	step2RunContainer struct{ containerId string }
+	step2PostStart    struct{ containerId string }
 )
 
 func (s *step2RunContainer) Execute(ctx *task.Context) error {
@@ -41,6 +42,15 @@ func (s *step2RunContainer) Execute(ctx *task.Context) error {
 }
 
 func (s *step2RunContainer) Rollback(ctx *task.Context) {
+}
+
+func (s *step2PostStart) Execute(ctx *task.Context) error {
+	cmd := fmt.Sprintf("[[ ! -z $(which crontab) ]] && crontab /var/spool/cron/crontabs/root")
+	_, err := ctx.Module().SshShell("sudo docker exec %s /bin/bash -c '%s'", s.containerId, cmd)
+	return err
+}
+
+func (s *step2PostStart) Rollback(ctx *task.Context) {
 }
 
 func NewStartServiceTask(curveadm *cli.CurveAdm, dc *configure.DeployConfig) (*task.Task, error) {
@@ -56,5 +66,6 @@ func NewStartServiceTask(curveadm *cli.CurveAdm, dc *configure.DeployConfig) (*t
 		dc.GetHost(), dc.GetRole(), tui.TrimContainerId(containerId))
 	t := task.NewTask("Start Service", subname, dc)
 	t.AddStep(&step2RunContainer{containerId: containerId})
+	t.AddStep(&step2PostStart{containerId: containerId})
 	return t, nil
 }

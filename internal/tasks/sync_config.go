@@ -75,6 +75,11 @@ type (
 		containerDstDir string
 		containerId     string
 	}
+
+	step2InstallReport struct {
+		containerId string
+		clusterUUId string
+	}
 )
 
 func (s *step2InitSyncConfig) Execute(ctx *task.Context) error {
@@ -242,6 +247,40 @@ func addSyncItem(t *task.Task, item syncItem) {
 	t.AddStep(&step2CopyFileToRemote{containerId: item.containerId})
 }
 
+func (s *step2InstallReport) Execute(ctx *task.Context) error {
+	config := ctx.Config()
+	tempfile := fmt.Sprintf("/tmp/report_%s", utils.RandString(10))
+	containerPath := fmt.Sprintf("%s/tools/sbin/report.sh", config.GetCurveFSPrefix())
+
+	// step1: install report.sh
+	cmd := fmt.Sprintf("sudo docker cp %s %s:%s", tempfile, s.containerId, containerPath)
+	if err := ctx.Module().SshInstallScript("report", tempfile); err != nil {
+		return err
+	} else if _, err := ctx.Module().SshShell(cmd); err != nil {
+		return err
+	}
+
+	// step2: add report.sh to crontab
+	comment := ""
+	if !config.GetReportUsage() {
+		comment = "#"
+	}
+	cron := fmt.Sprintf("%s* * * * * bash %s %s %s", comment, containerPath, s.clusterUUId, config.GetRole())
+	tempfile = fmt.Sprintf("/tmp/crontab_%s", utils.RandString(10))
+	cmd1 := fmt.Sprintf("install -m 600 <(echo '%s') %s", cron, tempfile)
+	cmd2 := fmt.Sprintf("sudo docker cp %s %s:/var/spool/cron/crontabs/root", tempfile, s.containerId)
+	if _, err := ctx.Module().SshShell(cmd1); err != nil {
+		return err
+	} else if _, err := ctx.Module().SshShell(cmd2); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *step2InstallReport) Rollback(ctx *task.Context) {
+}
+
 func NewSyncConfigTask(curveadm *cli.CurveAdm, dc *configure.DeployConfig) (*task.Task, error) {
 	serviceId := configure.ServiceId(curveadm.ClusterId(), dc.GetId())
 	containerId, err := curveadm.Storage().GetContainerId(serviceId)
@@ -255,6 +294,7 @@ func NewSyncConfigTask(curveadm *cli.CurveAdm, dc *configure.DeployConfig) (*tas
 		dc.GetHost(), dc.GetRole(), tui.TrimContainerId(containerId))
 	t := task.NewTask("Sync Config", subname, dc)
 
+	// (1) Sync service config
 	delimiter := DEFAULT_DSV
 	if dc.GetRole() == configure.ROLE_ETCD {
 		delimiter = ETCD_DSV
@@ -270,6 +310,7 @@ func NewSyncConfigTask(curveadm *cli.CurveAdm, dc *configure.DeployConfig) (*tas
 		configDelimiter:  delimiter,
 	})
 
+	// (2) Sync tools config
 	t.AddStep(&step2CreateDirectory{ // it's a trick
 		containerId:     containerId,
 		containerDstDir: "/etc/curvefs",
@@ -281,6 +322,12 @@ func NewSyncConfigTask(curveadm *cli.CurveAdm, dc *configure.DeployConfig) (*tas
 		containerSrcPath: fmt.Sprintf("%s/conf/tools.conf", dc.GetCurveFSPrefix()),
 		containerDstPath: "/etc/curvefs/tools.conf",
 		configDelimiter:  DEFAULT_DSV,
+	})
+
+	// (3) Install report script
+	t.AddStep(&step2InstallReport{
+		containerId: containerId,
+		clusterUUId: curveadm.ClusterUUId(),
 	})
 
 	return t, nil

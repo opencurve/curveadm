@@ -41,6 +41,7 @@ var (
 	CREATE_CLUSTERS_TABLE = `
 		CREATE TABLE IF NOT EXISTS clusters (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			uuid TEXT NOT NULL,
 			name TEXT NOT NULL UNIQUE,
 			description TEXT,
 			topology TEXT NULL,
@@ -48,6 +49,21 @@ var (
 			current INTEGER DEFAULT 0
 		)
 	`
+
+	CHECK_UUID_COLUMN = `
+        SELECT COUNT(*) AS total
+        FROM pragma_table_info('clusters')
+        WHERE name='uuid'
+   `
+
+	RENAME_CLUSTERS_TABLE = `ALTER TABLE clusters RENAME TO clusters_old`
+
+	INSERT_CLUSTERS_FROM_OLD_TABLE = `
+        INSERT INTO clusters(id, uuid, name, description, topology, create_time, current)
+        SELECT id, hex(randomblob(16)) uuid, name, description, topology, create_time, current
+        FROM clusters_old
+    `
+	DROP_OLD_CLUSTERS_TABLE = `DROP TABLE clusters_old`
 
 	// id: clusterId_role_host_(sequence/name)
 	CREATE_CONTAINERS_TABLE = `
@@ -59,8 +75,8 @@ var (
 	`
 
 	// cluster
-	INSERT_CLUSTER = `INSERT INTO clusters(name, description, topology, create_time)
-                                  VALUES(?, ?, ?, datetime('now','localtime'))`
+	INSERT_CLUSTER = `INSERT INTO clusters(uuid, name, description, topology, create_time)
+                                  VALUES(hex(randomblob(16)), ?, ?, ?, datetime('now','localtime'))`
 
 	DELETE_CLUSTER = `DELETE from clusters WHERE name = ?`
 
