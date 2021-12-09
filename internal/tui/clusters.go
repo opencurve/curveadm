@@ -38,7 +38,7 @@ func currentDecorate(message string) string {
 func FormatClusters(clusters []storage.Cluster, vebose bool) string {
 	lines := [][]interface{}{}
 	if vebose {
-		title := []string{" ", "Cluster", "Id", "Create Time", "Description"}
+		title := []string{" ", "Cluster", "Id", "UUId", "Create Time", "Description"}
 		first, second := tuicommon.FormatTitle(title)
 		second[0] = ""
 		lines = append(lines, first)
@@ -58,6 +58,7 @@ func FormatClusters(clusters []storage.Cluster, vebose bool) string {
 
 		if vebose {
 			line = append(line, strconv.Itoa(cluster.Id))
+			line = append(line, cluster.UUId)
 			line = append(line, cluster.CreateTime.Format("2006-01-02 15:04:05"))
 			line = append(line, cluster.Description)
 		}

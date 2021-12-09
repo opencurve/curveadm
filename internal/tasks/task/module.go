@@ -117,14 +117,14 @@ func (c *Module) LocalShell(format string, a ...interface{}) (string, error) {
 	return string(out), err
 }
 
-func (c *Module) SshMountScript(name, remotePath string) error {
+func (c *Module) SshInstallScript(name, remotePath string) error {
 	script, ok := scripts.Get(name)
 	if !ok {
 		return fmt.Errorf("script '%s' not found", name)
 	}
 
-	_, err := c.SshShell("echo '%s' > %s", script, remotePath)
-	log.SwitchLevel(err)("SshMountScript",
+	_, err := c.SshShell("cat << 'EOF' > %s\n%s\nEOF", remotePath, script)
+	log.SwitchLevel(err)("SshInstallScript",
 		log.Field("script", name),
 		log.Field("remotePath", remotePath),
 		log.Field("error", err))

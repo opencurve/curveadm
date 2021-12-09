@@ -63,7 +63,7 @@ func (s *step2CollectService) Execute(ctx *task.Context) error {
 		ctx.Module().SshRemovePath(script, false)
 	}()
 
-	if err := ctx.Module().SshMountScript("collect", script); err != nil {
+	if err := ctx.Module().SshInstallScript("collect", script); err != nil {
 		return err
 	} else if _, err := ctx.Module().SshShell(cmd1); err != nil {
 		return err

@@ -38,6 +38,7 @@ const (
 	KEY_USER               string = "user"
 	KEY_SSH_PORT           string = "ssh_port"
 	KEY_PRIVATE_KEY_FILE   string = "private_key_file"
+	KEY_REPORT_USAGE       string = "report_usage"
 	KEY_CONTAINER_IMAGE    string = "container_image"
 	KEY_LOG_DIR            string = "log_dir"
 	KEY_DATA_DIR           string = "data_dir"
@@ -62,6 +63,7 @@ var (
 		KEY_USER:               true,
 		KEY_SSH_PORT:           true,
 		KEY_PRIVATE_KEY_FILE:   true,
+		KEY_REPORT_USAGE:       true,
 		KEY_CONTAINER_IMAGE:    true,
 		KEY_DATA_DIR:           true,
 		KEY_LOG_DIR:            true,
@@ -140,6 +142,8 @@ func NewDeployConfig(role, host, name string, sequenceNum int, config map[string
 			c[k] = v.(string)
 		} else if utils.IsInt(v) {
 			c[k] = strconv.Itoa(v.(int))
+		} else if utils.IsBool(v) {
+			c[k] = strconv.FormatBool(v.(bool))
 		} else {
 			return nil, fmt.Errorf("unsupport value type for config key '%s'", k)
 		}
@@ -256,6 +260,8 @@ func (dc *DeployConfig) defaultValue(key string) string {
 		return strconv.Itoa(DEFAULT_SSH_PORT)
 	case KEY_PRIVATE_KEY_FILE:
 		return fmt.Sprintf("/home/%s/.ssh/id_rsa", dc.GetConfig(KEY_USER))
+	case KEY_REPORT_USAGE:
+		return "true"
 	case KEY_LISTEN_IP:
 		return dc.GetHost()
 	case KEY_LISTEN_PORT:
@@ -323,6 +329,10 @@ func (dc *DeployConfig) GetSshPort() int {
 
 func (dc *DeployConfig) GetPrivateKeyFile() string {
 	return dc.GetConfig(KEY_PRIVATE_KEY_FILE)
+}
+
+func (dc *DeployConfig) GetReportUsage() bool {
+	return dc.GetConfig(KEY_REPORT_USAGE) != "false"
 }
 
 func (dc *DeployConfig) GetContainerImage() string {

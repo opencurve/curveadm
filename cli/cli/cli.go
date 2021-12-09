@@ -52,6 +52,7 @@ type CurveAdm struct {
 	memStorage *utils.SafeMap
 
 	clusterId           int    // current cluster id
+	clusterUUId         string // current cluster uuid
 	clusterName         string // current cluster name
 	clusterTopologyData string // cluster topology
 }
@@ -139,6 +140,7 @@ func (curveadm *CurveAdm) init() error {
 	curveadm.storage = s
 	curveadm.memStorage = utils.NewSafeMap()
 	curveadm.clusterId = cluster.Id
+	curveadm.clusterUUId = cluster.UUId
 	curveadm.clusterName = cluster.Name
 	curveadm.clusterTopologyData = cluster.Topology
 
@@ -191,6 +193,10 @@ func (curveadm *CurveAdm) MemStorage() *utils.SafeMap {
 
 func (curveadm *CurveAdm) ClusterId() int {
 	return curveadm.clusterId
+}
+
+func (curveadm *CurveAdm) ClusterUUId() string {
+	return curveadm.clusterUUId
 }
 
 func (curveadm *CurveAdm) ClusterName() string {

@@ -24,6 +24,7 @@ package storage
 
 import (
 	"database/sql"
+	"fmt"
 	"sync"
 	"time"
 
@@ -32,6 +33,7 @@ import (
 
 type Cluster struct {
 	Id          int
+	UUId        string
 	Name        string
 	Description string
 	CreateTime  time.Time
@@ -65,11 +67,57 @@ func NewStorage(dbfile string) (*Storage, error) {
 }
 
 func (s *Storage) init() error {
-	err := s.execSQL(CREATE_CLUSTERS_TABLE)
-	if err == nil {
-		err = s.execSQL(CREATE_CONTAINERS_TABLE)
+	if err := s.execSQL(CREATE_CLUSTERS_TABLE); err != nil {
+		return err
+	} else if err := s.execSQL(CREATE_CONTAINERS_TABLE); err != nil {
+		return err
+	} else if err := s.compatible(); err != nil {
+		return err
 	}
-	return err
+
+	return nil
+}
+
+func (s *Storage) compatible() error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	err = func() error {
+		rows, err := tx.Query(CHECK_UUID_COLUMN)
+		if err != nil {
+			return err
+		}
+
+		if rows.Next() {
+			count := 0
+			err = rows.Scan(&count)
+			rows.Close()
+			if err != nil {
+				return err
+			}
+			if count != 0 {
+				return nil
+			}
+		}
+
+		alterSQL := fmt.Sprintf("%s;%s;%s;%s",
+			RENAME_CLUSTERS_TABLE,
+			CREATE_CLUSTERS_TABLE,
+			INSERT_CLUSTERS_FROM_OLD_TABLE,
+			DROP_OLD_CLUSTERS_TABLE,
+		)
+		_, err = tx.Exec(alterSQL)
+		return err
+	}()
+
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
 }
 
 func (s *Storage) execSQL(query string, args ...interface{}) error {
@@ -109,7 +157,7 @@ func (s *Storage) getClusters(query string, args ...interface{}) ([]Cluster, err
 	clusters := []Cluster{}
 	for rows.Next() {
 		cluster := Cluster{}
-		err = rows.Scan(&cluster.Id, &cluster.Name, &cluster.Description,
+		err = rows.Scan(&cluster.Id, &cluster.UUId, &cluster.Name, &cluster.Description,
 			&cluster.Topology, &cluster.CreateTime, &cluster.Current)
 		if err != nil {
 			return nil, err

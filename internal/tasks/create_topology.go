@@ -84,7 +84,7 @@ func (s *step2WaitMdsElectionDone) Execute(ctx *task.Context) error {
 
 	cmd1 := fmt.Sprintf("sudo docker cp %s %s:%s", tempfile, s.containerId, containerPath)
 	cmd2 := fmt.Sprintf("sudo docker exec %s /bin/bash %s %s", s.containerId, containerPath, clusterMdsAddrs)
-	if err := ctx.Module().SshMountScript("wait", tempfile); err != nil {
+	if err := ctx.Module().SshInstallScript("wait", tempfile); err != nil {
 		return err
 	} else if _, err := ctx.Module().SshShell(cmd1); err != nil {
 		return err

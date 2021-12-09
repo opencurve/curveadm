@@ -16,41 +16,37 @@
 
 /*
  * Project: CurveAdm
- * Created Date: 2021-11-25
+ * Created Date: 2021-12-06
  * Author: Jingli Chen (Wine93)
  */
 
 package scripts
 
-import (
-	"fmt"
-	"os"
-)
-
-var scripts = map[string]string{}
-
-func init() {
-	scripts = map[string]string{
-		"wait":    WAIT,
-		"collect": COLLECT,
-		"report":  REPORT,
-	}
+/*
+ * Usage: report UUID metaserver
+ * Example: report abcdef01234567890 metaserver
+ */
+var REPORT = `
+function usage() {
+    curvefs_tool usage-metadata 2>/dev/null | awk 'BEGIN {
+        BYTES["KB"] = 1024
+        BYTES["MB"] = BYTES["KB"] * 1024
+        BYTES["GB"] = BYTES["MB"] * 1024
+        BYTES["TB"] = BYTES["GB"] * 1024
+    }
+    { 
+        if ($0 ~ /all cluster/) {
+            printf ("%0.f", $8 * BYTES[$9])
+        }
+    }'
 }
 
-func Get(name string) (string, bool) {
-	v, ok := scripts[name]
-	return v, ok
-}
-
-func MountScript(name, path string) error {
-	if v, ok := scripts[name]; !ok {
-		return fmt.Errorf("script '%s' not found", name)
-	} else if file, err := os.Open(name); err != nil {
-		return err
-	} else if n, err := file.WriteString(v); err != nil {
-		return err
-	} else if n != len(v) {
-		return fmt.Errorf("write abort")
-	}
-	return nil
-}
+[[ -z $(which curl) ]] && apt-get install -y curl
+g_uuid=$1
+g_role=$2
+g_usage=$(usage)
+curl -XPOST http://curveadm.aspirer.wang:19302/ \
+    -d "uuid=$g_uuid" \
+    -d "role=$g_role" \
+    -d "usage=$g_usage"
+`

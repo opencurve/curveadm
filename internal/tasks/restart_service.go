@@ -56,5 +56,6 @@ func NewRestartServiceTask(curveadm *cli.CurveAdm, dc *configure.DeployConfig) (
 		dc.GetHost(), dc.GetRole(), tui.TrimContainerId(containerId))
 	t := task.NewTask("Restart Service", subname, dc)
 	t.AddStep(&step2RestartContainer{containerId: containerId})
+	t.AddStep(&step2PostStart{containerId: containerId})
 	return t, nil
 }
