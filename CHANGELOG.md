@@ -1,3 +1,10 @@
+v0.0.6
+---
+
+* feature(fs): now we will report CurveFS cluster usage to curve center (issue #18)
+
+---
+
 v0.0.5
 ---
 
