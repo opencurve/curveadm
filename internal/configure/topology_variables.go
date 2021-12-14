@@ -50,6 +50,7 @@ import (
  *   ${cluster_etcd_http_addr}   "etcd1=http://10.0.10.1:2380,etcd2=http://10.0.10.2:2380,etcd3=http://10.0.10.3:2380"
  *   ${cluster_etcd_addr}        "10.0.10.1:2380,10.0.10.2:2380,10.0.10.3:2380"
  *   ${cluster_mds_addr}         "10.0.10.1:6666,10.0.10.2:6666,10.0.10.3:6666"
+ *   ${cluster_mds_dummy_addr}   "10.0.10.1:6766,10.0.10.2:6766,10.0.10.3:6766"
  *   ${cluster_metaserver_addr}  "10.0.10.1:6701,10.0.10.2:6701,10.0.10.3:6701"
  */
 var (
@@ -83,6 +84,7 @@ var (
 		{"cluster_etcd_http_addr", "", "", true},
 		{"cluster_etcd_addr", "", "", true},
 		{"cluster_mds_addr", "", "", true},
+		{"cluster_mds_dummy_addr", "", "", true},
 		{"cluster_metaserver_addr", "", "", true},
 	}
 )
@@ -112,6 +114,20 @@ func joinPeer(dcs []*DeployConfig, role string) string {
 		if role == ROLE_ETCD {
 			peerPort = dc.GetConfig(KEY_LISTEN_CLIENT_PORT)
 		}
+		peer := fmt.Sprintf("%s:%s", peerHost, peerPort)
+		peers = append(peers, peer)
+	}
+	return strings.Join(peers, ",")
+}
+
+func joinMdsDummyPeer(dcs []*DeployConfig) string {
+	peers := []string{}
+	for _, dc := range dcs {
+		if dc.GetRole() != ROLE_MDS {
+			continue
+		}
+		peerHost := dc.GetConfig(KEY_LISTEN_IP)
+		peerPort := dc.GetConfig(KEY_LISTEN_DUMMY_PORT)
 		peer := fmt.Sprintf("%s:%s", peerHost, peerPort)
 		peers = append(peers, peer)
 	}
@@ -153,6 +169,8 @@ func getValue(name string, dcs []*DeployConfig, idx int) string {
 		return joinPeer(dcs, ROLE_ETCD)
 	case "cluster_mds_addr":
 		return joinPeer(dcs, ROLE_MDS)
+	case "cluster_mds_dummy_addr":
+		return joinMdsDummyPeer(dcs)
 	case "cluster_metaserver_addr":
 		return joinPeer(dcs, ROLE_METASERVER)
 	}
