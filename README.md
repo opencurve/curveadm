@@ -66,32 +66,25 @@ Usage
 
 ### Deploy Cluster
 
-Prepare cluster topology, you can refer to the sample configuration:
+Prepare cluster topology, you can refer to the sample configuration：
 
-* [cluster](examples/cluster/topology.yaml)
+* [cluster](examples/cluster/topology.yaml) <sup>(configuration document：[中文](docs/zh/REMEAD.md))</sup>
 * [stand-alone](examples/stand-alone/topology.yaml)
 
 ```shell
 vi topology.yaml
-
-# Modify the following configuration items according to your environment information:
-  s3.ak: 
-  s3.sk: 
-  s3.endpoint: 
-  s3.bucket_name: 
-# Modify other configuration items as needed
 ```
 
 Add cluster with specified topology:
 
 ```shell
-curveadm cluster add c1 -f topology.yaml
+curveadm cluster add my-cluster -f topology.yaml
 ```
 
 Switch cluster:
 
 ```shell
-curveadm cluster checkout c1
+curveadm cluster checkout my-cluster
 ```
 
 Deploy cluster:
@@ -100,15 +93,12 @@ curveadm deploy
 ```
 
 Show cluster status:
+ 
 ```shell
 curveadm status
 ```
 
-Show cluster status with detail(show log dir and data dir used by service):
-```shell
-curveadm status -v
-```
-
+* If you want to show service status for verbose, please add `-v` option.
 
 ### Mount FileSystem
 
@@ -119,13 +109,6 @@ Prepare client config, you can refer to the sample configuration:
 
 ```shell
 vi client.yaml
-
-# Modify the following configuration items according to your environment information:
-  s3.ak: 
-  s3.sk: 
-  s3.endpoint: 
-  s3.bucket_name: 
-# Modify other configuration items as needed
 ```
 
 Mount filesystem:

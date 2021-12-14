@@ -2,14 +2,14 @@ global:
   user: curve
   ssh_port: 22
   private_key_file: /home/curve/.ssh/id_rsa
-  report_usage: true,
-  data_dir: /home/curve/curvefs/data/${service_role}${service_sequence}
-  log_dir: /home/curve/curvefs/logs/${service_role}${service_sequence}
+  report_usage: true
+  data_dir: /home/${user}/curvefs/data/${service_role}${service_sequence}
+  log_dir: /home/${user}/curvefs/logs/${service_role}${service_sequence}
   container_image: opencurvedocker/curvefs:latest
-  s3.ak: <>
-  s3.sk: <>
-  s3.endpoint: nos-eastchina1.126.net
-  s3.bucket_name: curvefs
+  s3.ak: minioadmin
+  s3.sk: minioadmin
+  s3.endpoint: http://127.0.0.1:9000
+  s3.bucket_name: <>
   variable:
     target: 10.0.1.1
 
