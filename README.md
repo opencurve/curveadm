@@ -16,6 +16,7 @@ Table of Contents
     * [Mount FileSystem](#mount-filesystem)
     * [Umount FileSystem](#umount-filesystem)
 * [Devops](#devops)
+* [Usage Report](#usage-report) 
 * [Ask for help](#ask-for-help)
 
 Requirement
@@ -131,6 +132,21 @@ Devops
 ---
 
 Run `curveadm -h` for more information.
+
+[Back to TOC](#table-of-contents)
+
+Usage Report
+---
+
+The CurveAdm will collect user cluster usage data to help curve team better understand how everyone use it,
+it only reports cluster `uuid` and `usage` by anonymous, the complete code stay [here](https://github.com/opencurve/curveadm/blob/master/internal/scripts/report.go).
+
+You can also disable it by edit cluser topology config:
+```shell
+global:
+  ...
+  report_usage: false
+```
 
 [Back to TOC](#table-of-contents)
 
