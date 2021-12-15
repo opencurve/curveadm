@@ -73,6 +73,13 @@ Prepare cluster topology, you can refer to the sample configuration:
 
 ```shell
 vi topology.yaml
+
+# Modify the following configuration items according to your environment information:
+  s3.ak: 
+  s3.sk: 
+  s3.endpoint: 
+  s3.bucket_name: 
+# Modify other configuration items as needed
 ```
 
 Add cluster with specified topology:
@@ -112,6 +119,13 @@ Prepare client config, you can refer to the sample configuration:
 
 ```shell
 vi client.yaml
+
+# Modify the following configuration items according to your environment information:
+  s3.ak: 
+  s3.sk: 
+  s3.endpoint: 
+  s3.bucket_name: 
+# Modify other configuration items as needed
 ```
 
 Mount filesystem:
