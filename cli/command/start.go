@@ -27,7 +27,7 @@ import (
 
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/configure"
-	"github.com/opencurve/curveadm/internal/tasks"
+	"github.com/opencurve/curveadm/internal/task/tasks"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/cobra"
 )
@@ -73,7 +73,7 @@ func runStart(curveadm *cli.CurveAdm, options startOptions) error {
 
 	if len(dcs) == 0 {
 		return fmt.Errorf("service not found")
-	} else if err := tasks.ExecParallelTasks(tasks.START_SERVICE, curveadm, dcs); err != nil {
+	} else if err := tasks.ExecTasks(tasks.START_SERVICE, curveadm, dcs); err != nil {
 		return curveadm.NewPromptError(err, "")
 	}
 	return nil

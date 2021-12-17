@@ -25,12 +25,11 @@ package command
 import (
 	"fmt"
 
-	cliutil "github.com/opencurve/curveadm/internal/utils"
-
 	"github.com/fatih/color"
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/configure"
-	"github.com/opencurve/curveadm/internal/tasks"
+	"github.com/opencurve/curveadm/internal/task/tasks"
+	cliutil "github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -143,7 +142,7 @@ func runDeploy(curveadm *cli.CurveAdm, options deployOptions) error {
 		if len(dcs) == 0 {
 			return fmt.Errorf("there is no service specified in topology, " +
 				"please use 'curveadm config commit' to update topology")
-		} else if err := tasks.ExecParallelTasks(taskType, curveadm, dcs); err != nil {
+		} else if err := tasks.ExecTasks(taskType, curveadm, dcs); err != nil {
 			return curveadm.NewPromptError(err, "")
 		} else {
 			curveadm.WriteOut("\n")

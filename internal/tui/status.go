@@ -25,21 +25,24 @@ package tui
 import (
 	"sort"
 
+	task "github.com/opencurve/curveadm/internal/task/task/common"
+
 	"github.com/fatih/color"
-	"github.com/opencurve/curveadm/internal/tasks"
-	tuicommon "github.com/opencurve/curveadm/internal/tui/common"
+	tui "github.com/opencurve/curveadm/internal/tui/common"
 )
 
 // status: One of created, restarting, running, removing, paused, exited, or dead
 func statusDecorate(status string) string {
 	if status == "Cleaned" {
 		return color.BlueString(status)
+	} else if status == "Losed" {
+		return color.RedString(status)
 	}
 
 	return status
 }
 
-func sortStatues(statuses []tasks.ServiceStatus) {
+func sortStatues(statuses []task.ServiceStatus) {
 	sort.Slice(statuses, func(i, j int) bool {
 		s1, s2 := statuses[i], statuses[j]
 		if s1.Role == s2.Role {
@@ -52,7 +55,7 @@ func sortStatues(statuses []tasks.ServiceStatus) {
 	})
 }
 
-func FormatStatus(statuses []tasks.ServiceStatus, vebose bool) string {
+func FormatStatus(statuses []task.ServiceStatus, vebose bool) string {
 	lines := [][]interface{}{}
 
 	// title
@@ -61,7 +64,7 @@ func FormatStatus(statuses []tasks.ServiceStatus, vebose bool) string {
 		title = append(title, "Log Dir")
 		title = append(title, "Data Dir")
 	}
-	first, second := tuicommon.FormatTitle(title)
+	first, second := tui.FormatTitle(title)
 	lines = append(lines, first)
 	lines = append(lines, second)
 
@@ -73,7 +76,7 @@ func FormatStatus(statuses []tasks.ServiceStatus, vebose bool) string {
 			status.Role,
 			status.Host,
 			status.ContainerId,
-			tuicommon.DecorateMessage{Message: status.Status, Decorate: statusDecorate},
+			tui.DecorateMessage{Message: status.Status, Decorate: statusDecorate},
 		}
 
 		if vebose {
@@ -84,6 +87,6 @@ func FormatStatus(statuses []tasks.ServiceStatus, vebose bool) string {
 		lines = append(lines, line)
 	}
 
-	output := tuicommon.FixedFormat(lines, 2)
+	output := tui.FixedFormat(lines, 2)
 	return output
 }

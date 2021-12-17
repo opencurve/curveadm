@@ -84,7 +84,7 @@ func Upgrade(curveadm *cli.CurveAdm) error {
 		return nil
 	}
 
-	cmd := exec.Command("/bin/sh", "-c", fmt.Sprintf("curl -fsSL %s | sh", URL_INSTALL_SCRIPT))
+	cmd := exec.Command("/bin/bash", "-c", fmt.Sprintf("curl -fsSL %s | sh", URL_INSTALL_SCRIPT))
 	cmd.Env = append(os.Environ(), ENV_UPGRADE)
 	cmd.Stderr = curveadm.Err()
 	cmd.Stdout = curveadm.Out()

@@ -33,42 +33,28 @@ import (
 )
 
 type ExecOption struct {
-	Sudo  bool
-	Local bool
+	ExecWithSudo bool
+	ExecInLocal  bool
 }
 
 type Module struct {
-	sshClient   *ssh.Client
-	shell       *Shell
-	fileManager *FileManager
-	dockerCli   *DockerCli
+	sshClient *ssh.Client
 }
 
 func NewModule(sshClient *ssh.Client) *Module {
-	return &Module{
-		sshClient:   sshClient,
-		shell:       NewShell(sshClient),
-		fileManager: NewFileManager(sshClient),
-		dockerCli:   NewDockerCli(sshClient),
-	}
-}
-
-func (m *Module) Close() {
-	if m.sshClient != nil {
-		m.sshClient.Close()
-	}
+	return &Module{sshClient: sshClient}
 }
 
 func (m *Module) Shell() *Shell {
-	return m.shell
+	return NewShell(m.sshClient)
 }
 
 func (m *Module) File() *FileManager {
-	return m.fileManager
+	return NewFileManager(m.sshClient)
 }
 
 func (m *Module) DockerCli() *DockerCli {
-	return m.dockerCli
+	return NewDockerCli(m.sshClient)
 }
 
 // common utils
@@ -85,27 +71,28 @@ func execCommand(sshClient *ssh.Client,
 	tmpl *template.Template,
 	data map[string]interface{},
 	options ExecOption) (string, error) {
-	sudo := ""
-	if options.Sudo {
-		sudo = "sudo"
-	}
-
-	cmd := bytes.NewBufferString(sudo)
-	err := tmpl.Execute(cmd, data)
+	buffer := bytes.NewBufferString("")
+	err := tmpl.Execute(buffer, data)
 	if err != nil {
 		return "", err
 	}
 
+	cmd := buffer.String()
+	if options.ExecWithSudo {
+		cmd = "sudo " + cmd
+	}
+
 	var out []byte
-	if options.Local {
-		out, err = exec.Command("bash", "-c", cmd.String()).CombinedOutput()
+	if options.ExecInLocal {
+		out, err = exec.Command("bash", "-c", cmd).CombinedOutput()
 	} else {
-		out, err = sshClient.Run(cmd.String())
+		out, err = sshClient.Run(cmd)
 	}
 
 	log.SwitchLevel(err)("execCommand",
 		log.Field("remoteAddr", remoteAddr(sshClient)),
-		log.Field("command", cmd.String()),
-		log.Field("error", err))
+		log.Field("command", cmd),
+		log.Field("error", err),
+		log.Field("output", string(out)))
 	return string(out), err
 }

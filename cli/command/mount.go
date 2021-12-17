@@ -26,10 +26,11 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/opencurve/curveadm/internal/configure/client"
+
 	"github.com/opencurve/curveadm/cli/cli"
-	"github.com/opencurve/curveadm/internal/configure"
-	"github.com/opencurve/curveadm/internal/tasks/client"
-	"github.com/opencurve/curveadm/internal/tasks/task"
+	fsTask "github.com/opencurve/curveadm/internal/task/task/fs"
+	"github.com/opencurve/curveadm/internal/task/tasks"
 	"github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/cobra"
 )
@@ -68,17 +69,37 @@ func NewMountCommand(curveadm *cli.CurveAdm) *cobra.Command {
 }
 
 func runMount(curveadm *cli.CurveAdm, options mountOptions) error {
-	mountPoint := strings.TrimSuffix(options.mountPoint, "/")
-	mountFSName := options.mountFSName
+	cc, err := client.ParseClientConfig(options.filename)
+	if err != nil {
+		return err
+	}
 
-	if !utils.PathExist(mountPoint) {
-		return fmt.Errorf("mount path '%s' not exist", mountPoint)
-	} else if config, err := configure.ParseClientConfig(options.filename); err != nil {
+	// check mount point
+	mountFSName := options.mountFSName
+	mountPoint := strings.TrimSuffix(options.mountPoint, "/")
+	err = utils.CheckMountPoint(mountPoint)
+	if err != nil {
 		return err
-	} else if t, err := client.NewMountFSTask(curveadm, mountPoint, mountFSName, config); err != nil {
-		return err
-	} else if err := task.ParallelExecute(1, []*task.Task{t}, task.Options{SilentSubBar: true}); err != nil {
-		return err
+	}
+
+	// check mount status
+	curveadm.MemStorage().Set(fsTask.KEY_MOUNT_FSNAME, mountFSName)
+	curveadm.MemStorage().Set(fsTask.KEY_MOUNT_POINT, mountPoint)
+	err = tasks.ExecTasks(tasks.CHECK_MOUNT_STATUS, curveadm, cc)
+	if err != nil {
+		return curveadm.NewPromptError(err, "")
+	} else {
+		v := curveadm.MemStorage().Get(fsTask.KEY_MOUNT_STATUS)
+		status := v.(fsTask.MountStatus).Status
+		if status != fsTask.STATUS_UNMOUNTED {
+			return fmt.Errorf("path mounted, please run 'curveadm umount %s' first", mountPoint)
+		}
+	}
+
+	// mount file system
+	err = tasks.ExecTasks(tasks.MOUNT_FILESYSTEM, curveadm, cc)
+	if err != nil {
+		return curveadm.NewPromptError(err, "")
 	}
 
 	return nil

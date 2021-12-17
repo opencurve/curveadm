@@ -36,13 +36,20 @@ import (
 // docker stop [OPTIONS] CONTAINER [CONTAINER...]
 // docker restart [OPTIONS] CONTAINER [CONTAINER...]
 // docker rm [OPTIONS] CONTAINER [CONTAINER...]
+// docker ps [OPTIONS]
 // docker exec [OPTIONS] CONTAINER COMMAND [ARG...]
 // docker cp [OPTIONS] CONTAINER:SRC_PATH DEST_PATH|-
 const (
-	TEMPLATE_PULL   = "docker pull {{.options}} {{.name}}"
-	TEMPLATE_CREATE = "docker create {{.options}} {{.image}} {{.command}}"
-	TEMPLATE_START  = "docker start {{.options}} {{.containers}}"
-	TEMPLATE_EXEC   = "docker exec {{.options}} {{.container}} {{.command}}"
+	TEMPLATE_PULL_IMAGE          = "docker pull {{.options}} {{.name}}"
+	TEMPLATE_CREATE_CONTAINER    = "docker create {{.options}} {{.image}} {{.command}}"
+	TEMPLATE_START_CONTAINER     = "docker start {{.options}} {{.containers}}"
+	TEMPLATE_STOP_CONTAINER      = "docker stop {{.options}} {{.containers}}"
+	TEMPLATE_RESTART_CONTAINER   = "docker restart {{.options}} {{.containers}}"
+	TEMPLATE_REMOVE_CONTAINER    = "docker rm {{.options}} {{.containers}}"
+	TEMPLATE_LIST_CONTAINERS     = "docker ps {{.options}}"
+	TEMPLATE_CONTAINER_EXEC      = "docker exec {{.options}} {{.container}} {{.command}}"
+	TEMPLATE_COPY_FROM_CONTAINER = "docker cp {{.options}} {{.container}}:{{.srcPath}} {{.destPath}}"
+	TEMPLATE_COPY_INTO_CONTAINER = "docker cp {{.options}}  {{.srcPath}} {{.container}}:{{.destPath}}"
 )
 
 type DockerCli struct {
@@ -67,28 +74,67 @@ func (s *DockerCli) AddOption(format string, args ...interface{}) *DockerCli {
 }
 
 func (cli *DockerCli) PullImage(image string) *DockerCli {
-	cli.tmpl = template.Must(template.New("PullImage").Parse(TEMPLATE_PULL))
+	cli.tmpl = template.Must(template.New("PullImage").Parse(TEMPLATE_PULL_IMAGE))
 	cli.data["name"] = image
 	return cli
 }
 
 func (cli *DockerCli) CreateContainer(image, command string) *DockerCli {
-	cli.tmpl = template.Must(template.New("CreateContainer").Parse(TEMPLATE_CREATE))
+	cli.tmpl = template.Must(template.New("CreateContainer").Parse(TEMPLATE_CREATE_CONTAINER))
 	cli.data["image"] = image
 	cli.data["command"] = command
 	return cli
 }
 
 func (cli *DockerCli) StartContainer(containerId ...string) *DockerCli {
-	cli.tmpl = template.Must(template.New("StartContainer").Parse(TEMPLATE_START))
+	cli.tmpl = template.Must(template.New("StartContainer").Parse(TEMPLATE_START_CONTAINER))
 	cli.data["containers"] = strings.Join(containerId, " ")
 	return cli
 }
 
+func (cli *DockerCli) StopContainer(containerId ...string) *DockerCli {
+	cli.tmpl = template.Must(template.New("StopContainer").Parse(TEMPLATE_STOP_CONTAINER))
+	cli.data["containers"] = strings.Join(containerId, " ")
+	return cli
+}
+
+func (cli *DockerCli) RestartContainer(containerId ...string) *DockerCli {
+	cli.tmpl = template.Must(template.New("RestartContainer").Parse(TEMPLATE_RESTART_CONTAINER))
+	cli.data["containers"] = strings.Join(containerId, " ")
+	return cli
+}
+
+func (cli *DockerCli) RemoveContainer(containerId ...string) *DockerCli {
+	cli.tmpl = template.Must(template.New("RemoveContainer").Parse(TEMPLATE_REMOVE_CONTAINER))
+	cli.data["containers"] = strings.Join(containerId, " ")
+	return cli
+}
+
+func (cli *DockerCli) ListContainers() *DockerCli {
+	cli.tmpl = template.Must(template.New("ListContainers").Parse(TEMPLATE_LIST_CONTAINERS))
+	return cli
+}
+
 func (cli *DockerCli) ContainerExec(containerId, command string) *DockerCli {
-	cli.tmpl = template.Must(template.New("ContainerExec").Parse(TEMPLATE_EXEC))
+	cli.tmpl = template.Must(template.New("ContainerExec").Parse(TEMPLATE_CONTAINER_EXEC))
 	cli.data["container"] = containerId
 	cli.data["command"] = command
+	return cli
+}
+
+func (cli *DockerCli) CopyFromContainer(containerId, srcPath, destPath string) *DockerCli {
+	cli.tmpl = template.Must(template.New("CopyFromContainer").Parse(TEMPLATE_COPY_FROM_CONTAINER))
+	cli.data["container"] = containerId
+	cli.data["srcPath"] = srcPath
+	cli.data["destPath"] = destPath
+	return cli
+}
+
+func (cli *DockerCli) CopyIntoContainer(srcPath, containerId, destPath string) *DockerCli {
+	cli.tmpl = template.Must(template.New("CopyIntoContainer").Parse(TEMPLATE_COPY_INTO_CONTAINER))
+	cli.data["srcPath"] = srcPath
+	cli.data["container"] = containerId
+	cli.data["destPath"] = destPath
 	return cli
 }
 

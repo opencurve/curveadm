@@ -24,18 +24,25 @@ package module
 
 import (
 	"errors"
+	"fmt"
+	"io/ioutil"
+	"os"
 
 	ssh "github.com/melbahja/goph"
 	"github.com/opencurve/curveadm/internal/log"
 )
 
-type FileManager struct {
-	sshClient *ssh.Client
-}
+const (
+	TEMP_DIR = "/tmp"
+)
 
 var (
 	ERR_UNREACHED = errors.New("remote unreached")
 )
+
+type FileManager struct {
+	sshClient *ssh.Client
+}
 
 func NewFileManager(sshClient *ssh.Client) *FileManager {
 	return &FileManager{sshClient: sshClient}
@@ -67,4 +74,21 @@ func (f *FileManager) Download(remotePath, localPath string) error {
 		log.Field("localPath", localPath),
 		log.Field("error", err))
 	return err
+}
+
+func (f *FileManager) Install(content, destPath string) error {
+	file, err := ioutil.TempFile(TEMP_DIR, "curevadm.*.install")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(file.Name())
+
+	n, err := file.WriteString(content)
+	if err != nil {
+		return err
+	} else if n != len(content) {
+		return fmt.Errorf("written: expect %d bytes, actually %d bytes", len(content), n)
+	}
+
+	return os.Rename(file.Name(), destPath)
 }

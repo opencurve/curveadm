@@ -25,7 +25,8 @@ package command
 import (
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/configure"
-	"github.com/opencurve/curveadm/internal/tasks"
+	task "github.com/opencurve/curveadm/internal/task/task/common"
+	"github.com/opencurve/curveadm/internal/task/tasks"
 	"github.com/opencurve/curveadm/internal/tui"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/cobra"
@@ -81,15 +82,15 @@ func runStatus(curveadm *cli.CurveAdm, options statusOptions) error {
 		Host: options.host,
 	})
 
-	if err := tasks.ExecParallelTasks(tasks.GET_SERVICE_STATUS, curveadm, dcs); err != nil {
+	if err := tasks.ExecTasks(tasks.GET_SERVICE_STATUS, curveadm, dcs); err != nil {
 		return curveadm.NewPromptError(err, "")
 	}
 
 	// display status
-	statuses := []tasks.ServiceStatus{}
+	statuses := []task.ServiceStatus{}
 	m := curveadm.MemStorage().Map
 	for _, v := range m {
-		status := v.(tasks.ServiceStatus)
+		status := v.(task.ServiceStatus)
 		statuses = append(statuses, status)
 	}
 

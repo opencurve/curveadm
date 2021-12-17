@@ -28,7 +28,8 @@ import (
 
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/configure"
-	"github.com/opencurve/curveadm/internal/tasks"
+	"github.com/opencurve/curveadm/internal/task/task/common"
+	"github.com/opencurve/curveadm/internal/task/tasks"
 	tui "github.com/opencurve/curveadm/internal/tui/common"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/cobra"
@@ -109,8 +110,8 @@ func runClean(curveadm *cli.CurveAdm, options cleanOptions) error {
 	} else {
 		curveadm.WriteOut("\n")
 		memStorage := curveadm.MemStorage()
-		memStorage.Set(tasks.KEY_CLEAN_ITEMS, only)
-		if err := tasks.ExecParallelTasks(tasks.CLEAN_SERVICE, curveadm, dcs); err != nil {
+		memStorage.Set(common.KEY_CLEAN_ITEMS, only)
+		if err := tasks.ExecTasks(tasks.CLEAN_SERVICE, curveadm, dcs); err != nil {
 			return curveadm.NewPromptError(err, "")
 		}
 	}

@@ -30,7 +30,8 @@ import (
 	"github.com/fatih/color"
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/configure"
-	"github.com/opencurve/curveadm/internal/tasks"
+	task "github.com/opencurve/curveadm/internal/task/task/common"
+	"github.com/opencurve/curveadm/internal/task/tasks"
 	"github.com/opencurve/curveadm/internal/tools"
 	"github.com/opencurve/curveadm/internal/tui/common"
 	"github.com/opencurve/curveadm/internal/utils"
@@ -43,7 +44,7 @@ const (
   > We have collected logs for troubleshooting,
   > and now we will send these logs to the curve center.
   > Please don't worry about the data security,
-  > we guarantee that all logs are encrypted 
+  > we guarantee that all logs are encrypted
   > and only you have the secret key.
 `
 )
@@ -74,8 +75,8 @@ func collectService(curveadm *cli.CurveAdm, saveDir string) error {
 	}
 
 	memStorage := curveadm.MemStorage()
-	memStorage.Set(tasks.KEY_COLLECT_SAVE_DIR, saveDir)
-	if err := tasks.ExecParallelTasks(tasks.COLLECT_SERVICE, curveadm, dcs); err != nil {
+	memStorage.Set(task.KEY_COLLECT_SAVE_DIR, saveDir)
+	if err := tasks.ExecTasks(tasks.COLLECT_SERVICE, curveadm, dcs); err != nil {
 		return curveadm.NewPromptError(err, "")
 	}
 	return nil

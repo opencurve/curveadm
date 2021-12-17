@@ -68,14 +68,6 @@ func (e PromptError) Error() string {
 	return fmt.Sprintf("\n%s\n%s", errMessage, e.Prompt)
 }
 
-func ReadFile(filename string) (string, error) {
-	data, err := os.ReadFile(filename)
-	if err != nil {
-		return "", err
-	}
-	return string(data), nil
-}
-
 func MD5Sum(data string) string {
 	m := md5.New()
 	m.Write([]byte(data))

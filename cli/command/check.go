@@ -26,8 +26,8 @@ import (
 	"strings"
 
 	"github.com/opencurve/curveadm/cli/cli"
-	"github.com/opencurve/curveadm/internal/tasks/client"
-	"github.com/opencurve/curveadm/internal/tasks/task"
+	fsTask "github.com/opencurve/curveadm/internal/task/task/fs"
+	"github.com/opencurve/curveadm/internal/task/tasks"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/cobra"
 )
@@ -55,16 +55,14 @@ func NewCheckCommand(curveadm *cli.CurveAdm) *cobra.Command {
 
 func runCheck(curveadm *cli.CurveAdm, options checkOptions) error {
 	mountPoint := strings.TrimSuffix(options.mountPoint, "/")
-
-	if t, err := client.NewGetMountStatusTask(curveadm, mountPoint); err != nil {
-		return err
-	} else if err := task.ParallelExecute(1, []*task.Task{t}, task.Options{SilentSubBar: true}); err != nil {
-		return err
+	curveadm.MemStorage().Set(fsTask.KEY_MOUNT_POINT, mountPoint)
+	err := tasks.ExecTasks(tasks.CHECK_MOUNT_STATUS, curveadm, nil)
+	if err != nil {
+		return curveadm.NewPromptError(err, "")
 	}
 
-	v := curveadm.MemStorage().Get(client.KEY_MOUNT_STATUS)
-	status := v.(client.MountStatus)
-	curveadm.WriteOut("\n")
+	v := curveadm.MemStorage().Get(fsTask.KEY_MOUNT_STATUS)
+	status := v.(fsTask.MountStatus)
 	curveadm.WriteOut("Mount Point : %s\n", status.MountPoint)
 	curveadm.WriteOut("Container Id: %s\n", status.ContainerId)
 	curveadm.WriteOut("Mount Status: %s\n", status.Status)

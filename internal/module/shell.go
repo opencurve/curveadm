@@ -32,9 +32,16 @@ import (
 
 // mkdir [OPTION]... DIRECTORY...
 // rmdir [OPTION]... DIRECTORY...
+// rm [OPTION]... [FILE]...
+// mv [OPTION]... SOURCE DEST
+// umount [options] <directory>
 const (
-	TEMPLATE_MKDIR = "mkdir {{.options}} {{.directorys}}"
-	TEMPLATE_RMDIR = "rmdir {{.options}} {{.directorys}}"
+	TEMPLATE_MKDIR   = "mkdir {{.options}} {{.directorys}}"
+	TEMPLATE_RMDIR   = "rmdir {{.options}} {{.directorys}}"
+	TEMPLATE_REMOVE  = "rm {{.options}} {{.files}}"
+	TEMPLATE_RENAME  = "mv {{.options}} {{.source}} {{.dest}}"
+	TEMPLATE_UMOUNT  = "umount {{.options}} {{.directory}}"
+	TEMPLATE_COMMAND = "bash -c '{{.command}}'"
 )
 
 type Shell struct {
@@ -67,6 +74,31 @@ func (s *Shell) Mkdir(directory ...string) *Shell {
 func (s *Shell) Rmdir(directory ...string) *Shell {
 	s.tmpl = template.Must(template.New("rmdir").Parse(TEMPLATE_RMDIR))
 	s.data["directorys"] = strings.Join(directory, " ")
+	return s
+}
+
+func (s *Shell) Remove(file ...string) *Shell {
+	s.tmpl = template.Must(template.New("Remove").Parse(TEMPLATE_REMOVE))
+	s.data["files"] = strings.Join(file, " ")
+	return s
+}
+
+func (s *Shell) Rename(source, dest string) *Shell {
+	s.tmpl = template.Must(template.New("Rename").Parse(TEMPLATE_RENAME))
+	s.data["source"] = source
+	s.data["dest"] = dest
+	return s
+}
+
+func (s *Shell) Umount(directory string) *Shell {
+	s.tmpl = template.Must(template.New("Umount").Parse(TEMPLATE_UMOUNT))
+	s.data["directory"] = directory
+	return s
+}
+
+func (s *Shell) Command(command string) *Shell {
+	s.tmpl = template.Must(template.New("Command").Parse(TEMPLATE_COMMAND))
+	s.data["command"] = command
 	return s
 }
 

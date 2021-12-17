@@ -31,25 +31,27 @@ import (
 )
 
 const (
-	ROLE_ETCD       string = "etcd"
-	ROLE_MDS        string = "mds"
-	ROLE_METASERVER string = "metaserver"
+	ROLE_ETCD       = "etcd"
+	ROLE_MDS        = "mds"
+	ROLE_METASERVER = "metaserver"
 
-	KEY_USER               string = "user"
-	KEY_SSH_PORT           string = "ssh_port"
-	KEY_PRIVATE_KEY_FILE   string = "private_key_file"
-	KEY_REPORT_USAGE       string = "report_usage"
-	KEY_CONTAINER_IMAGE    string = "container_image"
-	KEY_LOG_DIR            string = "log_dir"
-	KEY_DATA_DIR           string = "data_dir"
-	KEY_LISTEN_IP          string = "listen.ip"
-	KEY_LISTEN_PORT        string = "listen.port"
-	KEY_LISTEN_CLIENT_PORT string = "listen.client_port" // etcd
-	KEY_LISTEN_DUMMY_PORT  string = "listen.dummy_port"  // mds
-	KEY_LISTEN_EXTERNAL_IP string = "listen.external_ip" // metaserver
-	KEY_VARIABLE           string = "variable"
+	KEY_USER               = "user"
+	KEY_SSH_PORT           = "ssh_port"
+	KEY_PRIVATE_KEY_FILE   = "private_key_file"
+	KEY_REPORT_USAGE       = "report_usage"
+	KEY_CONTAINER_IMAGE    = "container_image"
+	KEY_LOG_DIR            = "log_dir"
+	KEY_DATA_DIR           = "data_dir"
+	KEY_CORE_DIR           = "core_dir"
+	KEY_LISTEN_IP          = "listen.ip"
+	KEY_LISTEN_PORT        = "listen.port"
+	KEY_LISTEN_CLIENT_PORT = "listen.client_port" // etcd
+	KEY_LISTEN_DUMMY_PORT  = "listen.dummy_port"  // mds
+	KEY_LISTEN_EXTERNAL_IP = "listen.external_ip" // metaserver
+	KEY_VARIABLE           = "variable"
 
 	DEFAULT_CURVEFS_DIR             = "/usr/local/curvefs"
+	DEFAULT_CORE_LOCATE_DIR         = "/core"
 	DEFAULT_SSH_PORT                = 22
 	DEFAULT_ETCD_LISTEN_PEER_PORT   = 2380
 	DEFAULT_ETCD_LISTEN_CLIENT_PORT = 2379
@@ -67,6 +69,7 @@ var (
 		KEY_CONTAINER_IMAGE:    true,
 		KEY_DATA_DIR:           true,
 		KEY_LOG_DIR:            true,
+		KEY_CORE_DIR:           true,
 		KEY_LISTEN_IP:          true,
 		KEY_LISTEN_PORT:        true,
 		KEY_LISTEN_CLIENT_PORT: true,
@@ -94,7 +97,7 @@ type DeployConfig struct {
 	config        map[string]string
 	serviceConfig map[string]string
 	variables     *Variables
-	sshConfig     SshConfig
+	sshConfig     *SshConfig
 }
 
 type FilterOption struct {
@@ -231,7 +234,7 @@ func (dc *DeployConfig) Build() error {
 	if err != nil {
 		return err
 	}
-	dc.sshConfig = SshConfig{
+	dc.sshConfig = &SshConfig{
 		User:           dc.GetConfig(KEY_USER),
 		Host:           dc.GetHost(),
 		Port:           (uint)(sshport),
@@ -293,7 +296,7 @@ func (dc *DeployConfig) GetVariables() *Variables {
 	return dc.variables
 }
 
-func (dc *DeployConfig) GetSshConfig() SshConfig {
+func (dc *DeployConfig) GetSshConfig() *SshConfig {
 	return dc.sshConfig
 }
 
@@ -347,19 +350,32 @@ func (dc *DeployConfig) GetDataDir() string {
 	return dc.config[KEY_DATA_DIR]
 }
 
-// /usr/local/curvefs
+func (dc *DeployConfig) GetCoreDir() string {
+	return dc.config[KEY_CORE_DIR]
+}
+
+// wrapper interface: service related
 func (dc *DeployConfig) GetCurveFSPrefix() string {
 	return DEFAULT_CURVEFS_DIR
 }
 
-// /usr/local/curvefs/mds
+// ex: /usr/local/curvefs/mds
 func (dc *DeployConfig) GetServicePrefix() string {
 	return fmt.Sprintf("%s/%s", DEFAULT_CURVEFS_DIR, dc.GetRole())
 }
 
-// /usr/local/curvefs/mds/sbin
+// ex: /usr/local/curvefs/mds/sbin
 func (dc *DeployConfig) GetServiceSbinDir() string {
 	return dc.GetServicePrefix() + "/sbin"
+}
+
+// ex: /usr/local/curvefs/mds/logs
+func (dc *DeployConfig) GetServiceLogDir() string {
+	return dc.GetServicePrefix() + "/logs"
+}
+
+func (c *DeployConfig) GetCoreLocateDir() string {
+	return DEFAULT_CORE_LOCATE_DIR
 }
 
 func FilterDeployConfig(deployConfigs []*DeployConfig, options FilterOption) []*DeployConfig {
