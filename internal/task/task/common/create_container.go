@@ -151,6 +151,7 @@ func NewCreateContainerTask(curveadm *cli.CurveAdm, dc *configure.DeployConfig) 
 	t.AddStep(&step.CreateContainer{
 		Image:        dc.GetContainerImage(),
 		Command:      fmt.Sprintf("--role %s", dc.GetRole()),
+		Envs:         []string{"LD_PRELOAD=/usr/local/lib/libjemalloc.so"},
 		Hostname:     fmt.Sprintf("curvefs-%s", dc.GetRole()),
 		Privileged:   true,
 		Restart:      getRestartPolicy(dc),
