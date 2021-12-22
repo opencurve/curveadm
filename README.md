@@ -36,7 +36,7 @@ This command downloads a test image and runs it in a container. When the contain
 
 ### Minio
 
-Current version CurveFS only supports S3 storage backend, so you need deploy a S3 storage service or use object storage of public cloud provider, eg. AWS S3, Alibaba cloud OSS, Tencent cloud COS and so on. Here we use MinIO for S3 storage backend to deploy a CurveFS cluster:
+Current version CurveFS only supports S3 storage backend, CurveBS backend will be supported soon, so you need deploy a S3 storage service or use object storage of public cloud provider, eg. AWS S3, Alibaba cloud OSS, Tencent cloud COS and so on. Here we use MinIO for S3 storage backend to deploy a CurveFS cluster:
 
 ```shell
 # deploy a standalone MinIO S3 storage service
