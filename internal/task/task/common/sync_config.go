@@ -43,6 +43,16 @@ const (
 	CURVEFS_CRONTAB_FILE = "/tmp/curvefs_crontab"
 )
 
+// For tools.conf
+var S3INFODICT = map[string]string{
+	"s3Ak":"s3.ak",
+	"s3Sk":"s3.sk",
+	"s3Endpoint":"s3.endpoint",
+	"s3BucketName":"s3.bucket_name",
+	"s3BlockSize":"s3.blocksize",
+	"s3ChunkSize":"s3.chunksize",
+}
+
 func newMutate(dc *configure.DeployConfig, delimiter string) step.Mutate {
 	serviceConfig := dc.GetServiceConfig()
 	return func(in, key, value string) (out string, err error) {
@@ -55,6 +65,14 @@ func newMutate(dc *configure.DeployConfig, delimiter string) step.Mutate {
 		v, ok := serviceConfig[strings.ToLower(key)]
 		if ok {
 			value = v
+		}
+		// replace tools s3 config
+		keyRepalce, ok := S3INFODICT[key]
+		if ok {
+			v, ok_ := serviceConfig[keyRepalce]
+			if ok_ {
+				value = v
+			}
 		}
 
 		// replace variable

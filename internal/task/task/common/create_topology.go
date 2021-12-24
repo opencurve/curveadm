@@ -86,7 +86,7 @@ func NewCreateTopologyTask(curveadm *cli.CurveAdm, dc *configure.DeployConfig) (
 	})
 	t.AddStep(&step.ContainerExec{ // create topology
 		ContainerId:  containerId,
-		Command:      fmt.Sprintf("%s build-topology", toolsBinary),
+		Command:      fmt.Sprintf("%s create-topology", toolsBinary),
 		ExecWithSudo: true,
 		ExecInLocal:  false,
 	})
