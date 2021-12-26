@@ -27,14 +27,14 @@ import (
 	"strings"
 
 	"github.com/opencurve/curveadm/cli/cli"
-	"github.com/opencurve/curveadm/internal/configure"
-	"github.com/opencurve/curveadm/internal/module"
+	"github.com/opencurve/curveadm/internal/configure/topology"
 	"github.com/opencurve/curveadm/internal/storage"
 	"github.com/opencurve/curveadm/internal/task/context"
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
 	tui "github.com/opencurve/curveadm/internal/tui/common"
 	"github.com/opencurve/curveadm/internal/utils"
+	"github.com/opencurve/curveadm/pkg/module"
 )
 
 const (
@@ -45,7 +45,7 @@ const (
 )
 
 type step2CleanContainer struct {
-	config       *configure.DeployConfig
+	config       *topology.DeployConfig
 	serviceId    string
 	containerId  string
 	storage      *storage.Storage
@@ -74,7 +74,7 @@ func (s *step2CleanContainer) Execute(ctx *context.Context) error {
 	return s.storage.SetContainId(s.serviceId, "-")
 }
 
-func getCleanDirs(clean map[string]bool, dc *configure.DeployConfig) []string {
+func getCleanDirs(clean map[string]bool, dc *topology.DeployConfig) []string {
 	dirs := []string{}
 	for item := range clean {
 		switch item {
@@ -87,8 +87,8 @@ func getCleanDirs(clean map[string]bool, dc *configure.DeployConfig) []string {
 	return dirs
 }
 
-func NewCleanServiceTask(curveadm *cli.CurveAdm, dc *configure.DeployConfig) (*task.Task, error) {
-	serviceId := configure.ServiceId(curveadm.ClusterId(), dc.GetId())
+func NewCleanServiceTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task.Task, error) {
+	serviceId := curveadm.GetServiceId(dc.GetId())
 	containerId, err := curveadm.Storage().GetContainerId(serviceId)
 	if err != nil {
 		return nil, err
@@ -99,7 +99,7 @@ func NewCleanServiceTask(curveadm *cli.CurveAdm, dc *configure.DeployConfig) (*t
 	only := curveadm.MemStorage().Get(KEY_CLEAN_ITEMS).([]string)
 	subname := fmt.Sprintf("host=%s role=%s containerId=%s clean=%s",
 		dc.GetHost(), dc.GetRole(), tui.TrimContainerId(containerId), strings.Join(only, ","))
-	t := task.NewTask("Clean Service", subname, dc.GetSshConfig())
+	t := task.NewTask("Clean Service", subname, dc.GetSSHConfig())
 
 	// add step
 	clean := utils.Slice2Map(only)

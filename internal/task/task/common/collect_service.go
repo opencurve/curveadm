@@ -27,14 +27,14 @@ import (
 	"path/filepath"
 
 	"github.com/opencurve/curveadm/cli/cli"
-	"github.com/opencurve/curveadm/internal/configure"
-	"github.com/opencurve/curveadm/internal/module"
+	"github.com/opencurve/curveadm/internal/configure/topology"
 	"github.com/opencurve/curveadm/internal/task/context"
 	"github.com/opencurve/curveadm/internal/task/scripts"
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
 	tui "github.com/opencurve/curveadm/internal/tui/common"
 	"github.com/opencurve/curveadm/internal/utils"
+	"github.com/opencurve/curveadm/pkg/module"
 )
 
 const (
@@ -86,8 +86,8 @@ func (s *step2CollectService) Execute(ctx *context.Context) error {
 func (s *step2CollectService) Rollback(ctx *context.Context) {
 }
 
-func NewCollectServiceTask(curveadm *cli.CurveAdm, dc *configure.DeployConfig) (*task.Task, error) {
-	serviceId := configure.ServiceId(curveadm.ClusterId(), dc.GetId())
+func NewCollectServiceTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task.Task, error) {
+	serviceId := curveadm.GetServiceId(dc.GetId())
 	containerId, err := curveadm.Storage().GetContainerId(serviceId)
 	if err != nil {
 		return nil, err
@@ -98,17 +98,18 @@ func NewCollectServiceTask(curveadm *cli.CurveAdm, dc *configure.DeployConfig) (
 	memStorage := curveadm.MemStorage()
 	subname := fmt.Sprintf("host=%s role=%s containerId=%s",
 		dc.GetHost(), dc.GetRole(), tui.TrimContainerId(containerId))
-	t := task.NewTask("Collect Service", subname, dc.GetSshConfig())
+	t := task.NewTask("Collect Service", subname, dc.GetSSHConfig())
 
 	// add step
-	collectScript := scripts.Get("collect")
+	layout := dc.GetProjectLayout()
+	collectScript := scripts.SCRIPT_COLLECT
 	collectScriptPath := utils.RandFilename(TEMP_DIR)
 	t.AddStep(&step.InstallFile{
 		HostDestPath: collectScriptPath,
 		Content:      &collectScript,
 	})
 	t.AddStep(&step2CollectService{
-		prefix:      dc.GetServicePrefix(),
+		prefix:      layout.ServiceRootDir,
 		script:      collectScriptPath,
 		saveDir:     memStorage.Get(KEY_COLLECT_SAVE_DIR).(string),
 		serviceId:   serviceId,

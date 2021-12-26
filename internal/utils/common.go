@@ -9,9 +9,11 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
-	"net"
 	"os"
 	"os/exec"
+	"os/user"
+	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
@@ -39,6 +41,8 @@ func Type(v interface{}) string {
 		return "int"
 	case int64:
 		return "int64"
+	case map[string]interface{}:
+		return "string_interface_map"
 	default:
 		return "unknown"
 	}
@@ -58,6 +62,51 @@ func IsInt(v interface{}) bool {
 
 func IsInt64(v interface{}) bool {
 	return Type(v) == "int64"
+}
+
+func IsStringAnyMap(v interface{}) bool {
+	return Type(v) == "string_interface_map"
+}
+
+func IsFunc(v interface{}) bool {
+	return reflect.TypeOf(v).Kind() == reflect.Func
+}
+
+func All2Str(v interface{}) (value string, ok bool) {
+	ok = true
+	if IsString(v) {
+		value = v.(string)
+	} else if IsInt(v) {
+		value = strconv.Itoa(v.(int))
+	} else if IsBool(v) {
+		value = strconv.FormatBool(v.(bool))
+	} else {
+		ok = false
+	}
+	return
+}
+
+// convert all to string
+func Atoa(v interface{}) string {
+	value, _ := All2Str(v)
+	return value
+}
+
+func Str2Int(s string) (int, bool) {
+	v, err := strconv.Atoi(s)
+	return v, err == nil
+}
+
+func Str2Bool(s string) (bool, bool) { // value, ok
+	v, err := strconv.ParseBool(s)
+	return v, err == nil
+}
+
+func Choose(ok bool, first, second string) string {
+	if ok {
+		return first
+	}
+	return second
 }
 
 func (e PromptError) Error() string {
@@ -92,10 +141,6 @@ func PathExist(path string) bool {
 	return err == nil
 }
 
-func TrimNewline(s string) string {
-	return strings.TrimRight(s, "\r\n")
-}
-
 func Slice2Map(s []string) map[string]bool {
 	m := map[string]bool{}
 	for _, item := range s {
@@ -104,17 +149,21 @@ func Slice2Map(s []string) map[string]bool {
 	return m
 }
 
-func CheckAddrListen(addr string) bool {
-	conn, err := net.DialTimeout("tcp", addr, time.Second)
-	return err == nil && conn != nil
-}
-
 func RandString(n int) string {
 	b := make([]rune, n)
 	for i := range b {
 		b[i] = letterRunes[rand.Intn(len(letterRunes))]
 	}
 	return string(b)
+}
+
+func GetCurrentUser() string {
+	user, err := user.Current()
+	if err != nil {
+		return "root"
+	}
+
+	return user.Username
 }
 
 func ExecShell(format string, a ...interface{}) (string, error) {

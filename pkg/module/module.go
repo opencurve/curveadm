@@ -29,7 +29,7 @@ import (
 	"text/template"
 
 	ssh "github.com/melbahja/goph"
-	"github.com/opencurve/curveadm/internal/log"
+	"github.com/opencurve/curveadm/pkg/log"
 )
 
 type ExecOption struct {

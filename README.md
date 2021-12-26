@@ -56,7 +56,7 @@ Installation
 ---
 
 ```shell
-sh -c "$(curl -fsSL https://curveadm.nos-eastchina1.126.net/script/install.sh)"
+bash -c "$(curl -fsSL https://curveadm.nos-eastchina1.126.net/script/install.sh)"
 ```
 
 [Back to TOC](#table-of-contents)
@@ -68,8 +68,8 @@ Usage
 
 Prepare cluster topology, you can refer to the sample configuration：
 
-* [cluster](examples/cluster/topology.yaml) <sup>(configuration document：[中文](docs/zh/REMEAD.md))</sup>
-* [stand-alone](examples/stand-alone/topology.yaml)
+* [cluster](configs/fs/cluster/topology.yaml) <sup>(configuration document：[中文](docs/zh/REMEAD.md))</sup>
+* [stand-alone](configs/fs/stand-alone/topology.yaml)
 
 ```shell
 vi topology.yaml
@@ -104,8 +104,8 @@ curveadm status
 
 Prepare client config, you can refer to the sample configuration:
 
-* [cluster](examples/cluster/client.yaml)
-* [stand-alone](examples/stand-alone/client.yaml)
+* [cluster](configs/fs/cluster/client.yaml)
+* [stand-alone](configs/fs/stand-alone/client.yaml)
 
 ```shell
 vi client.yaml

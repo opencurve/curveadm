@@ -26,14 +26,14 @@ import (
 	"fmt"
 
 	"github.com/opencurve/curveadm/cli/cli"
-	"github.com/opencurve/curveadm/internal/configure"
+	"github.com/opencurve/curveadm/internal/configure/topology"
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
 )
 
-func NewPullImageTask(curvradm *cli.CurveAdm, dc *configure.DeployConfig) (*task.Task, error) {
+func NewPullImageTask(curvradm *cli.CurveAdm, dc *topology.DeployConfig) (*task.Task, error) {
 	subname := fmt.Sprintf("host=%s image=%s", dc.GetHost(), dc.GetContainerImage())
-	t := task.NewTask("Pull Image", subname, dc.GetSshConfig())
+	t := task.NewTask("Pull Image", subname, dc.GetSSHConfig())
 	t.AddStep(&step.PullImage{
 		Image:        dc.GetContainerImage(),
 		ExecWithSudo: true,

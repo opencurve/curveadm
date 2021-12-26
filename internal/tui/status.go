@@ -25,9 +25,8 @@ package tui
 import (
 	"sort"
 
-	task "github.com/opencurve/curveadm/internal/task/task/common"
-
 	"github.com/fatih/color"
+	task "github.com/opencurve/curveadm/internal/task/task/common"
 	tui "github.com/opencurve/curveadm/internal/tui/common"
 )
 

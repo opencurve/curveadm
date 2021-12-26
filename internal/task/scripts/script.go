@@ -22,17 +22,8 @@
 
 package scripts
 
-var scripts = map[string]string{}
-
-func init() {
-	scripts = map[string]string{
-		"wait":    WAIT,
-		"collect": COLLECT,
-		"report":  REPORT,
-	}
-}
-
-func Get(name string) string {
-	v, _ := scripts[name]
-	return v
-}
+var (
+	SCRIPT_WAIT    string = WAIT
+	SCRIPT_COLLECT string = COLLECT
+	SCRIPT_REPORT  string = REPORT
+)

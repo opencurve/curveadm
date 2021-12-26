@@ -24,7 +24,7 @@ package command
 
 import (
 	"github.com/opencurve/curveadm/cli/cli"
-	"github.com/opencurve/curveadm/internal/configure"
+	"github.com/opencurve/curveadm/internal/configure/topology"
 	task "github.com/opencurve/curveadm/internal/task/task/common"
 	"github.com/opencurve/curveadm/internal/task/tasks"
 	"github.com/opencurve/curveadm/internal/tui"
@@ -61,7 +61,7 @@ func NewStatusCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	return cmd
 }
 
-func getClusterMdsAddr(dcs []*configure.DeployConfig) string {
+func getClusterMdsAddr(dcs []*topology.DeployConfig) string {
 	if len(dcs) == 0 {
 		return "-"
 	} else if value, err := dcs[0].GetVariables().Get("cluster_mds_addr"); err == nil {
@@ -71,12 +71,15 @@ func getClusterMdsAddr(dcs []*configure.DeployConfig) string {
 }
 
 func runStatus(curveadm *cli.CurveAdm, options statusOptions) error {
-	dcs, err := configure.ParseTopology(curveadm.ClusterTopologyData())
+	dcs, err := topology.ParseTopology(curveadm.ClusterTopologyData())
 	if err != nil {
 		return err
+	} else if len(dcs) == 0 {
+		curveadm.WriteOut("No service")
+		return nil
 	}
 
-	dcs = configure.FilterDeployConfig(dcs, configure.FilterOption{
+	dcs = curveadm.FilterDeployConfig(dcs, topology.FilterOption{
 		Id:   options.id,
 		Role: options.role,
 		Host: options.host,
@@ -97,6 +100,7 @@ func runStatus(curveadm *cli.CurveAdm, options statusOptions) error {
 	output := tui.FormatStatus(statuses, options.vebose)
 	curveadm.WriteOut("\n")
 	curveadm.WriteOut("cluster name    : %s\n", curveadm.ClusterName())
+	curveadm.WriteOut("cluster kind    : %s\n", dcs[0].GetKind())
 	curveadm.WriteOut("cluster mds addr: %s\n", getClusterMdsAddr(dcs))
 	curveadm.WriteOut("\n")
 	curveadm.WriteOut("%s", output)

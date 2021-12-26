@@ -20,17 +20,17 @@
  * Author: Jingli Chen (Wine93)
  */
 
-package configure
+package variable
 
 import (
 	"fmt"
 	"regexp"
 
-	"github.com/opencurve/curveadm/internal/log"
+	"github.com/opencurve/curveadm/pkg/log"
 )
 
 const (
-	REGEX_VARIABLE = `\${([^${}]+)}`
+	REGEX_VARIABLE = `\${([^${}]+)}` // ${var_name}
 )
 
 type Variable struct {
@@ -119,6 +119,7 @@ func (vars *Variables) Build() error {
 	return nil
 }
 
+// "hello, ${varname}" => "hello, world"
 func (vars *Variables) Rendering(s string) (string, error) {
 	matches := vars.r.FindAllStringSubmatch(s, -1)
 	if len(matches) == 0 { // no variable

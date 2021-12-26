@@ -27,7 +27,7 @@ import (
 	"strings"
 
 	"github.com/opencurve/curveadm/cli/cli"
-	"github.com/opencurve/curveadm/internal/configure"
+	"github.com/opencurve/curveadm/internal/configure/topology"
 	"github.com/opencurve/curveadm/internal/task/scripts"
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
@@ -38,12 +38,10 @@ const (
 	DEFAULT_CONFIG_DELIMITER = "="
 	ETCD_CONFIG_DELIMITER    = ": "
 
-	TOOLS_CONFIG_SYSTEM_PATH = "/etc/curvefs/tools.conf"
-
-	CURVEFS_CRONTAB_FILE = "/tmp/curvefs_crontab"
+	CURVE_CRONTAB_FILE = "/tmp/curve_crontab"
 )
 
-func newMutate(dc *configure.DeployConfig, delimiter string) step.Mutate {
+func newMutate(dc *topology.DeployConfig, delimiter string) step.Mutate {
 	serviceConfig := dc.GetServiceConfig()
 	return func(in, key, value string) (out string, err error) {
 		if len(key) == 0 {
@@ -68,7 +66,7 @@ func newMutate(dc *configure.DeployConfig, delimiter string) step.Mutate {
 	}
 }
 
-func newCrontab(uuid string, dc *configure.DeployConfig, reportScriptPath string) string {
+func newCrontab(uuid string, dc *topology.DeployConfig, reportScriptPath string) string {
 	var period, command string
 	if dc.GetReportUsage() == true {
 		period = func(minute, hour, day, month, week string) string {
@@ -77,14 +75,14 @@ func newCrontab(uuid string, dc *configure.DeployConfig, reportScriptPath string
 
 		command = func(format string, args ...interface{}) string {
 			return fmt.Sprintf(format, args...)
-		}("bash %s %s %s", reportScriptPath, uuid, dc.GetRole())
+		}("bash %s %s %s %s", reportScriptPath, dc.GetKind(), uuid, dc.GetRole())
 	}
 
 	return fmt.Sprintf("%s %s\n", period, command)
 }
 
-func NewSyncConfigTask(curveadm *cli.CurveAdm, dc *configure.DeployConfig) (*task.Task, error) {
-	serviceId := configure.ServiceId(curveadm.ClusterId(), dc.GetId())
+func NewSyncConfigTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task.Task, error) {
+	serviceId := curveadm.GetServiceId(dc.GetId())
 	containerId, err := curveadm.Storage().GetContainerId(serviceId)
 	if err != nil {
 		return nil, err
@@ -94,25 +92,24 @@ func NewSyncConfigTask(curveadm *cli.CurveAdm, dc *configure.DeployConfig) (*tas
 
 	subname := fmt.Sprintf("host=%s role=%s containerId=%s",
 		dc.GetHost(), dc.GetRole(), tui.TrimContainerId(containerId))
-	t := task.NewTask("Sync Config", subname, dc.GetSshConfig())
+	t := task.NewTask("Sync Config", subname, dc.GetSSHConfig())
 
 	// add step
-	root := dc.GetCurveFSPrefix()
-	prefix := dc.GetServicePrefix()
+	layout := dc.GetProjectLayout()
 	role := dc.GetRole()
-	reportScript := scripts.Get("report")
-	reportScriptPath := fmt.Sprintf("%s/tools/sbin/report.sh", root)
+	reportScript := scripts.SCRIPT_REPORT
+	reportScriptPath := fmt.Sprintf("%s/report.sh", layout.ToolsBinDir)
 	crontab := newCrontab(curveadm.ClusterUUId(), dc, reportScriptPath)
 	delimiter := DEFAULT_CONFIG_DELIMITER
-	if role == configure.ROLE_ETCD {
+	if role == topology.ROLE_ETCD {
 		delimiter = ETCD_CONFIG_DELIMITER
 	}
 
 	t.AddStep(&step.SyncFile{ // sync service config
 		ContainerSrcId:    &containerId,
-		ContainerSrcPath:  fmt.Sprintf("%s/conf/%s.conf", root, role),
+		ContainerSrcPath:  layout.ServiceConfSrcPath,
 		ContainerDestId:   &containerId,
-		ContainerDestPath: fmt.Sprintf("%s/conf/%s.conf", prefix, role),
+		ContainerDestPath: layout.ServiceConfPath,
 		KVFieldSplit:      delimiter,
 		Mutate:            newMutate(dc, delimiter),
 		ExecWithSudo:      true,
@@ -120,9 +117,9 @@ func NewSyncConfigTask(curveadm *cli.CurveAdm, dc *configure.DeployConfig) (*tas
 	})
 	t.AddStep(&step.SyncFile{ // sync tools config
 		ContainerSrcId:    &containerId,
-		ContainerSrcPath:  fmt.Sprintf("%s/conf/tools.conf", root),
+		ContainerSrcPath:  layout.ToolsConfSrcPath,
 		ContainerDestId:   &containerId,
-		ContainerDestPath: TOOLS_CONFIG_SYSTEM_PATH,
+		ContainerDestPath: layout.ToolsConfSystemPath,
 		KVFieldSplit:      DEFAULT_CONFIG_DELIMITER,
 		Mutate:            newMutate(dc, DEFAULT_CONFIG_DELIMITER),
 		ExecWithSudo:      true,
@@ -137,7 +134,7 @@ func NewSyncConfigTask(curveadm *cli.CurveAdm, dc *configure.DeployConfig) (*tas
 	})
 	t.AddStep(&step.InstallFile{ // install crontab file
 		ContainerId:       &containerId,
-		ContainerDestPath: CURVEFS_CRONTAB_FILE,
+		ContainerDestPath: CURVE_CRONTAB_FILE,
 		Content:           &crontab,
 		ExecWithSudo:      true,
 		ExecInLocal:       false,

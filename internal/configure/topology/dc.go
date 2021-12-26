@@ -1,0 +1,232 @@
+/*
+ *  Copyright (c) 2021 NetEase Inc.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+/*
+ * Project: CurveAdm
+ * Created Date: 2021-10-15
+ * Author: Jingli Chen (Wine93)
+ */
+
+package topology
+
+import (
+	"fmt"
+	"strconv"
+
+	"github.com/opencurve/curveadm/internal/utils"
+	"github.com/opencurve/curveadm/pkg/log"
+	"github.com/opencurve/curveadm/pkg/variable"
+)
+
+const (
+	KIND_CURVEBS = "curvebs"
+	KIND_CURVEFS = "curvefs"
+
+	ROLE_ETCD        = "etcd"
+	ROLE_MDS         = "mds"
+	ROLE_CHUNKSERVER = "chunkserver"
+	ROLE_METASERVER  = "metaserver"
+)
+
+type (
+	DeployConfig struct {
+		kind            string // KIND_CURVEFS / KIND_CUVREBS
+		id              string // role_host_[name/hostSequence]_replicaSequence
+		parentId        string // role_host_[name/hostSequence]_0
+		role            string // etcd/mds/metaserevr/chunkserver
+		host            string
+		name            string
+		replica         int
+		hostSequence    int // start with 0
+		replicaSequence int // start with 0
+
+		config        map[string]interface{}
+		serviceConfig map[string]string
+		variables     *variable.Variables
+	}
+
+	FilterOption struct {
+		Id   string
+		Role string
+		Host string
+	}
+)
+
+// etcd_hostname_0_0
+func formatId(role, host, name string, replicaSequence int) string {
+	return fmt.Sprintf("%s_%s_%s_%d", role, host, name, replicaSequence)
+}
+
+func formatName(name string, hostSequence int) string {
+	if len(name) == 0 {
+		return strconv.Itoa(hostSequence)
+	}
+	return name
+}
+
+func newVariables(m map[string]interface{}) (*variable.Variables, error) {
+	vars := variable.NewVariables()
+	if m == nil || len(m) == 0 {
+		return vars, nil
+	}
+
+	for k, v := range m {
+		value, ok := utils.All2Str(v)
+		if !ok {
+			return nil, fmt.Errorf("unsupport value type for variable '%s'", k)
+		} else if len(value) == 0 {
+			return nil, fmt.Errorf("invalid value for variable '%s'", k)
+		}
+		vars.Register(variable.Variable{Name: k, Value: value})
+	}
+	return vars, nil
+}
+
+func NewDeployConfig(kind, role, host, name string, replica int,
+	hostSequence, replicaSequence int, config map[string]interface{}) (*DeployConfig, error) {
+	// variable section
+	v := config[CONFIG_VARIABLE.key]
+	if !utils.IsStringAnyMap(v) && v != nil {
+		return nil, fmt.Errorf("invalid variable section")
+	}
+
+	vars, err := newVariables(v.(map[string]interface{}))
+	if err != nil {
+		return nil, err
+	}
+	delete(config, CONFIG_VARIABLE.key)
+
+	// We should convert all value to string for rendering variable,
+	// after that we will convert the value to specified type according to
+	// the its require type
+	for k, v := range config {
+		if strv, ok := utils.All2Str(v); ok {
+			config[k] = strv
+		} else {
+			return nil, fmt.Errorf("topology: unsupport value type for config key '%s'", k)
+		}
+	}
+
+	name = formatName(name, hostSequence)
+	return &DeployConfig{
+		kind:            kind,
+		id:              formatId(role, host, name, replicaSequence),
+		parentId:        formatId(role, host, name, 0),
+		role:            role,
+		host:            host,
+		name:            name,
+		replica:         replica,
+		hostSequence:    hostSequence,
+		replicaSequence: replicaSequence,
+		config:          config,
+		serviceConfig:   map[string]string{},
+		variables:       vars,
+	}, nil
+}
+
+func (dc *DeployConfig) renderVariables() error {
+	vars := dc.GetVariables()
+	if err := vars.Build(); err != nil {
+		log.Error("BuildVariables", log.Field("error", err))
+		return err
+	}
+
+	err := func(values ...*string) error {
+		for _, value := range values {
+			realValue, err := vars.Rendering(*value)
+			if err != nil {
+				return err
+			}
+			*value = realValue
+		}
+		return nil
+	}(&dc.host, &dc.name, &dc.id, &dc.parentId)
+	if err != nil {
+		return err
+	}
+
+	for k, v := range dc.config {
+		realv, err := vars.Rendering(v.(string))
+		if err != nil {
+			return err
+		}
+		dc.config[k] = realv
+	}
+	return nil
+}
+
+func (dc *DeployConfig) convert() error {
+	// init service config
+	for k, v := range dc.config {
+		item := itemset.get(k)
+		if item == nil || item.exclude == false {
+			dc.serviceConfig[k] = v.(string)
+		}
+	}
+
+	// convret config item to its require type,
+	// return error if convert failed
+	for _, item := range itemset.getAll() {
+		k := item.key
+		value := dc.get(item) // return config value or default value
+		if value == nil {
+			continue
+		}
+		v, ok := utils.All2Str(value)
+		if !ok {
+			return fmt.Errorf("topology: unsupport value type for config key '%s'", k)
+		}
+
+		switch item.require {
+		case REQUIRE_ANY:
+			// do nothing
+		case REQUIRE_INT:
+			if intv, ok := utils.Str2Int(v); !ok {
+				return fmt.Errorf("'%s': must be an integer", k)
+			} else {
+				dc.config[k] = intv
+			}
+		case REQUIRE_STRING:
+			if len(v) == 0 {
+				return fmt.Errorf("'%s': length must greater than zero", k)
+			}
+		case REQUIRE_BOOL:
+			if boolv, ok := utils.Str2Bool(v); !ok {
+				return fmt.Errorf("'%s': must be a boolean", k)
+			} else {
+				dc.config[k] = boolv
+			}
+		case REQUIRE_POSITIVE_INTEGER:
+			if intv, ok := utils.Str2Int(v); !ok {
+				return fmt.Errorf("'%s': must be an integer", k)
+			} else if intv <= 0 {
+				return fmt.Errorf("'%s': must be a positive integer", k)
+			} else {
+				dc.config[k] = intv
+			}
+		}
+	}
+
+	return nil
+}
+
+func (dc *DeployConfig) Build() error {
+	err := dc.renderVariables()
+	if err != nil {
+		return err
+	}
+	return dc.convert()
+}

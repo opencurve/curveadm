@@ -23,8 +23,8 @@
 package step
 
 import (
-	"github.com/opencurve/curveadm/internal/module"
 	"github.com/opencurve/curveadm/internal/task/context"
+	"github.com/opencurve/curveadm/pkg/module"
 )
 
 type (

@@ -38,7 +38,7 @@ const (
 	URL_DOWNLOAD_CURVADM = "http://curveadm.nos-eastchina1.126.net/release/curveadm-latest.tar.gz"
 	URL_INSTALL_SCRIPT   = "http://curveadm.nos-eastchina1.126.net/script/install.sh"
 	HEADER_VERSION       = "X-Nos-Meta-Curveadm-Version"
-	ENV_UPGRADE          = "CURVEADM_UPGRADE=true"
+	ENV_CURVEADM_UPGRAD  = "CURVEADM_UPGRADE"
 )
 
 func calcVersion(v string) int {
@@ -84,8 +84,8 @@ func Upgrade(curveadm *cli.CurveAdm) error {
 		return nil
 	}
 
-	cmd := exec.Command("/bin/bash", "-c", fmt.Sprintf("curl -fsSL %s | sh", URL_INSTALL_SCRIPT))
-	cmd.Env = append(os.Environ(), ENV_UPGRADE)
+	cmd := exec.Command("/bin/bash", "-c", fmt.Sprintf("curl -fsSL %s | bash", URL_INSTALL_SCRIPT))
+	cmd.Env = append(os.Environ(), fmt.Sprintf("%s=true", ENV_CURVEADM_UPGRAD))
 	cmd.Stderr = curveadm.Err()
 	cmd.Stdout = curveadm.Out()
 	return cmd.Run()

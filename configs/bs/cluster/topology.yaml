@@ -1,0 +1,51 @@
+kind: curvebs
+global:
+  user: curve
+  ssh_port: 22
+  private_key_file: /home/curve/.ssh/id_rsa
+  report_usage: true
+  data_dir: /home/${user}/curvefs/data/${service_role}
+  log_dir: /home/${user}/curvefs/logs/${service_role}
+  container_image: opencurvedocker/curvefs:latest
+  s3.ak: minioadmin
+  s3.sk: minioadmin
+  s3.endpoint: http://127.0.0.1:9000
+  s3.bucket_name: <>
+  variable:
+    machine1: 10.0.1.1
+    machine2: 10.0.1.2
+    machine3: 10.0.1.3
+
+etcd_services:
+  config:
+    listen.ip: ${service_host}
+    listen.port: 2380
+    listen.client_port: 2379
+  deploy:
+    - host: ${machine1}
+    - host: ${machine2}
+    - host: ${machine3}
+
+mds_services:
+  config:
+    listen.ip: ${service_host}
+    listen.port: 6700
+    listen.dummy_port: 7700
+  deploy:
+    - host: ${machine1}
+    - host: ${machine2}
+    - host: ${machine3}
+
+chunkserver_services:
+  config:
+    listen.ip: ${service_host}
+    listen.port: 6701
+    metaserver.loglevel: 0
+    copysets: 100  # copysets per chunkserver
+    zone_bucket_per_copyset: 1  # copyset
+  deploy:
+    - host: ${machine1}
+    - host: ${machine2}
+    - host: ${machine3}
+      config:
+        metaserver.loglevel: 3

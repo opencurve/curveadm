@@ -27,8 +27,8 @@ import (
 	"strings"
 
 	"github.com/opencurve/curveadm/cli/cli"
-	"github.com/opencurve/curveadm/internal/configure"
 	"github.com/opencurve/curveadm/internal/configure/client"
+	"github.com/opencurve/curveadm/internal/configure/topology"
 	"github.com/opencurve/curveadm/internal/task/task"
 	commTask "github.com/opencurve/curveadm/internal/task/task/common"
 	fsTask "github.com/opencurve/curveadm/internal/task/task/fs"
@@ -44,7 +44,7 @@ const (
 type configs struct {
 	ctype  int
 	length int
-	dcs    []*configure.DeployConfig
+	dcs    []*topology.DeployConfig
 	ccs    []*client.ClientConfig
 }
 
@@ -55,7 +55,7 @@ const (
 	START_SERVICE
 	STOP_SERVICE
 	RESTART_SERVICE
-	CREATE_TOPOLOGY
+	CREATE_POOL
 	GET_SERVICE_STATUS
 	CLEAN_SERVICE
 	SYNC_BINARY
@@ -94,21 +94,21 @@ func prettyTasksSubName(ts []*task.Task) {
 
 func newConfigs(configSlice interface{}) (*configs, error) {
 	configs := &configs{
-		dcs: []*configure.DeployConfig{},
+		dcs: []*topology.DeployConfig{},
 		ccs: []*client.ClientConfig{},
 	}
 	switch configSlice.(type) {
-	case []*configure.DeployConfig:
+	case []*topology.DeployConfig:
 		configs.ctype = TYPE_CONFIG_DEPLOY
-		configs.dcs = configSlice.([]*configure.DeployConfig)
+		configs.dcs = configSlice.([]*topology.DeployConfig)
 		configs.length = len(configs.dcs)
 	case []*client.ClientConfig:
 		configs.ctype = TYPE_CONFIG_CLIENT
 		configs.ccs = configSlice.([]*client.ClientConfig)
 		configs.length = len(configs.ccs)
-	case *configure.DeployConfig:
+	case *topology.DeployConfig:
 		configs.ctype = TYPE_CONFIG_DEPLOY
-		configs.dcs = append(configs.dcs, configSlice.(*configure.DeployConfig))
+		configs.dcs = append(configs.dcs, configSlice.(*topology.DeployConfig))
 		configs.length = 1
 	case *client.ClientConfig:
 		configs.ctype = TYPE_CONFIG_CLIENT
@@ -125,7 +125,7 @@ func newConfigs(configSlice interface{}) (*configs, error) {
 
 func ExecTasks(taskType int, curveadm *cli.CurveAdm, configSlice interface{}) error {
 	var t *task.Task
-	var dc *configure.DeployConfig
+	var dc *topology.DeployConfig
 	var cc *client.ClientConfig
 
 	configs, err := newConfigs(configSlice)
@@ -166,7 +166,7 @@ func ExecTasks(taskType int, curveadm *cli.CurveAdm, configSlice interface{}) er
 			t, err = commTask.NewStopServiceTask(curveadm, dc)
 		case RESTART_SERVICE:
 			t, err = commTask.NewRestartServiceTask(curveadm, dc)
-		case CREATE_TOPOLOGY:
+		case CREATE_POOL:
 			t, err = commTask.NewCreateTopologyTask(curveadm, dc)
 		case GET_SERVICE_STATUS:
 			option.SilentSubBar = true

@@ -27,20 +27,48 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/opencurve/curveadm/cli/cli"
-	"github.com/opencurve/curveadm/internal/configure"
+	"github.com/opencurve/curveadm/internal/configure/topology"
+	"github.com/opencurve/curveadm/internal/errors"
+	task "github.com/opencurve/curveadm/internal/task/task/common"
 	"github.com/opencurve/curveadm/internal/task/tasks"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/cobra"
 )
 
 const (
+	// task type
 	PULL_IMAGE int = iota
 	CREATE_CONTAINER
 	SYNC_CONFIG
 	START_ETCD
 	START_MDS
 	START_METASEREVR
-	CREATE_TOPOLOGY
+	START_CHUNKSERVER
+	CREATE_PHYSICAL_POOL
+	CREATE_LOGICAL_POOL
+)
+
+var (
+	CURVEBS_STEPS = []int{
+		PULL_IMAGE,
+		CREATE_CONTAINER,
+		SYNC_CONFIG,
+		START_ETCD,
+		START_MDS,
+		CREATE_PHYSICAL_POOL,
+		START_CHUNKSERVER,
+		CREATE_LOGICAL_POOL,
+	}
+
+	CURVEFS_STEPS = []int{
+		PULL_IMAGE,
+		CREATE_CONTAINER,
+		SYNC_CONFIG,
+		START_ETCD,
+		START_MDS,
+		START_METASEREVR,
+		CREATE_LOGICAL_POOL,
+	}
 )
 
 type deployOptions struct{}
@@ -61,28 +89,89 @@ func NewDeployCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	return cmd
 }
 
-func filterDeployConfig(dcs []*configure.DeployConfig, role string) []*configure.DeployConfig {
-	options := configure.FilterOption{Id: "*", Role: role, Host: "*"}
-	return configure.FilterDeployConfig(dcs, options)
+func filterDeployConfig(curveadm *cli.CurveAdm, dcs []*topology.DeployConfig, role string) []*topology.DeployConfig {
+	options := topology.FilterOption{Id: "*", Role: role, Host: "*"}
+	return curveadm.FilterDeployConfig(dcs, options)
 }
 
-func displayTitle(curveadm *cli.CurveAdm, dcs []*configure.DeployConfig) {
+func displayTitle(curveadm *cli.CurveAdm, dcs []*topology.DeployConfig) {
 	netcd := 0
 	nmds := 0
 	nmetaserver := 0
+	nchunkserevr := 0
 	for _, dc := range dcs {
-		if dc.GetRole() == configure.ROLE_ETCD {
+		role := dc.GetRole()
+		switch role {
+		case topology.ROLE_ETCD:
 			netcd += 1
-		} else if dc.GetRole() == configure.ROLE_MDS {
+		case topology.ROLE_MDS:
 			nmds += 1
-		} else if dc.GetRole() == configure.ROLE_METASERVER {
+		case topology.ROLE_CHUNKSERVER:
+			nchunkserevr += 1
+		case topology.ROLE_METASERVER:
 			nmetaserver += 1
 		}
 	}
 
+	var serviceStats string
+	kind := dcs[0].GetKind()
+	if kind == topology.KIND_CURVEBS {
+		serviceStats = fmt.Sprintf("etcd*%d, mds*%d, chunkserver*%d", netcd, nmds, nchunkserevr)
+	} else { // KIND_CURVEFS
+		serviceStats = fmt.Sprintf("etcd*%d, mds*%d, metaserver*%d", netcd, nmds, nmetaserver)
+	}
+
 	curveadm.WriteOut("Cluster Name    : %s\n", curveadm.ClusterName())
-	curveadm.WriteOut("Cluster Services: etcd*%d, mds*%d, metaserver*%d\n", netcd, nmds, nmetaserver)
+	curveadm.WriteOut("Cluster Kind    : %s\n", kind)
+	curveadm.WriteOut("Cluster Services: %s\n", serviceStats)
 	curveadm.WriteOut("\n")
+}
+
+func execDeployTask(curveadm *cli.CurveAdm, deployConfigs []*topology.DeployConfig, steps []int) error {
+	for _, step := range steps {
+		taskType := tasks.UNKNOWN
+		dcs := deployConfigs
+		switch step {
+		case PULL_IMAGE:
+			taskType = tasks.PULL_IMAGE
+		case CREATE_CONTAINER:
+			taskType = tasks.CREATE_CONTAINER
+		case SYNC_CONFIG:
+			taskType = tasks.SYNC_CONFIG
+		case START_ETCD:
+			taskType = tasks.START_SERVICE
+			dcs = filterDeployConfig(curveadm, dcs, topology.ROLE_ETCD)
+		case START_MDS:
+			taskType = tasks.START_SERVICE
+			dcs = filterDeployConfig(curveadm, dcs, topology.ROLE_MDS)
+		case START_CHUNKSERVER:
+			taskType = tasks.START_SERVICE
+			dcs = filterDeployConfig(curveadm, dcs, topology.ROLE_CHUNKSERVER)
+		case START_METASEREVR:
+			taskType = tasks.START_SERVICE
+			dcs = filterDeployConfig(curveadm, dcs, topology.ROLE_METASERVER)
+		case CREATE_PHYSICAL_POOL:
+			curveadm.MemStorage().Set(task.KEY_POOL_TYPE, task.TYPE_PHYSICAL_POOL)
+			taskType = tasks.CREATE_POOL
+			dcs = filterDeployConfig(curveadm, dcs, topology.ROLE_MDS)[:1]
+		case CREATE_LOGICAL_POOL:
+			curveadm.MemStorage().Set(task.KEY_POOL_TYPE, task.TYPE_LOGICAL_POOL)
+			taskType = tasks.CREATE_POOL
+			dcs = filterDeployConfig(curveadm, dcs, topology.ROLE_MDS)[:1]
+		}
+
+		if len(dcs) == 0 {
+			return errors.ERR_CONFIGURE_NO_SERVICE
+		}
+
+		err := tasks.ExecTasks(taskType, curveadm, dcs)
+		if err != nil {
+			return err
+		}
+
+		curveadm.WriteOut("\n")
+	}
+	return nil
 }
 
 /*
@@ -93,62 +182,33 @@ func displayTitle(curveadm *cli.CurveAdm, dcs []*configure.DeployConfig) {
  *   4) start container
  *     4.1) start etcd container
  *     4.2) start mds container
- *     4.3) create topology
- *     4.4) start metaserver
+ *     4.4) start chunkserver(curvebs) / metaserver(curvefs)
+ *   5) create topology
  */
 func runDeploy(curveadm *cli.CurveAdm, options deployOptions) error {
-	deployConfigs, err := configure.ParseTopology(curveadm.ClusterTopologyData())
+	dcs, err := topology.ParseTopology(curveadm.ClusterTopologyData())
 	if err != nil {
 		return err
+	} else if len(dcs) == 0 {
+		return errors.ERR_CONFIGURE_NO_SERVICE
 	}
 
 	// display title
-	displayTitle(curveadm, deployConfigs)
+	displayTitle(curveadm, dcs)
 
-	// exec task one by one
-	taskSeq := []int{
-		PULL_IMAGE,
-		CREATE_CONTAINER,
-		SYNC_CONFIG,
-		START_ETCD,
-		START_MDS,
-		CREATE_TOPOLOGY,
-		START_METASEREVR,
-	}
-	for _, v := range taskSeq {
-		taskType := tasks.UNKNOWN
-		dcs := deployConfigs
-		switch v {
-		case PULL_IMAGE:
-			taskType = tasks.PULL_IMAGE
-		case CREATE_CONTAINER:
-			taskType = tasks.CREATE_CONTAINER
-		case SYNC_CONFIG:
-			taskType = tasks.SYNC_CONFIG
-		case START_ETCD:
-			taskType = tasks.START_SERVICE
-			dcs = filterDeployConfig(dcs, configure.ROLE_ETCD)
-		case START_MDS:
-			taskType = tasks.START_SERVICE
-			dcs = filterDeployConfig(dcs, configure.ROLE_MDS)
-		case CREATE_TOPOLOGY:
-			taskType = tasks.CREATE_TOPOLOGY
-			dcs = filterDeployConfig(dcs, configure.ROLE_MDS)[:1]
-		case START_METASEREVR:
-			taskType = tasks.START_SERVICE
-			dcs = filterDeployConfig(dcs, configure.ROLE_METASERVER)
-		}
-
-		if len(dcs) == 0 {
-			return fmt.Errorf("there is no service specified in topology, " +
-				"please use 'curveadm config commit' to update topology")
-		} else if err := tasks.ExecTasks(taskType, curveadm, dcs); err != nil {
-			return curveadm.NewPromptError(err, "")
-		} else {
-			curveadm.WriteOut("\n")
-		}
+	// exec deploy task one by one
+	kind := dcs[0].GetKind()
+	if kind == topology.KIND_CURVEBS {
+		err = execDeployTask(curveadm, dcs, CURVEBS_STEPS)
+	} else {
+		err = execDeployTask(curveadm, dcs, CURVEFS_STEPS)
 	}
 
-	curveadm.WriteOut(color.GreenString("Cluster '%s' successfully deployed :)\n"), curveadm.ClusterName())
-	return nil
+	if err == nil {
+		curveadm.WriteOut(color.GreenString("Cluster '%s' successfully deployed ^_^.\n"), curveadm.ClusterName())
+	} else if err != nil {
+		return curveadm.NewPromptError(err, "")
+	}
+
+	return err
 }

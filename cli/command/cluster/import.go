@@ -31,10 +31,9 @@ import (
 	"strings"
 
 	"github.com/opencurve/curveadm/cli/cli"
-	"github.com/opencurve/curveadm/internal/configure"
-	"github.com/opencurve/curveadm/internal/log"
 	"github.com/opencurve/curveadm/internal/storage"
 	"github.com/opencurve/curveadm/internal/utils"
+	"github.com/opencurve/curveadm/pkg/log"
 	"github.com/spf13/cobra"
 )
 
@@ -178,9 +177,7 @@ func importCluster(storage *storage.Storage, name, dbfile string) error {
 	}
 	clusterId := clusters[0].Id
 	for _, service := range services {
-		dcId := configure.ExtractDcId(service.Id)
-		serviceId := configure.ServiceId(clusterId, dcId)
-		if err := storage.InsertService(clusterId, serviceId, service.ContainerId); err != nil {
+		if err := storage.InsertService(clusterId, service.Id, service.ContainerId); err != nil {
 			return err
 		}
 	}

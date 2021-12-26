@@ -26,9 +26,8 @@ import (
 	"errors"
 
 	ssh "github.com/melbahja/goph"
-	"github.com/opencurve/curveadm/internal/configure"
-	"github.com/opencurve/curveadm/internal/module"
 	"github.com/opencurve/curveadm/internal/task/context"
+	"github.com/opencurve/curveadm/pkg/module"
 )
 
 var (
@@ -44,12 +43,12 @@ type (
 		name      string
 		subname   string
 		steps     []Step
-		sshConfig *configure.SshConfig
+		sshConfig *module.SSHConfig
 		context   context.Context
 	}
 )
 
-func NewTask(name, subname string, sshConfig *configure.SshConfig) *Task {
+func NewTask(name, subname string, sshConfig *module.SSHConfig) *Task {
 	return &Task{
 		name:      name,
 		subname:   subname,

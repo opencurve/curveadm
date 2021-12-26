@@ -20,7 +20,7 @@
  * Author: Jingli Chen (Wine93)
  */
 
-package configure
+package topology
 
 import (
 	"github.com/mitchellh/hashstructure/v2"

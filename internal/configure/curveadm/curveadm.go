@@ -20,7 +20,7 @@
  * Author: Jingli Chen (Wine93)
  */
 
-package configure
+package curveadm
 
 import (
 	"github.com/opencurve/curveadm/internal/utils"

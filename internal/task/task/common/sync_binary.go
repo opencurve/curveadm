@@ -57,7 +57,7 @@ func (s *step2SyncBinary) Execute(ctx *context.Context) error {
 func (s *step2SyncBinary) Rollback(ctx *context.Context) {}
 
 func NewSyncBinaryTask(curveadm *cli.CurveAdm, dc *configure.DeployConfig) (*task.Task, error) {
-	serviceId := configure.ServiceId(curveadm.ClusterId(), dc.GetId())
+	serviceId := configure.GetServiceId(curveadm.ClusterId(), dc.GetId())
 	containerId, err := curveadm.Storage().GetContainerId(serviceId)
 	if err != nil {
 		return nil, err

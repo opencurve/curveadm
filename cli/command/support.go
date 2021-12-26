@@ -29,7 +29,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/opencurve/curveadm/cli/cli"
-	"github.com/opencurve/curveadm/internal/configure"
+	"github.com/opencurve/curveadm/internal/configure/topology"
 	task "github.com/opencurve/curveadm/internal/task/task/common"
 	"github.com/opencurve/curveadm/internal/task/tasks"
 	"github.com/opencurve/curveadm/internal/tools"
@@ -69,7 +69,7 @@ func NewSupportCommand(curveadm *cli.CurveAdm) *cobra.Command {
 }
 
 func collectService(curveadm *cli.CurveAdm, saveDir string) error {
-	dcs, err := configure.ParseTopology(curveadm.ClusterTopologyData())
+	dcs, err := topology.ParseTopology(curveadm.ClusterTopologyData())
 	if err != nil {
 		return err
 	}

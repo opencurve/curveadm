@@ -24,14 +24,15 @@ package common
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/opencurve/curveadm/cli/cli"
-	"github.com/opencurve/curveadm/internal/configure"
-	"github.com/opencurve/curveadm/internal/log"
+	"github.com/opencurve/curveadm/internal/configure/topology"
 	"github.com/opencurve/curveadm/internal/storage"
 	"github.com/opencurve/curveadm/internal/task/context"
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
+	"github.com/opencurve/curveadm/pkg/log"
 )
 
 const (
@@ -88,9 +89,54 @@ func (s *step2InsertService) Execute(ctx *context.Context) error {
 
 }
 
-func getMountVolumes(dc *configure.DeployConfig) []step.Volume {
+func getArguments(dc *topology.DeployConfig) string {
+	role := dc.GetRole()
+	if role != topology.ROLE_CHUNKSERVER {
+		return ""
+	}
+
+	// only chunkserver need so many arguments, but who cares
+	layout := dc.GetProjectLayout()
+	dataDir := layout.ServiceDataDir
+	chunkserverArguments := map[string]interface{}{
+		// chunkserver
+		"conf":                  layout.ServiceConfPath,
+		"chunkServerIp":         dc.GetListenIp(),
+		"enableExternalServer":  true,
+		"chunkServerExternalIp": dc.GetListenExternalIp(),
+		"chunkServerPort":       dc.GetListenPort(),
+		"chunkFilePoolDir":      dataDir,
+		"chunkFilePoolMetaPath": fmt.Sprintf("%s/chunkfilepool.meta", dataDir),
+		"walFilePoolDir":        dataDir,
+		"walFilePoolMetaPath":   fmt.Sprintf("%s/walfilepool.meta", dataDir),
+		"copySetUri":            fmt.Sprintf("local://%s/copysets", dataDir),
+		"recycleUri":            fmt.Sprintf("local://%s/recycler", dataDir),
+		"raftLogUri":            fmt.Sprintf("curve://%s/copysets", dataDir),
+		"raftSnapshotUri":       fmt.Sprintf("curve://%s/copysets", dataDir),
+		"chunkServerStoreUri":   fmt.Sprintf("local://%s", dataDir),
+		"chunkServerMetaUri":    fmt.Sprintf("local://%s/chunkserver.dat", dataDir),
+		// brpc
+		"bthread_concurrency":      18,
+		"graceful_quit_on_sigterm": true,
+		// raft
+		"raft_sync":                            true,
+		"raft_sync_meta":                       true,
+		"raft_sync_segments":                   true,
+		"raft_max_segment_size":                8388608,
+		"raft_max_install_snapshot_tasks_num":  1,
+		"raft_use_fsync_rather_than_fdatasync": false,
+	}
+
+	arguments := []string{}
+	for k, v := range chunkserverArguments {
+		arguments = append(arguments, fmt.Sprintf("-%s=%v", k, v))
+	}
+	return strings.Join(arguments, " ")
+}
+
+func getMountVolumes(dc *topology.DeployConfig) []step.Volume {
 	volumes := []step.Volume{}
-	prefix := dc.GetServicePrefix()
+	layout := dc.GetProjectLayout()
 	logDir := dc.GetLogDir()
 	dataDir := dc.GetDataDir()
 	coreDir := dc.GetCoreDir()
@@ -98,46 +144,46 @@ func getMountVolumes(dc *configure.DeployConfig) []step.Volume {
 	if len(logDir) > 0 {
 		volumes = append(volumes, step.Volume{
 			HostPath:      logDir,
-			ContainerPath: fmt.Sprintf("%s/logs", prefix),
+			ContainerPath: layout.ServiceLogDir,
 		})
 	}
 
 	if len(dataDir) > 0 {
 		volumes = append(volumes, step.Volume{
 			HostPath:      dataDir,
-			ContainerPath: fmt.Sprintf("%s/data", prefix),
+			ContainerPath: layout.ServiceDataDir,
 		})
 	}
 
 	if len(coreDir) > 0 {
 		volumes = append(volumes, step.Volume{
 			HostPath:      coreDir,
-			ContainerPath: dc.GetCoreLocateDir(),
+			ContainerPath: layout.CoreSystemDir,
 		})
 	}
 
 	return volumes
 }
 
-func getRestartPolicy(dc *configure.DeployConfig) string {
+func getRestartPolicy(dc *topology.DeployConfig) string {
 	switch dc.GetRole() {
-	case configure.ROLE_ETCD:
+	case topology.ROLE_ETCD:
 		return POLICY_ALWAYS_RESTART
-	case configure.ROLE_MDS:
+	case topology.ROLE_MDS:
 		return POLICY_ALWAYS_RESTART
 	}
 	return POLICY_NEVER_RESTART
 }
 
-func NewCreateContainerTask(curveadm *cli.CurveAdm, dc *configure.DeployConfig) (*task.Task, error) {
+func NewCreateContainerTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task.Task, error) {
 	subname := fmt.Sprintf("host=%s role=%s", dc.GetHost(), dc.GetRole())
-	t := task.NewTask("Create Container", subname, dc.GetSshConfig())
+	t := task.NewTask("Create Container", subname, dc.GetSSHConfig())
 
 	// add step
 	var oldContainerId, containerId string
 	clusterId := curveadm.ClusterId()
 	dcId := dc.GetId()
-	serviceId := configure.ServiceId(clusterId, dcId)
+	serviceId := curveadm.GetServiceId(dcId)
 	t.AddStep(&step2GetService{ // if service exist, break task
 		serviceId:   serviceId,
 		containerId: &oldContainerId,
@@ -150,9 +196,9 @@ func NewCreateContainerTask(curveadm *cli.CurveAdm, dc *configure.DeployConfig) 
 	})
 	t.AddStep(&step.CreateContainer{
 		Image:        dc.GetContainerImage(),
-		Command:      fmt.Sprintf("--role %s", dc.GetRole()),
+		Command:      fmt.Sprintf("--role %s --args='%s'", dc.GetRole(), getArguments(dc)),
 		Envs:         []string{"LD_PRELOAD=/usr/local/lib/libjemalloc.so"},
-		Hostname:     fmt.Sprintf("curvefs-%s", dc.GetRole()),
+		Hostname:     fmt.Sprintf("%s-%s", dc.GetKind(), dc.GetRole()),
 		Privileged:   true,
 		Restart:      getRestartPolicy(dc),
 		Ulimits:      []string{"core=-1"},

@@ -28,10 +28,17 @@ import (
 	"net"
 
 	"github.com/melbahja/goph"
-	"github.com/opencurve/curveadm/internal/configure"
-	"github.com/opencurve/curveadm/internal/log"
+	"github.com/opencurve/curveadm/pkg/log"
 	"golang.org/x/crypto/ssh"
 )
+
+type SSHConfig struct {
+	User           string
+	Host           string
+	Port           uint
+	PrivateKeyPath string
+	Timeout        int
+}
 
 func askIsHostTrusted(host string, key ssh.PublicKey) bool {
 	//	format := "Unknown Host: %s \\nFingerprint: %s \\nWould you likt to add it?[y/N]: "
@@ -60,18 +67,18 @@ func VerifyHost(host string, remote net.Addr, key ssh.PublicKey) error {
 	return goph.AddKnownHost(host, remote, key, "")
 }
 
-func NewSshClient(sshConfig configure.SshConfig) (*goph.Client, error) {
+func NewSshClient(sshConfig SSHConfig) (*goph.Client, error) {
 	user := sshConfig.User
 	host := sshConfig.Host
 	port := sshConfig.Port
 	privateKeyPath := sshConfig.PrivateKeyPath
 
-	auth, err0 := goph.Key(privateKeyPath, "")
-	if err0 != nil {
-		log.Error("SshAuth",
+	auth, err := goph.Key(privateKeyPath, "")
+	if err != nil {
+		log.Error("SSHAuth",
 			log.Field("PrivateKeyPath", privateKeyPath),
-			log.Field("error", err0))
-		return nil, err0
+			log.Field("error", err))
+		return nil, err
 	}
 
 	client, err := goph.NewConn(&goph.Config{
@@ -82,7 +89,7 @@ func NewSshClient(sshConfig configure.SshConfig) (*goph.Client, error) {
 		Callback: VerifyHost,
 	})
 
-	log.SwitchLevel(err)("SshConnect",
+	log.SwitchLevel(err)("SSHConnect",
 		log.Field("user", user),
 		log.Field("addr", fmt.Sprintf("%s:%d", host, port)),
 		log.Field("PrivateKeyPath", privateKeyPath),

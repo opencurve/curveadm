@@ -26,14 +26,14 @@ import (
 	"fmt"
 
 	"github.com/opencurve/curveadm/cli/cli"
-	"github.com/opencurve/curveadm/internal/configure"
+	"github.com/opencurve/curveadm/internal/configure/topology"
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
 	tui "github.com/opencurve/curveadm/internal/tui/common"
 )
 
-func NewRestartServiceTask(curveadm *cli.CurveAdm, dc *configure.DeployConfig) (*task.Task, error) {
-	serviceId := configure.ServiceId(curveadm.ClusterId(), dc.GetId())
+func NewRestartServiceTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task.Task, error) {
+	serviceId := curveadm.GetServiceId(dc.GetId())
 	containerId, err := curveadm.Storage().GetContainerId(serviceId)
 	if err != nil {
 		return nil, err
@@ -43,7 +43,7 @@ func NewRestartServiceTask(curveadm *cli.CurveAdm, dc *configure.DeployConfig) (
 
 	subname := fmt.Sprintf("host=%s role=%s containerId=%s",
 		dc.GetHost(), dc.GetRole(), tui.TrimContainerId(containerId))
-	t := task.NewTask("Restart Service", subname, dc.GetSshConfig())
+	t := task.NewTask("Restart Service", subname, dc.GetSSHConfig())
 
 	// add step
 	t.AddStep(&step.RestartContainer{

@@ -27,7 +27,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/opencurve/curveadm/cli/cli"
-	"github.com/opencurve/curveadm/internal/configure"
+	"github.com/opencurve/curveadm/internal/configure/topology"
 	"github.com/opencurve/curveadm/internal/task/tasks"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/cobra"
@@ -63,12 +63,12 @@ func NewReloadCommand(curveadm *cli.CurveAdm) *cobra.Command {
 }
 
 func runReload(curveadm *cli.CurveAdm, options reloadOptions) error {
-	dcs, err := configure.ParseTopology(curveadm.ClusterTopologyData())
+	dcs, err := topology.ParseTopology(curveadm.ClusterTopologyData())
 	if err != nil {
 		return err
 	}
 
-	dcs = configure.FilterDeployConfig(dcs, configure.FilterOption{
+	dcs = curveadm.FilterDeployConfig(dcs, topology.FilterOption{
 		Id:   options.id,
 		Role: options.role,
 		Host: options.host,

@@ -26,9 +26,9 @@ import (
 	"fmt"
 
 	"github.com/opencurve/curveadm/cli/cli"
-	"github.com/opencurve/curveadm/internal/log"
 	"github.com/opencurve/curveadm/internal/tui/common"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
+	"github.com/opencurve/curveadm/pkg/log"
 	"github.com/spf13/cobra"
 )
 

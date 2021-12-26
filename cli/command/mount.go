@@ -26,10 +26,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/opencurve/curveadm/internal/configure/client"
-
 	"github.com/opencurve/curveadm/cli/cli"
-	fsTask "github.com/opencurve/curveadm/internal/task/task/fs"
+	"github.com/opencurve/curveadm/internal/configure/client"
+	"github.com/opencurve/curveadm/internal/task/task/fs"
 	"github.com/opencurve/curveadm/internal/task/tasks"
 	"github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/cobra"
@@ -83,15 +82,15 @@ func runMount(curveadm *cli.CurveAdm, options mountOptions) error {
 	}
 
 	// check mount status
-	curveadm.MemStorage().Set(fsTask.KEY_MOUNT_FSNAME, mountFSName)
-	curveadm.MemStorage().Set(fsTask.KEY_MOUNT_POINT, mountPoint)
+	curveadm.MemStorage().Set(fs.KEY_MOUNT_FSNAME, mountFSName)
+	curveadm.MemStorage().Set(fs.KEY_MOUNT_POINT, mountPoint)
 	err = tasks.ExecTasks(tasks.CHECK_MOUNT_STATUS, curveadm, cc)
 	if err != nil {
 		return curveadm.NewPromptError(err, "")
 	} else {
-		v := curveadm.MemStorage().Get(fsTask.KEY_MOUNT_STATUS)
-		status := v.(fsTask.MountStatus).Status
-		if status != fsTask.STATUS_UNMOUNTED {
+		v := curveadm.MemStorage().Get(fs.KEY_MOUNT_STATUS)
+		status := v.(fs.MountStatus).Status
+		if status != fs.STATUS_UNMOUNTED {
 			return fmt.Errorf("path mounted, please run 'curveadm umount %s' first", mountPoint)
 		}
 	}

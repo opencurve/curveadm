@@ -26,7 +26,7 @@ import (
 	"fmt"
 
 	"github.com/opencurve/curveadm/cli/cli"
-	"github.com/opencurve/curveadm/internal/configure"
+	"github.com/opencurve/curveadm/internal/configure/topology"
 	"github.com/opencurve/curveadm/internal/tui/common"
 	"github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/cobra"
@@ -66,22 +66,22 @@ func NewCommitCommand(curveadm *cli.CurveAdm) *cobra.Command {
 func validateTopology(oldData, newData string) error {
 	if oldData == "" {
 		return nil
-	} else if dcs, err := configure.ParseTopology(oldData); err != nil {
+	} else if dcs, err := topology.ParseTopology(oldData); err != nil {
 		return err
 	} else if len(dcs) == 0 {
 		return nil
 	}
 
-	diffs, err := configure.DiffTopology(oldData, newData)
+	diffs, err := topology.DiffTopology(oldData, newData)
 	if err != nil {
 		return err
 	}
 
 	for _, diff := range diffs {
 		switch diff.DiffType {
-		case configure.DIFF_DELETE:
+		case topology.DIFF_DELETE:
 			return fmt.Errorf("you can't delete service in config setting")
-		case configure.DIFF_ADD:
+		case topology.DIFF_ADD:
 			return fmt.Errorf("you can't add service in config setting")
 		}
 	}

@@ -26,7 +26,7 @@ import (
 	"fmt"
 
 	"github.com/opencurve/curveadm/cli/cli"
-	"github.com/opencurve/curveadm/internal/configure"
+	"github.com/opencurve/curveadm/internal/configure/topology"
 	"github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/cobra"
 )
@@ -57,13 +57,14 @@ func NewEnterCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	return cmd
 }
 
-func connectContainer(curveadm *cli.CurveAdm, dc *configure.DeployConfig, containerId string) error {
+func connectContainer(curveadm *cli.CurveAdm, dc *topology.DeployConfig, containerId string) error {
 	user := dc.GetUser()
 	host := dc.GetHost()
-	sshPort := dc.GetSshPort()
+	sshPort := dc.GetSSHPort()
 	privateKeyFile := dc.GetPrivateKeyFile()
 
-	cmd := utils.NewCommand(FORMAT_ENTER_CMD, user, host, sshPort, privateKeyFile, containerId, dc.GetServicePrefix())
+	cmd := utils.NewCommand(FORMAT_ENTER_CMD, user, host, sshPort, privateKeyFile,
+		containerId, dc.GetProjectLayout().ServiceRootDir)
 	cmd.Stdout = curveadm.Out()
 	cmd.Stderr = curveadm.Err()
 	cmd.Stdin = curveadm.In()
@@ -71,12 +72,12 @@ func connectContainer(curveadm *cli.CurveAdm, dc *configure.DeployConfig, contai
 }
 
 func runEnter(curveadm *cli.CurveAdm, options enterOptions) error {
-	dcs, err := configure.ParseTopology(curveadm.ClusterTopologyData())
+	dcs, err := topology.ParseTopology(curveadm.ClusterTopologyData())
 	if err != nil {
 		return err
 	}
 
-	dcs = configure.FilterDeployConfig(dcs, configure.FilterOption{
+	dcs = curveadm.FilterDeployConfig(dcs, topology.FilterOption{
 		Id:   options.id,
 		Host: "*",
 		Role: "*",

@@ -29,10 +29,11 @@ import (
 	"time"
 
 	"github.com/fatih/color"
-	"github.com/opencurve/curveadm/internal/configure"
-	"github.com/opencurve/curveadm/internal/log"
+	configure "github.com/opencurve/curveadm/internal/configure/curveadm"
+	"github.com/opencurve/curveadm/internal/configure/topology"
 	"github.com/opencurve/curveadm/internal/storage"
 	"github.com/opencurve/curveadm/internal/utils"
+	"github.com/opencurve/curveadm/pkg/log"
 )
 
 type CurveAdm struct {
@@ -147,64 +148,47 @@ func (curveadm *CurveAdm) init() error {
 	return nil
 }
 
-func (curveadm *CurveAdm) RootDir() string {
-	return curveadm.rootDir
+func (curveadm *CurveAdm) RootDir() string                   { return curveadm.rootDir }
+func (curveadm *CurveAdm) DataDir() string                   { return curveadm.dataDir }
+func (curveadm *CurveAdm) LogDir() string                    { return curveadm.logDir }
+func (curveadm *CurveAdm) TempDir() string                   { return curveadm.tempDir }
+func (curveadm *CurveAdm) LogPath() string                   { return curveadm.logpath }
+func (curveadm *CurveAdm) Config() *configure.CurveAdmConfig { return curveadm.config }
+func (curveadm *CurveAdm) In() io.Reader                     { return curveadm.in }
+func (curveadm *CurveAdm) Out() io.Writer                    { return curveadm.out }
+func (curveadm *CurveAdm) Err() io.Writer                    { return curveadm.err }
+func (curveadm *CurveAdm) Storage() *storage.Storage         { return curveadm.storage }
+func (curveadm *CurveAdm) MemStorage() *utils.SafeMap        { return curveadm.memStorage }
+func (curveadm *CurveAdm) ClusterId() int                    { return curveadm.clusterId }
+func (curveadm *CurveAdm) ClusterUUId() string               { return curveadm.clusterUUId }
+func (curveadm *CurveAdm) ClusterName() string               { return curveadm.clusterName }
+func (curveadm *CurveAdm) ClusterTopologyData() string       { return curveadm.clusterTopologyData }
+
+func (curveadm *CurveAdm) ParseTopology() ([]*topology.DeployConfig, error) {
+	return topology.ParseTopology(curveadm.clusterTopologyData)
 }
 
-func (curveadm *CurveAdm) DataDir() string {
-	return curveadm.dataDir
+func (curveadm *CurveAdm) GetServiceId(dcId string) string {
+	serviceId := fmt.Sprintf("%s_%s", curveadm.ClusterUUId(), dcId)
+	return utils.MD5Sum(serviceId)[:12]
 }
 
-func (curveadm *CurveAdm) LogDir() string {
-	return curveadm.logDir
-}
+func (curveadm *CurveAdm) FilterDeployConfig(deployConfigs []*topology.DeployConfig,
+	options topology.FilterOption) []*topology.DeployConfig {
+	dcs := []*topology.DeployConfig{}
+	for _, dc := range deployConfigs {
+		dcId := dc.GetId()
+		role := dc.GetRole()
+		host := dc.GetHost()
+		serviceId := curveadm.GetServiceId(dcId)
+		if (options.Id == "*" || options.Id == serviceId) &&
+			(options.Role == "*" || options.Role == role) &&
+			(options.Host == "*" || options.Host == host) {
+			dcs = append(dcs, dc)
+		}
+	}
 
-func (curveadm *CurveAdm) TempDir() string {
-	return curveadm.tempDir
-}
-
-func (curveadm *CurveAdm) LogPath() string {
-	return curveadm.logpath
-}
-
-func (curveadm *CurveAdm) Config() *configure.CurveAdmConfig {
-	return curveadm.config
-}
-
-func (curveadm *CurveAdm) In() io.Reader {
-	return curveadm.in
-}
-
-func (curveadm *CurveAdm) Out() io.Writer {
-	return curveadm.out
-}
-
-func (curveadm *CurveAdm) Err() io.Writer {
-	return curveadm.err
-}
-
-func (curveadm *CurveAdm) Storage() *storage.Storage {
-	return curveadm.storage
-}
-
-func (curveadm *CurveAdm) MemStorage() *utils.SafeMap {
-	return curveadm.memStorage
-}
-
-func (curveadm *CurveAdm) ClusterId() int {
-	return curveadm.clusterId
-}
-
-func (curveadm *CurveAdm) ClusterUUId() string {
-	return curveadm.clusterUUId
-}
-
-func (curveadm *CurveAdm) ClusterName() string {
-	return curveadm.clusterName
-}
-
-func (curveadm *CurveAdm) ClusterTopologyData() string {
-	return curveadm.clusterTopologyData
+	return dcs
 }
 
 func (curveadm *CurveAdm) WriteOut(format string, a ...interface{}) (int, error) {

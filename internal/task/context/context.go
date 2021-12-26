@@ -24,7 +24,7 @@ package context
 
 import (
 	ssh "github.com/melbahja/goph"
-	"github.com/opencurve/curveadm/internal/module"
+	"github.com/opencurve/curveadm/pkg/module"
 )
 
 type Context struct {

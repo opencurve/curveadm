@@ -27,7 +27,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/opencurve/curveadm/internal/configure"
+	"github.com/opencurve/curveadm/internal/configure/topology"
 	"github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/viper"
 )
@@ -35,13 +35,13 @@ import (
 const (
 	DEFAULT_CORE_LOCATE_DIR = "/core"
 
-	DEFAULT_CURVEFS_DIR = configure.DEFAULT_CURVEFS_DIR
-	KEY_CONTAINER_IMAGE = "container_image"
-	KEY_CONTAINER_PID   = "container_pid"
-	KEY_LOG_DIR         = "log_dir"
-	KEY_DATA_DIR        = "data_dir"
-	KEY_CORE_DIR        = "core_dir"
-	KEY_MDS_ADDR        = "mdsOpt.rpcRetryOpt.addrs"
+	LAYOUT_CURVEFS_ROOT_DIR = topology.LAYOUT_CURVEFS_ROOT_DIR
+	KEY_CONTAINER_IMAGE     = "container_image"
+	KEY_CONTAINER_PID       = "container_pid"
+	KEY_LOG_DIR             = "log_dir"
+	KEY_DATA_DIR            = "data_dir"
+	KEY_CORE_DIR            = "core_dir"
+	KEY_MDS_ADDR            = "mdsOpt.rpcRetryOpt.addrs"
 )
 
 var (
@@ -149,19 +149,19 @@ func (c *ClientConfig) GetCoreDir() string {
 
 // wrapper interface: client related
 func (cc *ClientConfig) GetCurveFSPrefix() string {
-	return configure.DEFAULT_CURVEFS_DIR
+	return LAYOUT_CURVEFS_ROOT_DIR
 }
 
 func (c *ClientConfig) GetClientPrefix() string {
-	return fmt.Sprintf("%s/client", DEFAULT_CURVEFS_DIR)
+	return fmt.Sprintf("%s/client", LAYOUT_CURVEFS_ROOT_DIR)
 }
 
 func (c *ClientConfig) GetClientConfPath() string {
-	return fmt.Sprintf("%s/client/conf/client.conf", DEFAULT_CURVEFS_DIR)
+	return fmt.Sprintf("%s/client/conf/client.conf", LAYOUT_CURVEFS_ROOT_DIR)
 }
 
 func (c *ClientConfig) GetClientMountPath() string {
-	return fmt.Sprintf("%s/client/mnt", DEFAULT_CURVEFS_DIR)
+	return fmt.Sprintf("%s/client/mnt", LAYOUT_CURVEFS_ROOT_DIR)
 }
 
 func (c *ClientConfig) GetCoreLocateDir() string {

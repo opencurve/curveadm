@@ -27,8 +27,8 @@ import (
 	"strings"
 
 	"github.com/opencurve/curveadm/cli/cli"
-	"github.com/opencurve/curveadm/internal/configure"
-	"github.com/opencurve/curveadm/internal/task/task/common"
+	"github.com/opencurve/curveadm/internal/configure/topology"
+	task "github.com/opencurve/curveadm/internal/task/task/common"
 	"github.com/opencurve/curveadm/internal/task/tasks"
 	tui "github.com/opencurve/curveadm/internal/tui/common"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
@@ -83,7 +83,7 @@ func NewCleanCommand(curveadm *cli.CurveAdm) *cobra.Command {
 }
 
 func runClean(curveadm *cli.CurveAdm, options cleanOptions) error {
-	dcs, err := configure.ParseTopology(curveadm.ClusterTopologyData())
+	dcs, err := topology.ParseTopology(curveadm.ClusterTopologyData())
 	if err != nil {
 		return err
 	}
@@ -92,7 +92,7 @@ func runClean(curveadm *cli.CurveAdm, options cleanOptions) error {
 	role := options.role
 	host := options.host
 	only := options.only
-	dcs = configure.FilterDeployConfig(dcs, configure.FilterOption{
+	dcs = curveadm.FilterDeployConfig(dcs, topology.FilterOption{
 		Id:   id,
 		Role: role,
 		Host: host,
@@ -106,14 +106,16 @@ func runClean(curveadm *cli.CurveAdm, options cleanOptions) error {
 	// clean service
 	curveadm.WriteOut("clean: role=%s host=%s id=%s only=%s\n", role, host, id, strings.Join(only, ","))
 	if pass := tui.ConfirmYes("Do you want to continue? [y/N]: "); !pass {
-		curveadm.WriteOut("Clean nothing\n")
-	} else {
-		curveadm.WriteOut("\n")
-		memStorage := curveadm.MemStorage()
-		memStorage.Set(common.KEY_CLEAN_ITEMS, only)
-		if err := tasks.ExecTasks(tasks.CLEAN_SERVICE, curveadm, dcs); err != nil {
-			return curveadm.NewPromptError(err, "")
-		}
+		curveadm.WriteOut("Clean canceled\n")
+		return nil
 	}
-	return nil
+
+	curveadm.WriteOut("\n")
+	memStorage := curveadm.MemStorage()
+	memStorage.Set(task.KEY_CLEAN_ITEMS, only)
+	err = tasks.ExecTasks(tasks.CLEAN_SERVICE, curveadm, dcs)
+	if err != nil {
+		return curveadm.NewPromptError(err, "")
+	}
+	return err
 }

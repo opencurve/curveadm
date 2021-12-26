@@ -1,0 +1,10 @@
+chunkserver_services:
+  deploy:
+    - host: ${machine1}
+      replica: 20
+      config:
+    - host: ${machine2}
+      replica: 20
+    - host: ${machine3}
+      replica: 20
+

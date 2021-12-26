@@ -26,7 +26,8 @@ import (
 	"fmt"
 
 	"github.com/opencurve/curveadm/cli/cli"
-	"github.com/opencurve/curveadm/internal/configure"
+	"github.com/opencurve/curveadm/internal/configure/topology"
+	"github.com/opencurve/curveadm/internal/errors"
 	"github.com/opencurve/curveadm/internal/task/context"
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
@@ -36,7 +37,7 @@ import (
 
 type (
 	step2FormatStatus struct {
-		config      *configure.DeployConfig
+		config      *topology.DeployConfig
 		serviceId   string
 		containerId string
 		status      *string
@@ -45,6 +46,7 @@ type (
 
 	ServiceStatus struct {
 		Id          string
+		ParentId    string
 		Role        string
 		Host        string
 		ContainerId string
@@ -66,6 +68,7 @@ func (s *step2FormatStatus) Execute(ctx *context.Context) error {
 	config := s.config
 	s.memStorage.Set(id, ServiceStatus{
 		Id:          id,
+		ParentId:    config.GetParentId(),
 		Role:        config.GetRole(),
 		Host:        config.GetHost(),
 		ContainerId: tui.TrimContainerId(s.containerId),
@@ -76,18 +79,18 @@ func (s *step2FormatStatus) Execute(ctx *context.Context) error {
 	return nil
 }
 
-func NewGetServiceStatusTask(curveadm *cli.CurveAdm, dc *configure.DeployConfig) (*task.Task, error) {
-	serviceId := configure.ServiceId(curveadm.ClusterId(), dc.GetId())
+func NewGetServiceStatusTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task.Task, error) {
+	serviceId := curveadm.GetServiceId(dc.GetId())
 	containerId, err := curveadm.Storage().GetContainerId(serviceId)
 	if err != nil {
 		return nil, err
-	} else if containerId == "" {
-		return nil, fmt.Errorf("service(id=%s) not found", serviceId)
+	} else if len(containerId) == 0 {
+		return nil, errors.ERR_SERVICE_NOT_FOUND.Format(serviceId)
 	}
 
 	subname := fmt.Sprintf("host=%s role=%s containerId=%s",
 		dc.GetHost(), dc.GetRole(), tui.TrimContainerId(containerId))
-	t := task.NewTask("Get Service Status", subname, dc.GetSshConfig())
+	t := task.NewTask("Get Service Status", subname, dc.GetSSHConfig())
 
 	// add step
 	var status string

@@ -29,10 +29,10 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/opencurve/curveadm/internal/module"
 	"github.com/opencurve/curveadm/internal/task/context"
 	"github.com/opencurve/curveadm/internal/task/task"
 	"github.com/opencurve/curveadm/internal/utils"
+	"github.com/opencurve/curveadm/pkg/module"
 )
 
 const (
