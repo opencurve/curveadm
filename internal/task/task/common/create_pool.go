@@ -59,7 +59,7 @@ func genCreatePoolCommand(dc *topology.DeployConfig, pooltype, poolJSONPath stri
 	toolsBinaryPath := layout.ToolsBinaryPath
 	if dc.GetKind() == topology.KIND_CURVEFS {
 		// for curvefs, the default topology json path is current directory's topology.json
-		return fmt.Sprintf("%s build-topology", toolsBinaryPath)
+		return fmt.Sprintf("%s create-topology", toolsBinaryPath)
 	}
 
 	return fmt.Sprintf("%s -op=create_%s -cluster_map=%s",
