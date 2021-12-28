@@ -16,15 +16,19 @@
 
 /*
  * Project: CurveAdm
- * Created Date: 2021-11-25
+ * Created Date: 2021-12-27
  * Author: Jingli Chen (Wine93)
  */
 
 package scripts
 
-var (
-	SCRIPT_WAIT    string = WAIT
-	SCRIPT_COLLECT string = COLLECT
-	SCRIPT_REPORT  string = REPORT
-	SCRIPT_FORMAT  string = FORMAT
-)
+/*
+ * Usage: format DEVICE MOUNT_PATH USAGE_BYTES
+ * Example: format /dev/sdc /data/chunkserver 107374182400
+ */
+var FORMAT = `
+device=$1
+mount_path=$2
+
+fuser -kv
+`

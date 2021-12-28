@@ -53,6 +53,7 @@ type (
 		Name              string
 		Pid               string
 		Privileged        bool
+		Remove            bool // automatically remove the container when it exits
 		Restart           string
 		SecurityOptions   []string
 		Ulimits           []string
@@ -90,8 +91,8 @@ type (
 	ListContainers struct {
 		Format       string
 		Filter       string
-		Quiet        bool
-		ShowAll      bool
+		Quiet        bool // Only display numeric IDs
+		ShowAll      bool // Show all containers (default shows just running)
 		Out          *string
 		ExecWithSudo bool
 		ExecInLocal  bool
@@ -158,6 +159,9 @@ func (s *CreateContainer) Execute(ctx *context.Context) error {
 	}
 	if s.Privileged {
 		cli.AddOption("--privileged")
+	}
+	if s.Remove {
+		cli.AddOption("--rm")
 	}
 	if len(s.Restart) > 0 {
 		cli.AddOption("--restart %s", s.Restart)

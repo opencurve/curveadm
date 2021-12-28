@@ -16,15 +16,25 @@
 
 /*
  * Project: CurveAdm
- * Created Date: 2021-11-25
+ * Created Date: 2021-12-28
  * Author: Jingli Chen (Wine93)
  */
 
-package scripts
+package bs
 
-var (
-	SCRIPT_WAIT    string = WAIT
-	SCRIPT_COLLECT string = COLLECT
-	SCRIPT_REPORT  string = REPORT
-	SCRIPT_FORMAT  string = FORMAT
+import (
+	"github.com/opencurve/curveadm/cli/cli"
+	"github.com/opencurve/curveadm/internal/configure/format"
+	"github.com/opencurve/curveadm/internal/task/task"
 )
+
+type FormatStatus struct {
+	Host        string
+	Device      string
+	MountPoint  string
+	ContainerId string
+	Status      string
+}
+
+func NewGetFormatStatusTask(curveadm *cli.CurveAdm, fc *format.FormatConfig) (*task.Task, error) {
+}

@@ -40,6 +40,8 @@ const (
 	TEMPLATE_RMDIR   = "rmdir {{.options}} {{.directorys}}"
 	TEMPLATE_REMOVE  = "rm {{.options}} {{.files}}"
 	TEMPLATE_RENAME  = "mv {{.options}} {{.source}} {{.dest}}"
+	TEMPLATE_MKFS    = "mkfs.ext4 {{.options}} {{.device}}"
+	TEMPLATE_MOUNT   = "mount {{.options}} {{.source}} {{.directory}}"
 	TEMPLATE_UMOUNT  = "umount {{.options}} {{.directory}}"
 	TEMPLATE_COMMAND = "bash -c '{{.command}}'"
 )
@@ -66,13 +68,13 @@ func (s *Shell) AddOption(format string, args ...interface{}) *Shell {
 }
 
 func (s *Shell) Mkdir(directory ...string) *Shell {
-	s.tmpl = template.Must(template.New("mkdir").Parse(TEMPLATE_MKDIR))
+	s.tmpl = template.Must(template.New("Mkdir").Parse(TEMPLATE_MKDIR))
 	s.data["directorys"] = strings.Join(directory, " ")
 	return s
 }
 
 func (s *Shell) Rmdir(directory ...string) *Shell {
-	s.tmpl = template.Must(template.New("rmdir").Parse(TEMPLATE_RMDIR))
+	s.tmpl = template.Must(template.New("Rmdir").Parse(TEMPLATE_RMDIR))
 	s.data["directorys"] = strings.Join(directory, " ")
 	return s
 }
@@ -87,6 +89,19 @@ func (s *Shell) Rename(source, dest string) *Shell {
 	s.tmpl = template.Must(template.New("Rename").Parse(TEMPLATE_RENAME))
 	s.data["source"] = source
 	s.data["dest"] = dest
+	return s
+}
+
+func (s *Shell) Mkfs(device string) *Shell {
+	s.tmpl = template.Must(template.New("Mkfs").Parse(TEMPLATE_MKFS))
+	s.data["device"] = device
+	return s
+}
+
+func (s *Shell) Mount(source, directory string) *Shell {
+	s.tmpl = template.Must(template.New("Mount").Parse(TEMPLATE_MOUNT))
+	s.data["source"] = source
+	s.data["directory"] = directory
 	return s
 }
 

@@ -30,8 +30,9 @@ import (
 	"github.com/opencurve/curveadm/internal/configure/client"
 	"github.com/opencurve/curveadm/internal/configure/topology"
 	"github.com/opencurve/curveadm/internal/task/task"
-	commTask "github.com/opencurve/curveadm/internal/task/task/common"
-	fsTask "github.com/opencurve/curveadm/internal/task/task/fs"
+	"github.com/opencurve/curveadm/internal/task/task/bs"
+	comm "github.com/opencurve/curveadm/internal/task/task/common"
+	"github.com/opencurve/curveadm/internal/task/task/fs"
 	tui "github.com/opencurve/curveadm/internal/tui/common"
 )
 
@@ -63,6 +64,7 @@ const (
 	MOUNT_FILESYSTEM // fs
 	UMOUNT_FILESYSTEM
 	CHECK_MOUNT_STATUS
+	FORMAT_CHUNKFILE_POOL
 	UNKNOWN // unknown
 )
 
@@ -155,39 +157,42 @@ func ExecTasks(taskType int, curveadm *cli.CurveAdm, configSlice interface{}) er
 		// task type
 		switch taskType {
 		case PULL_IMAGE:
-			t, err = commTask.NewPullImageTask(curveadm, dc)
+			t, err = comm.NewPullImageTask(curveadm, dc)
 		case CREATE_CONTAINER:
-			t, err = commTask.NewCreateContainerTask(curveadm, dc)
+			t, err = comm.NewCreateContainerTask(curveadm, dc)
 		case SYNC_CONFIG:
-			t, err = commTask.NewSyncConfigTask(curveadm, dc)
+			t, err = comm.NewSyncConfigTask(curveadm, dc)
 		case START_SERVICE:
-			t, err = commTask.NewStartServiceTask(curveadm, dc)
+			t, err = comm.NewStartServiceTask(curveadm, dc)
 		case STOP_SERVICE:
-			t, err = commTask.NewStopServiceTask(curveadm, dc)
+			t, err = comm.NewStopServiceTask(curveadm, dc)
 		case RESTART_SERVICE:
-			t, err = commTask.NewRestartServiceTask(curveadm, dc)
+			t, err = comm.NewRestartServiceTask(curveadm, dc)
 		case CREATE_POOL:
-			t, err = commTask.NewCreateTopologyTask(curveadm, dc)
+			t, err = comm.NewCreateTopologyTask(curveadm, dc)
 		case GET_SERVICE_STATUS:
 			option.SilentSubBar = true
 			option.SkipError = true
-			t, err = commTask.NewGetServiceStatusTask(curveadm, dc)
+			t, err = comm.NewGetServiceStatusTask(curveadm, dc)
 		case CLEAN_SERVICE:
-			t, err = commTask.NewCleanServiceTask(curveadm, dc)
+			t, err = comm.NewCleanServiceTask(curveadm, dc)
 		case COLLECT_SERVICE:
-			t, err = commTask.NewCollectServiceTask(curveadm, dc)
+			t, err = comm.NewCollectServiceTask(curveadm, dc)
 		case SYNC_BINARY:
-			//t, err = commTask.NewSyncBinaryTask(curveadm, dc)
+			//t, err = comm.NewSyncBinaryTask(curveadm, dc)
+
+		case FORMAT_CHUNKFILE_POOL:
+			t, err = bs.NewFormatChunkfilePoolTask(curveadm, dc)
 		case MOUNT_FILESYSTEM:
 			option.SilentSubBar = true
-			t, err = fsTask.NewMountFSTask(curveadm, cc)
+			t, err = fs.NewMountFSTask(curveadm, cc)
 		case UMOUNT_FILESYSTEM:
 			option.SilentSubBar = true
-			t, err = fsTask.NewUmountFSTask(curveadm, cc)
+			t, err = fs.NewUmountFSTask(curveadm, cc)
 		case CHECK_MOUNT_STATUS:
 			option.SilentMainBar = true
 			option.SilentSubBar = true
-			t, err = fsTask.NewGetMountStatusTask(curveadm, cc)
+			t, err = fs.NewGetMountStatusTask(curveadm, cc)
 		default:
 			return fmt.Errorf("unknown task type %d", taskType)
 		}

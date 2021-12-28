@@ -23,8 +23,14 @@
 package step
 
 import (
+	"strings"
+
 	"github.com/opencurve/curveadm/internal/task/context"
 	"github.com/opencurve/curveadm/pkg/module"
+)
+
+const (
+	ERR_NOT_MOUNTED = "not mounted"
 )
 
 type (
@@ -40,11 +46,24 @@ type (
 		ExecInLocal  bool
 	}
 
-	UmountFilesystem struct {
-		Directory    string
-		Out          *string
+	CreateFilesystem struct {
+		Device       string
 		ExecWithSudo bool
 		ExecInLocal  bool
+	}
+
+	MountFilesystem struct {
+		Source       string
+		Directory    string
+		ExecWithSudo bool
+		ExecInLocal  bool
+	}
+
+	UmountFilesystem struct {
+		Directory      string
+		IgnoreUmounted bool
+		ExecWithSudo   bool
+		ExecInLocal    bool
 	}
 )
 
@@ -87,12 +106,35 @@ func (s *RemoveFile) Execute(ctx *context.Context) error {
 	return nil
 }
 
+func (s *CreateFilesystem) Execute(ctx *context.Context) error {
+	cmd := ctx.Module().Shell().Mkfs(s.Device)
+	// force mke2fs to create a filesystem, even if the specified device is not a partition
+	// on a block special device, or if other parameters do not make sense
+	cmd.AddOption("-F")
+	_, err := cmd.Execute(module.ExecOption{
+		ExecWithSudo: s.ExecWithSudo,
+		ExecInLocal:  s.ExecInLocal,
+	})
+	return err
+}
+
+func (s *MountFilesystem) Execute(ctx *context.Context) error {
+	cmd := ctx.Module().Shell().Mount(s.Source, s.Directory)
+	_, err := cmd.Execute(module.ExecOption{
+		ExecWithSudo: s.ExecWithSudo,
+		ExecInLocal:  s.ExecInLocal,
+	})
+	return err
+}
+
 func (s *UmountFilesystem) Execute(ctx *context.Context) error {
 	cmd := ctx.Module().Shell().Umount(s.Directory)
 	out, err := cmd.Execute(module.ExecOption{
 		ExecWithSudo: s.ExecWithSudo,
 		ExecInLocal:  s.ExecInLocal,
 	})
-	*s.Out = out
+	if s.IgnoreUmounted && strings.HasPrefix(out, ERR_NOT_MOUNTED) {
+		return nil
+	}
 	return err
 }
