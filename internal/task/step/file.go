@@ -51,10 +51,10 @@ type (
 	}
 
 	InstallFile struct {
+		Content           *string
 		HostDestPath      string
 		ContainerId       *string
 		ContainerDestPath string
-		Content           *string
 		ExecWithSudo      bool
 		ExecInLocal       bool
 	}

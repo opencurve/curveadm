@@ -24,40 +24,16 @@ package fs
 
 import (
 	"fmt"
-	"strings"
-
-	"github.com/opencurve/curveadm/internal/configure/client"
 
 	"github.com/opencurve/curveadm/cli/cli"
-	"github.com/opencurve/curveadm/internal/task/context"
+	client "github.com/opencurve/curveadm/internal/configure/client/fs"
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
 )
 
 const (
 	DEFAULT_WAIT_STOP_SECONDS = 24 * 3600 // 1 day
-	ERR_NOT_MOUNTED           = "not mounted"
 )
-
-type step2UmountFilesystem struct {
-	mountPoint string
-	curveadm   *cli.CurveAdm
-}
-
-func (s *step2UmountFilesystem) Execute(ctx *context.Context) error {
-	var out string
-	step := step.UmountFilesystem{
-		Directory:    s.mountPoint,
-		Out:          &out,
-		ExecWithSudo: false,
-		ExecInLocal:  true,
-	}
-	err := step.Execute(ctx)
-	if err != nil && !strings.Contains(out, ERR_NOT_MOUNTED) {
-		return err
-	}
-	return nil
-}
 
 func NewUmountFSTask(curveadm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task, error) {
 	mountPoint := curveadm.MemStorage().Get(KEY_MOUNT_POINT).(string)
@@ -66,9 +42,11 @@ func NewUmountFSTask(curveadm *cli.CurveAdm, cc *client.ClientConfig) (*task.Tas
 
 	// add step
 	containerId := mountPoint2ContainerName(mountPoint)
-	t.AddStep(&step2UmountFilesystem{
-		mountPoint: mountPoint,
-		curveadm:   curveadm,
+	t.AddStep(&step.UmountFilesystem{
+		Directorys:     []string{mountPoint},
+		IgnoreUmounted: true,
+		ExecWithSudo:   false,
+		ExecInLocal:    true,
 	})
 	t.AddStep(&step.StopContainer{
 		ContainerId:  containerId,

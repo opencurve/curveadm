@@ -16,17 +16,24 @@
 
 /*
  * Project: CurveAdm
- * Created Date: 2021-11-25
+ * Created Date: 2021-12-27
  * Author: Jingli Chen (Wine93)
  */
 
 package scripts
 
-var (
-	SCRIPT_WAIT     string = WAIT
-	SCRIPT_COLLECT  string = COLLECT
-	SCRIPT_REPORT   string = REPORT
-	SCRIPT_FORMAT   string = FORMAT
-	SCRIPT_MAP      string = MAP
-	SCRIPT_CREATEFS string = CREATEFS
-)
+var FORMAT = `
+binary=$1
+percent=$2
+chunkfile_size=$3
+chunkfile_pool_dir=$4
+chunkfile_pool_meta_path=$5
+
+mkdir -p $chunkfile_pool_dir
+$binary \
+  -allocatePercent=$percent \
+  -fileSize=$chunkfile_size \
+  -filePoolDir=$chunkfile_pool_dir \
+  -filePoolMetaPath=$chunkfile_pool_meta_path \
+  -fileSystemPath=$chunkfile_pool_dir
+`

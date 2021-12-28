@@ -20,7 +20,7 @@
  * Author: Jingli Chen (Wine93)
  */
 
-package client
+package fs
 
 import (
 	"fmt"

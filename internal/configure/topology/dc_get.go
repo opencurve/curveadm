@@ -40,12 +40,28 @@ const (
 	LAYOUT_SERVICE_LOG_DIR                  = "/logs"
 	LAYOUT_SERVICE_DATA_DIR                 = "/data"
 	LAYOUT_TOOLS_DIR                        = "/tools"
-	LAYOUT_CURVEFS_TOOLS_CONFIG_SYSTEM_PATH = "/etc/curvefs/tools.conf"
+	LAYOUT_CURVEBS_CHUNKFILE_POOL_DIR       = "/chunkfilepool"
 	LAYOUT_CURVEBS_TOOLS_CONFIG_SYSTEM_PATH = "/etc/curve/tools.conf"
+	LAYOUT_CURVEFS_TOOLS_CONFIG_SYSTEM_PATH = "/etc/curvefs/tools.conf"
 	LAYOUT_CORE_SYSTEM_DIR                  = "/core"
 
-	BINARY_CURVEBS_TOOL = "curvebs-tool"
-	BINARY_CURVEFS_TOOL = "curvefs_tool"
+	BINARY_CURVEBS_TOOL     = "curvebs-tool"
+	BINARY_CURVEBS_FORMAT   = "curve_format"
+	BINARY_CURVEFS_TOOL     = "curvefs_tool"
+	METAFILE_CHUNKFILE_POOL = "chunkfilepool.meta"
+)
+
+var (
+	DefaultCurveBSDeployConfig = &DeployConfig{kind: KIND_CURVEBS}
+	DefaultCurveFSDeployConfig = &DeployConfig{kind: KIND_CURVEFS}
+
+	ServiceConfigs = map[string][]string{
+		ROLE_ETCD:          []string{"etcd.conf"},
+		ROLE_MDS:           []string{"mds.conf"},
+		ROLE_CHUNKSERVER:   []string{"chunkserver.conf", "cs_client.conf", "s3.conf"},
+		ROLE_SNAPSHOTCLONE: []string{"snapshotclone.conf", "snap_client.conf", "s3.conf", "nginx.conf"},
+		ROLE_METASERVER:    []string{"metaserver.conf"},
+	}
 )
 
 func (dc *DeployConfig) get(i *item) interface{} {
@@ -120,6 +136,7 @@ func (dc *DeployConfig) GetListenIp() string         { return dc.getString(CONFI
 func (dc *DeployConfig) GetListenPort() int          { return dc.getInt(CONFIG_LISTEN_PORT) }
 func (dc *DeployConfig) GetListenClientPort() int    { return dc.getInt(CONFIG_LISTEN_CLIENT_PORT) }
 func (dc *DeployConfig) GetListenDummyPort() int     { return dc.getInt(CONFIG_LISTEN_DUMMY_PORT) }
+func (dc *DeployConfig) GetListenProxyPort() int     { return dc.getInt(CONFIG_LISTEN_PROXY_PORT) }
 func (dc *DeployConfig) GetListenExternalIp() string { return dc.getString(CONFIG_LISTEN_EXTERNAL_IP) }
 func (dc *DeployConfig) GetCopysets() int            { return dc.getInt(CONFIG_COPYSETS) }
 
@@ -145,45 +162,79 @@ func (dc *DeployConfig) GetCopysets() int            { return dc.getInt(CONFIG_C
  *  │   ├── data
  *  │   ├── log
  *  │   └── sbin
+ *  ├── snapshotclone
+ *  │   ├── conf
+ *  │   ├── data
+ *  │   ├── log
+ *  │   └── sbin
  *  └── tools
  *      ├── conf
  *      ├── data
  *      ├── log
  *      └── sbin
  */
-type Layout struct {
-	// project: curvebs/curvefs
-	ProjectRootDir string // /curvebs
+type (
+	ConfFile struct {
+		Name       string
+		Path       string
+		SourcePath string
+	}
 
-	// service
-	ServiceRootDir     string // /curvebs/mds
-	ServiceBinDir      string // /curvebs/mds/sbin
-	ServiceConfDir     string // /curvebs/mds/conf
-	ServiceLogDir      string // /curvebs/mds/logs
-	ServiceDataDir     string // /curvebs/mds/data
-	ServiceConfPath    string // /curvebs/mds/conf/mds.conf
-	ServiceConfSrcPath string // /curvebs/conf/mds.conf
+	Layout struct {
+		// project: curvebs/curvefs
+		ProjectRootDir string // /curvebs
 
-	// tools
-	ToolsRootDir        string // /curvebs/tools
-	ToolsBinDir         string // /curvebs/tools/sbin
-	ToolsConfDir        string // /curvebs/tools/conf
-	ToolsConfPath       string // /curvebs/tools/conf/tools.conf
-	ToolsConfSrcPath    string // /curvebs/conf/tools.conf
-	ToolsConfSystemPath string // /etc/curve/tools.conf
-	ToolsBinaryPath     string // /curvebs/tools/sbin/curvebs-tool
+		// service
+		ServiceRootDir     string // /curvebs/mds
+		ServiceBinDir      string // /curvebs/mds/sbin
+		ServiceConfDir     string // /curvebs/mds/conf
+		ServiceLogDir      string // /curvebs/mds/logs
+		ServiceDataDir     string // /curvebs/mds/data
+		ServiceConfPath    string // /curvebs/mds/conf/mds.conf
+		ServiceConfSrcPath string // /curvebs/conf/mds.conf
+		ServiceConfFiles   []ConfFile
 
-	// core
-	CoreSystemDir string
-}
+		// tools
+		ToolsRootDir        string // /curvebs/tools
+		ToolsBinDir         string // /curvebs/tools/sbin
+		ToolsDataDir        string // /curvebs/tools/data
+		ToolsConfDir        string // /curvebs/tools/conf
+		ToolsConfPath       string // /curvebs/tools/conf/tools.conf
+		ToolsConfSrcPath    string // /curvebs/conf/tools.conf
+		ToolsConfSystemPath string // /etc/curve/tools.conf
+		ToolsBinaryPath     string // /curvebs/tools/sbin/curvebs-tool
+
+		// format
+		FormatBinaryPath      string // /curvebs/tools/sbin/curve_format
+		ChunkfilePoolRootDir  string // /curvebs/chunkserver/data
+		ChunkfilePoolDir      string // /curvebs/chunkserver/data/chunkfilepool
+		ChunkfilePoolMetaPath string // /curvebs/chunkserver/data/chunkfilepool.meta
+
+		// core
+		CoreSystemDir string
+	}
+)
 
 func (dc *DeployConfig) GetProjectLayout() Layout {
 	kind := dc.GetKind()
 	role := dc.GetRole()
+	// project
 	root := utils.Choose(kind == KIND_CURVEBS, LAYOUT_CURVEBS_ROOT_DIR, LAYOUT_CURVEFS_ROOT_DIR)
+
+	// service
 	confSrcDir := root + LAYOUT_CONF_SRC_DIR
 	serviceRootDir := fmt.Sprintf("%s/%s", root, role)
 	serviceConfDir := fmt.Sprintf("%s/conf", serviceRootDir)
+	serviceConfFiles := []ConfFile{}
+	for _, item := range ServiceConfigs[role] {
+		serviceConfFiles = append(serviceConfFiles, ConfFile{
+			Name:       item,
+			Path:       fmt.Sprintf("%s/%s", serviceConfDir, item),
+			SourcePath: fmt.Sprintf("%s/%s", confSrcDir, item),
+		})
+	}
+
+	// tools
 	toolsRootDir := root + LAYOUT_TOOLS_DIR
 	toolsBinDir := toolsRootDir + LAYOUT_SERVICE_BIN_DIR
 	toolsConfDir := toolsRootDir + LAYOUT_SERVICE_CONF_DIR
@@ -192,9 +243,13 @@ func (dc *DeployConfig) GetProjectLayout() Layout {
 		LAYOUT_CURVEBS_TOOLS_CONFIG_SYSTEM_PATH,
 		LAYOUT_CURVEFS_TOOLS_CONFIG_SYSTEM_PATH)
 
+	// format
+	chunkserverDataDir := fmt.Sprintf("%s/%s%s", root, ROLE_CHUNKSERVER, LAYOUT_SERVICE_DATA_DIR)
+
 	return Layout{
 		// project
 		ProjectRootDir: root,
+
 		// service
 		ServiceRootDir:     serviceRootDir,
 		ServiceBinDir:      serviceRootDir + LAYOUT_SERVICE_BIN_DIR,
@@ -203,14 +258,24 @@ func (dc *DeployConfig) GetProjectLayout() Layout {
 		ServiceDataDir:     serviceRootDir + LAYOUT_SERVICE_DATA_DIR,
 		ServiceConfPath:    fmt.Sprintf("%s/%s.conf", serviceConfDir, role),
 		ServiceConfSrcPath: fmt.Sprintf("%s/%s.conf", confSrcDir, role),
+		ServiceConfFiles:   serviceConfFiles,
+
 		// tools
 		ToolsRootDir:        toolsRootDir,
 		ToolsBinDir:         toolsRootDir + LAYOUT_SERVICE_BIN_DIR,
+		ToolsDataDir:        toolsRootDir + LAYOUT_SERVICE_DATA_DIR,
 		ToolsConfDir:        toolsRootDir + LAYOUT_SERVICE_CONF_DIR,
 		ToolsConfPath:       fmt.Sprintf("%s/tools.conf", toolsConfDir),
 		ToolsConfSrcPath:    fmt.Sprintf("%s/tools.conf", confSrcDir),
 		ToolsConfSystemPath: toolsConfSystemPath,
 		ToolsBinaryPath:     fmt.Sprintf("%s/%s", toolsBinDir, toolsBinaryName),
+
+		// format
+		FormatBinaryPath:      fmt.Sprintf("%s/%s", toolsBinDir, BINARY_CURVEBS_FORMAT),
+		ChunkfilePoolRootDir:  chunkserverDataDir,
+		ChunkfilePoolDir:      chunkserverDataDir + LAYOUT_CURVEBS_CHUNKFILE_POOL_DIR,
+		ChunkfilePoolMetaPath: fmt.Sprintf("%s/%s", chunkserverDataDir, METAFILE_CHUNKFILE_POOL),
+
 		// core
 		CoreSystemDir: LAYOUT_CORE_SYSTEM_DIR,
 	}
@@ -219,4 +284,8 @@ func (dc *DeployConfig) GetProjectLayout() Layout {
 func GetProjectLayout(kind string) Layout {
 	dc := DeployConfig{kind: kind}
 	return dc.GetProjectLayout()
+}
+
+func GetCurveBSProjectLayout() Layout {
+	return DefaultCurveBSDeployConfig.GetProjectLayout()
 }

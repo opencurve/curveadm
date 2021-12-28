@@ -16,8 +16,33 @@
 
 /*
  * Project: CurveAdm
- * Created Date: 2021-12-25
+ * Created Date: 2021-01-10
  * Author: Jingli Chen (Wine93)
  */
 
-package bs
+package scripts
+
+/*
+ * Usage: map USER VOLUME CREATE SIZE
+ * Example: map curve test true 10
+ */
+var MAP = `
+#!/usr/bin/env bash
+
+g_user=$1
+g_volume=$2
+g_create=$3
+g_size=$4
+
+if [ $g_create == "true" ]; then
+    output=$(curve_ops_tool create -userName=$g_user -fileName=$g_volume -fileLength=$g_size)
+    if [ $? -ne 0 ]; then
+        if [ "$output" != "CreateFile fail with errCode: 101" ]; then
+            exit 1
+        fi
+    fi
+fi
+
+mkdir -p /curvebs/nebd/data/lock /etc/curve/curvetab
+curve-nbd map cbd:pool/${g_volume}_${g_user}_
+`

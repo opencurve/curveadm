@@ -35,10 +35,11 @@ const (
 	KIND_CURVEBS = "curvebs"
 	KIND_CURVEFS = "curvefs"
 
-	ROLE_ETCD        = "etcd"
-	ROLE_MDS         = "mds"
-	ROLE_CHUNKSERVER = "chunkserver"
-	ROLE_METASERVER  = "metaserver"
+	ROLE_ETCD          = "etcd"
+	ROLE_MDS           = "mds"
+	ROLE_CHUNKSERVER   = "chunkserver"
+	ROLE_SNAPSHOTCLONE = "snapshotclone"
+	ROLE_METASERVER    = "metaserver"
 )
 
 type (

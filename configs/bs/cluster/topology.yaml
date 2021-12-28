@@ -49,3 +49,14 @@ chunkserver_services:
     - host: ${machine3}
       config:
         metaserver.loglevel: 3
+
+snapshotclone_services:
+  config:
+    listen.ip: ${service_host}
+    listen.port: 5555
+    listen.dummy_port: 7700
+    listem.proxy_port:
+  deploy:
+    - host: ${machine1}
+    - host: ${machine2}
+    - host: ${machine3}

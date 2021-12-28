@@ -37,13 +37,14 @@ import (
 
 const (
 	// task type
-	PULL_IMAGE int = iota
+	PULL_IMAGE = iota
 	CREATE_CONTAINER
 	SYNC_CONFIG
 	START_ETCD
 	START_MDS
-	START_METASEREVR
 	START_CHUNKSERVER
+	START_SNAPSHOTCLONE
+	START_METASEREVR
 	CREATE_PHYSICAL_POOL
 	CREATE_LOGICAL_POOL
 )
@@ -58,6 +59,7 @@ var (
 		CREATE_PHYSICAL_POOL,
 		START_CHUNKSERVER,
 		CREATE_LOGICAL_POOL,
+		START_SNAPSHOTCLONE,
 	}
 
 	CURVEFS_STEPS = []int{
@@ -97,8 +99,9 @@ func filterDeployConfig(curveadm *cli.CurveAdm, dcs []*topology.DeployConfig, ro
 func displayTitle(curveadm *cli.CurveAdm, dcs []*topology.DeployConfig) {
 	netcd := 0
 	nmds := 0
-	nmetaserver := 0
 	nchunkserevr := 0
+	nsnapshotclone := 0
+	nmetaserver := 0
 	for _, dc := range dcs {
 		role := dc.GetRole()
 		switch role {
@@ -108,6 +111,8 @@ func displayTitle(curveadm *cli.CurveAdm, dcs []*topology.DeployConfig) {
 			nmds += 1
 		case topology.ROLE_CHUNKSERVER:
 			nchunkserevr += 1
+		case topology.ROLE_SNAPSHOTCLONE:
+			nsnapshotclone += 1
 		case topology.ROLE_METASERVER:
 			nmetaserver += 1
 		}
@@ -116,9 +121,11 @@ func displayTitle(curveadm *cli.CurveAdm, dcs []*topology.DeployConfig) {
 	var serviceStats string
 	kind := dcs[0].GetKind()
 	if kind == topology.KIND_CURVEBS {
-		serviceStats = fmt.Sprintf("etcd*%d, mds*%d, chunkserver*%d", netcd, nmds, nchunkserevr)
+		serviceStats = fmt.Sprintf("etcd*%d, mds*%d, chunkserver*%d, snapshotclone*%d",
+			netcd, nmds, nchunkserevr, nsnapshotclone)
 	} else { // KIND_CURVEFS
-		serviceStats = fmt.Sprintf("etcd*%d, mds*%d, metaserver*%d", netcd, nmds, nmetaserver)
+		serviceStats = fmt.Sprintf("etcd*%d, mds*%d, metaserver*%d",
+			netcd, nmds, nmetaserver)
 	}
 
 	curveadm.WriteOut("Cluster Name    : %s\n", curveadm.ClusterName())
@@ -147,6 +154,9 @@ func execDeployTask(curveadm *cli.CurveAdm, deployConfigs []*topology.DeployConf
 		case START_CHUNKSERVER:
 			taskType = tasks.START_SERVICE
 			dcs = filterDeployConfig(curveadm, dcs, topology.ROLE_CHUNKSERVER)
+		case START_SNAPSHOTCLONE:
+			taskType = tasks.START_SERVICE
+			dcs = filterDeployConfig(curveadm, dcs, topology.ROLE_SNAPSHOTCLONE)
 		case START_METASEREVR:
 			taskType = tasks.START_SERVICE
 			dcs = filterDeployConfig(curveadm, dcs, topology.ROLE_METASERVER)
@@ -183,7 +193,7 @@ func execDeployTask(curveadm *cli.CurveAdm, deployConfigs []*topology.DeployConf
  *     4.1) start etcd container
  *     4.2) start mds container
  *     4.4) start chunkserver(curvebs) / metaserver(curvefs)
- *   5) create topology
+ *   5) create logical pool
  */
 func runDeploy(curveadm *cli.CurveAdm, options deployOptions) error {
 	dcs, err := topology.ParseTopology(curveadm.ClusterTopologyData())
@@ -198,12 +208,12 @@ func runDeploy(curveadm *cli.CurveAdm, options deployOptions) error {
 
 	// exec deploy task one by one
 	kind := dcs[0].GetKind()
+	steps := CURVEFS_STEPS
 	if kind == topology.KIND_CURVEBS {
-		err = execDeployTask(curveadm, dcs, CURVEBS_STEPS)
-	} else {
-		err = execDeployTask(curveadm, dcs, CURVEFS_STEPS)
+		steps = CURVEBS_STEPS
 	}
 
+	err = execDeployTask(curveadm, dcs, steps)
 	if err == nil {
 		curveadm.WriteOut(color.GreenString("Cluster '%s' successfully deployed ^_^.\n"), curveadm.ClusterName())
 	} else if err != nil {

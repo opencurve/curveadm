@@ -35,6 +35,11 @@ import (
 	"github.com/opencurve/curveadm/internal/utils"
 )
 
+const (
+	STATUS_CLEANED = "Cleaned"
+	STATUS_LOSED   = "Losed"
+)
+
 type (
 	step2FormatStatus struct {
 		config      *topology.DeployConfig
@@ -49,19 +54,21 @@ type (
 		ParentId    string
 		Role        string
 		Host        string
+		Replica     string
 		ContainerId string
 		Status      string
 		LogDir      string
 		DataDir     string
+		SortedKey   string
 	}
 )
 
 func (s *step2FormatStatus) Execute(ctx *context.Context) error {
 	status := *s.status
 	if s.containerId == "-" { // container cleaned
-		status = "Cleaned"
+		status = STATUS_CLEANED
 	} else if len(status) == 0 { // container losed
-		status = "Losed"
+		status = STATUS_LOSED
 	}
 
 	id := s.serviceId
@@ -71,10 +78,12 @@ func (s *step2FormatStatus) Execute(ctx *context.Context) error {
 		ParentId:    config.GetParentId(),
 		Role:        config.GetRole(),
 		Host:        config.GetHost(),
+		Replica:     fmt.Sprintf("1/%d", config.GetReplica()),
 		ContainerId: tui.TrimContainerId(s.containerId),
 		Status:      status,
 		LogDir:      config.GetLogDir(),
 		DataDir:     config.GetDataDir(),
+		SortedKey:   config.GetId(),
 	})
 	return nil
 }

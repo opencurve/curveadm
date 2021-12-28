@@ -36,19 +36,22 @@ const (
 	REQUIRE_POSITIVE_INTEGER
 
 	// default value
-	DEFAULT_SSH_PORT                = 22
-	DEFAULT_SSH_TIMEOUT_SECONDS     = 10
-	DEFAULT_REPORT_USAGE            = true
-	DEFAULT_CURVEBS_CONTANER_IMAGE  = "opencurvedocker/curvebs:latest"
-	DEFAULT_CURVEFS_CONTANER_IMAGE  = "opencurvedocker/curvefs:latest"
-	DEFAULT_ETCD_LISTEN_PEER_PORT   = 2380
-	DEFAULT_ETCD_LISTEN_CLIENT_PORT = 2379
-	DEFAULT_MDS_LISTEN_PORT         = 6700
-	DEFAULT_MDS_LISTEN_DUMMY_PORT   = 7700
-	DEFAULT_CHUNKSERVER_LISTN_PORT  = 6800
-	DEFAULT_METASERVER_LISTN_PORT   = 6701
-	DEFAULT_CHUNKSERVER_COPYSETS    = 100 // copysets per chunkserver
-	DEFAULT_METASERVER_COPYSETS     = 100 // copysets per metaserver
+	DEFAULT_SSH_PORT                        = 22
+	DEFAULT_SSH_TIMEOUT_SECONDS             = 10
+	DEFAULT_REPORT_USAGE                    = true
+	DEFAULT_CURVEBS_CONTAINER_IMAGE         = "opencurvedocker/curvebs:latest"
+	DEFAULT_CURVEFS_CONTAINER_IMAGE         = "opencurvedocker/curvefs:latest"
+	DEFAULT_ETCD_LISTEN_PEER_PORT           = 2380
+	DEFAULT_ETCD_LISTEN_CLIENT_PORT         = 2379
+	DEFAULT_MDS_LISTEN_PORT                 = 6700
+	DEFAULT_MDS_LISTEN_DUMMY_PORT           = 7700
+	DEFAULT_CHUNKSERVER_LISTN_PORT          = 8200
+	DEFAULT_SNAPSHOTCLONE_LISTEN_PORT       = 5555
+	DEFAULT_SNAPSHOTCLONE_LISTEN_DUMMY_PORT = 8081
+	DEFAULT_SNAPSHOTCLONE_LISTEN_PROXY_PORT = 8080
+	DEFAULT_METASERVER_LISTN_PORT           = 6701
+	DEFAULT_CHUNKSERVER_COPYSETS            = 100 // copysets per chunkserver
+	DEFAULT_METASERVER_COPYSETS             = 100 // copysets per metaserver
 )
 
 type (
@@ -114,9 +117,9 @@ var (
 		true,
 		func(dc *DeployConfig) interface{} {
 			if dc.GetKind() == KIND_CURVEBS {
-				return DEFAULT_CURVEBS_CONTANER_IMAGE
+				return DEFAULT_CURVEBS_CONTAINER_IMAGE
 			}
-			return DEFAULT_CURVEFS_CONTANER_IMAGE
+			return DEFAULT_CURVEFS_CONTAINER_IMAGE
 		},
 	)
 
@@ -162,10 +165,12 @@ var (
 				return DEFAULT_MDS_LISTEN_PORT
 			case ROLE_CHUNKSERVER:
 				return DEFAULT_CHUNKSERVER_LISTN_PORT
+			case ROLE_SNAPSHOTCLONE:
+				return DEFAULT_SNAPSHOTCLONE_LISTEN_PORT
 			case ROLE_METASERVER:
 				return DEFAULT_METASERVER_LISTN_PORT
 			}
-			return 0
+			return nil
 		},
 	)
 
@@ -180,7 +185,22 @@ var (
 		"listen.dummy_port",
 		REQUIRE_POSITIVE_INTEGER,
 		true,
-		DEFAULT_MDS_LISTEN_DUMMY_PORT,
+		func(dc *DeployConfig) interface{} {
+			switch dc.GetRole() {
+			case ROLE_MDS:
+				return DEFAULT_MDS_LISTEN_DUMMY_PORT
+			case ROLE_SNAPSHOTCLONE:
+				return DEFAULT_SNAPSHOTCLONE_LISTEN_DUMMY_PORT
+			}
+			return nil
+		},
+	)
+
+	CONFIG_LISTEN_PROXY_PORT = itemset.insert(
+		"listen.proxy_port",
+		REQUIRE_POSITIVE_INTEGER,
+		true,
+		DEFAULT_SNAPSHOTCLONE_LISTEN_PROXY_PORT,
 	)
 
 	CONFIG_LISTEN_EXTERNAL_IP = itemset.insert(

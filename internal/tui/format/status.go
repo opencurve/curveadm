@@ -16,53 +16,34 @@
 
 /*
  * Project: CurveAdm
- * Created Date: 2021-10-15
+ * Created Date: 2021-12-29
  * Author: Jingli Chen (Wine93)
  */
 
-package tui
+package format
 
 import (
 	"sort"
 
-	"github.com/fatih/color"
-	task "github.com/opencurve/curveadm/internal/task/task/common"
+	"github.com/opencurve/curveadm/internal/task/task/bs"
 	tui "github.com/opencurve/curveadm/internal/tui/common"
 )
 
-// status: One of created, restarting, running, removing, paused, exited, or dead
-func statusDecorate(status string) string {
-	if status == "Cleaned" {
-		return color.BlueString(status)
-	} else if status == "Losed" {
-		return color.RedString(status)
-	}
-
-	return status
-}
-
-func sortStatues(statuses []task.ServiceStatus) {
+func sortStatues(statuses []bs.FormatStatus) {
 	sort.Slice(statuses, func(i, j int) bool {
 		s1, s2 := statuses[i], statuses[j]
-		if s1.Role == s2.Role {
-			if s1.Id == s2.Id {
-				return s1.Host < s2.Host
-			}
-			return s1.Id < s2.Id
+		if s1.Host == s2.Host {
+			return s1.Device < s2.Device
 		}
-		return s1.Role < s2.Role
+		return s1.Host < s2.Host
 	})
 }
 
-func FormatStatus(statuses []task.ServiceStatus, vebose bool) string {
+func FormatStatus(statuses []bs.FormatStatus) string {
 	lines := [][]interface{}{}
 
 	// title
-	title := []string{"Id", "Role", "Host", "Container Id", "Status"}
-	if vebose {
-		title = append(title, "Log Dir")
-		title = append(title, "Data Dir")
-	}
+	title := []string{"Host", "Device", "MountPoint", "Formatted", "Status"}
 	first, second := tui.FormatTitle(title)
 	lines = append(lines, first)
 	lines = append(lines, second)
@@ -71,18 +52,12 @@ func FormatStatus(statuses []task.ServiceStatus, vebose bool) string {
 	sortStatues(statuses)
 	for _, status := range statuses {
 		line := []interface{}{
-			status.Id,
-			status.Role,
 			status.Host,
-			status.ContainerId,
-			tui.DecorateMessage{Message: status.Status, Decorate: statusDecorate},
+			status.Device,
+			status.MountPoint,
+			status.Formatted,
+			status.Status,
 		}
-
-		if vebose {
-			line = append(line, status.LogDir)
-			line = append(line, status.DataDir)
-		}
-
 		lines = append(lines, line)
 	}
 

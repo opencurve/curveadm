@@ -25,13 +25,14 @@ package task
 import (
 	"errors"
 
+	"github.com/google/uuid"
 	ssh "github.com/melbahja/goph"
 	"github.com/opencurve/curveadm/internal/task/context"
 	"github.com/opencurve/curveadm/pkg/module"
 )
 
 var (
-	ERR_BREAK_TASK = errors.New("break task")
+	ERR_SKIP_TASK = errors.New("skip task")
 )
 
 type (
@@ -40,6 +41,8 @@ type (
 	}
 
 	Task struct {
+		tid       string // task id
+		ptid      string // parent task id
 		name      string
 		subname   string
 		steps     []Step
@@ -49,11 +52,22 @@ type (
 )
 
 func NewTask(name, subname string, sshConfig *module.SSHConfig) *Task {
+	tid := uuid.NewString()[:12]
 	return &Task{
+		tid:       tid,
+		ptid:      tid,
 		name:      name,
 		subname:   subname,
 		sshConfig: sshConfig,
 	}
+}
+
+func (t *Task) Tid() string {
+	return t.tid
+}
+
+func (t *Task) Ptid() string {
+	return t.ptid
 }
 
 func (t *Task) Name() string {
@@ -64,7 +78,15 @@ func (t *Task) Subname() string {
 	return t.subname
 }
 
-func (t *Task) SetSubName(name string) {
+func (t *Task) SetTid(tid string) {
+	t.tid = tid
+}
+
+func (t *Task) SetPtid(ptid string) {
+	t.ptid = ptid
+}
+
+func (t *Task) SetSubname(name string) {
 	t.subname = name
 }
 
@@ -90,9 +112,7 @@ func (t *Task) Execute() error {
 
 	for _, step := range t.steps {
 		err := step.Execute(ctx)
-		if err == ERR_BREAK_TASK {
-			break
-		} else if err != nil {
+		if err != nil {
 			return err
 		}
 	}

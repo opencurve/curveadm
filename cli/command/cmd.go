@@ -61,6 +61,9 @@ func addSubCommands(cmd *cobra.Command, curveadm *cli.CurveAdm) {
 		NewUmountCommand(curveadm),  // curveadm umount
 		NewCheckCommand(curveadm),   // curveadm check
 		NewSupportCommand(curveadm), // curveadm support
+		NewFormatCommand(curveadm),  // curveadm format
+		NewMapCommand(curveadm),     // curveadm map
+		NewUnmapCommand(curveadm),   // curveadm unmap
 		NewCompletionCommand(),      // curveadm bash completion
 	)
 }

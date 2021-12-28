@@ -63,7 +63,7 @@ func (s *step2GetService) Execute(ctx *context.Context) error {
 	} else if containerId == CLEANED_CONTAINER_ID { // "-" means container removed
 		// do nothing
 	} else if len(containerId) > 0 { // service already exist
-		return task.ERR_BREAK_TASK
+		return task.ERR_SKIP_TASK
 	}
 
 	*s.containerId = containerId

@@ -39,7 +39,6 @@ const (
 	DEFAULT_ZONES_PER_POOL       = 3
 	DEFAULT_TYPE                 = 0
 	DEFAULT_SCATTER_WIDTH        = 0
-	DEFAULT_PORT                 = 0
 )
 
 type (
@@ -131,16 +130,14 @@ func createLogicalPool(dcs []*topology.DeployConfig, logicalPool string) (Logica
 			server := Server{
 				Name:         fmt.Sprintf("%s_%s_%d", dc.GetHost(), dc.GetName(), dc.GetReplicaSequence()),
 				InternalIp:   dc.GetListenIp(),
-				InternalPort: DEFAULT_PORT,
+				InternalPort: dc.GetListenPort(),
 				ExternalIp:   dc.GetListenExternalIp(),
-				ExternalPort: DEFAULT_PORT,
+				ExternalPort: dc.GetListenPort(),
 				Zone:         nextZone(),
 			}
 			if kind == KIND_CURVEBS {
 				server.PhysicalPool = physicalPool
 			} else {
-				server.InternalPort = dc.GetListenPort()
-				server.ExternalPort = dc.GetListenPort()
 				server.Pool = logicalPool
 			}
 			copysets += dc.GetCopysets()

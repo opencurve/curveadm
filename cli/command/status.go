@@ -27,16 +27,17 @@ import (
 	"github.com/opencurve/curveadm/internal/configure/topology"
 	task "github.com/opencurve/curveadm/internal/task/task/common"
 	"github.com/opencurve/curveadm/internal/task/tasks"
-	"github.com/opencurve/curveadm/internal/tui"
+	tui "github.com/opencurve/curveadm/internal/tui/service"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/cobra"
 )
 
 type statusOptions struct {
-	id     string
-	role   string
-	host   string
-	vebose bool
+	id          string
+	role        string
+	host        string
+	vebose      bool
+	showReplica bool
 }
 
 func NewStatusCommand(curveadm *cli.CurveAdm) *cobra.Command {
@@ -57,6 +58,7 @@ func NewStatusCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	flags.StringVarP(&options.role, "role", "", "*", "Specify service role")
 	flags.StringVarP(&options.host, "host", "", "*", "Specify service host")
 	flags.BoolVarP(&options.vebose, "verbose", "v", false, "Verbose output for status")
+	flags.BoolVarP(&options.showReplica, "show-replica", "s", false, "Display replica service")
 
 	return cmd
 }
@@ -97,7 +99,7 @@ func runStatus(curveadm *cli.CurveAdm, options statusOptions) error {
 		statuses = append(statuses, status)
 	}
 
-	output := tui.FormatStatus(statuses, options.vebose)
+	output := tui.FormatStatus(statuses, options.vebose, options.showReplica)
 	curveadm.WriteOut("\n")
 	curveadm.WriteOut("cluster name    : %s\n", curveadm.ClusterName())
 	curveadm.WriteOut("cluster kind    : %s\n", dcs[0].GetKind())

@@ -31,7 +31,7 @@ import (
 )
 
 var (
-	CURVEBS_ROLES = []string{ROLE_ETCD, ROLE_MDS, ROLE_CHUNKSERVER}
+	CURVEBS_ROLES = []string{ROLE_ETCD, ROLE_MDS, ROLE_CHUNKSERVER, ROLE_SNAPSHOTCLONE}
 	CURVEFS_ROLES = []string{ROLE_ETCD, ROLE_MDS, ROLE_METASERVER}
 )
 
@@ -39,7 +39,7 @@ type (
 	Deploy struct {
 		Host    string                 `mapstructure:"host"`
 		Name    string                 `mapstructure:"name"`
-		Replica int                    `mapstructure:"name"`
+		Replica int                    `mapstructure:"replica"`
 		Config  map[string]interface{} `mapstructure:"config"`
 	}
 
@@ -53,10 +53,11 @@ type (
 
 		Global map[string]interface{} `mapstructure:"global"`
 
-		EtcdServices        Service `mapstructure:"etcd_services"`
-		MdsServices         Service `mapstructure:"mds_services"`
-		MetaserverServices  Service `mapstructure:"metaserver_services"`
-		ChunkserverServices Service `mapstructure:"chunkserver_services"`
+		EtcdServices          Service `mapstructure:"etcd_services"`
+		MdsServices           Service `mapstructure:"mds_services"`
+		MetaserverServices    Service `mapstructure:"metaserver_services"`
+		ChunkserverServices   Service `mapstructure:"chunkserver_services"`
+		SnapshotcloneServices Service `mapstructure:"snapshotclone_services"`
 	}
 )
 
@@ -114,10 +115,12 @@ func ParseTopology(data string) ([]*DeployConfig, error) {
 			services = topology.EtcdServices
 		case ROLE_MDS:
 			services = topology.MdsServices
-		case ROLE_METASERVER:
-			services = topology.MetaserverServices
 		case ROLE_CHUNKSERVER:
 			services = topology.ChunkserverServices
+		case ROLE_SNAPSHOTCLONE:
+			services = topology.SnapshotcloneServices
+		case ROLE_METASERVER:
+			services = topology.MetaserverServices
 		}
 
 		// merge global config into services config
@@ -138,7 +141,7 @@ func ParseTopology(data string) ([]*DeployConfig, error) {
 			for replicaSequence := 0; replicaSequence < replica; replicaSequence++ {
 				dc, err := NewDeployConfig(kind,
 					role, deploy.Host, deploy.Name, replica,
-					hostSequence, replicaSequence, deployConfig)
+					hostSequence, replicaSequence, utils.DeepCopy(deployConfig))
 				if err != nil {
 					return nil, err
 				}
@@ -147,6 +150,7 @@ func ParseTopology(data string) ([]*DeployConfig, error) {
 		}
 	}
 
+	// add service variables
 	exist := map[string]bool{}
 	for idx, dc := range dcs {
 		if err = AddServiceVariables(dcs, idx); err != nil {
@@ -159,6 +163,7 @@ func ParseTopology(data string) ([]*DeployConfig, error) {
 		}
 	}
 
+	// add cluster variables
 	for idx, dc := range dcs {
 		if err = AddClusterVariables(dcs, idx); err != nil {
 			return nil, err

@@ -41,11 +41,14 @@ const (
 	CURVE_CRONTAB_FILE = "/tmp/curve_crontab"
 )
 
-func newMutate(dc *topology.DeployConfig, delimiter string) step.Mutate {
+func newMutate(dc *topology.DeployConfig, delimiter string, forceRender bool) step.Mutate {
 	serviceConfig := dc.GetServiceConfig()
 	return func(in, key, value string) (out string, err error) {
 		if len(key) == 0 {
 			out = in
+			if forceRender { // only for nginx.conf
+				out, err = dc.GetVariables().Rendering(in)
+			}
 			return
 		}
 
@@ -105,23 +108,25 @@ func NewSyncConfigTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task
 		delimiter = ETCD_CONFIG_DELIMITER
 	}
 
-	t.AddStep(&step.SyncFile{ // sync service config
-		ContainerSrcId:    &containerId,
-		ContainerSrcPath:  layout.ServiceConfSrcPath,
-		ContainerDestId:   &containerId,
-		ContainerDestPath: layout.ServiceConfPath,
-		KVFieldSplit:      delimiter,
-		Mutate:            newMutate(dc, delimiter),
-		ExecWithSudo:      true,
-		ExecInLocal:       false,
-	})
+	for _, conf := range layout.ServiceConfFiles {
+		t.AddStep(&step.SyncFile{ // sync service config
+			ContainerSrcId:    &containerId,
+			ContainerSrcPath:  conf.SourcePath,
+			ContainerDestId:   &containerId,
+			ContainerDestPath: conf.Path,
+			KVFieldSplit:      delimiter,
+			Mutate:            newMutate(dc, delimiter, conf.Name == "nginx.conf"),
+			ExecWithSudo:      true,
+			ExecInLocal:       false,
+		})
+	}
 	t.AddStep(&step.SyncFile{ // sync tools config
 		ContainerSrcId:    &containerId,
 		ContainerSrcPath:  layout.ToolsConfSrcPath,
 		ContainerDestId:   &containerId,
 		ContainerDestPath: layout.ToolsConfSystemPath,
 		KVFieldSplit:      DEFAULT_CONFIG_DELIMITER,
-		Mutate:            newMutate(dc, DEFAULT_CONFIG_DELIMITER),
+		Mutate:            newMutate(dc, DEFAULT_CONFIG_DELIMITER, false),
 		ExecWithSudo:      true,
 		ExecInLocal:       false,
 	})

@@ -102,6 +102,34 @@ func Str2Bool(s string) (bool, bool) { // value, ok
 	return v, err == nil
 }
 
+func Min(nums ...int) int {
+	ret := nums[0]
+	for _, num := range nums {
+		if num < ret {
+			ret = num
+		}
+	}
+	return ret
+}
+
+func copy(src, dest map[string]interface{}) {
+	for key, value := range src {
+		switch src[key].(type) {
+		case map[string]interface{}:
+			dest[key] = map[string]interface{}{}
+			copy(src[key].(map[string]interface{}), dest[key].(map[string]interface{}))
+		default:
+			dest[key] = value
+		}
+	}
+}
+
+func DeepCopy(src map[string]interface{}) map[string]interface{} {
+	dest := map[string]interface{}{}
+	copy(src, dest)
+	return dest
+}
+
 func Choose(ok bool, first, second string) string {
 	if ok {
 		return first
@@ -145,6 +173,14 @@ func Slice2Map(s []string) map[string]bool {
 	m := map[string]bool{}
 	for _, item := range s {
 		m[item] = true
+	}
+	return m
+}
+
+func Locate(s []string) map[string]int {
+	m := map[string]int{}
+	for i, item := range s {
+		m[item] = i
 	}
 	return m
 }

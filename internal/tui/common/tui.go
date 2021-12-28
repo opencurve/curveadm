@@ -84,6 +84,10 @@ func FixedFormat(lines [][]interface{}, nspace int) string {
 	for i := 0; i < n; i++ {
 		first := true
 		for j := 0; j < m; j++ {
+			if fixed[j] == 0 { // maybe cutted
+				continue
+			}
+
 			if !first {
 				output += spacing
 			} else {
@@ -107,6 +111,12 @@ func FormatTitle(title []string) ([]interface{}, []interface{}) {
 		second = append(second, strings.Repeat("-", len(item)))
 	}
 	return first, second
+}
+
+func CutColumn(lines [][]interface{}, column int) {
+	for _, line := range lines {
+		line[column] = ""
+	}
 }
 
 func TrimContainerId(containerId string) string {

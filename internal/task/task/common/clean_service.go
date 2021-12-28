@@ -103,8 +103,17 @@ func NewCleanServiceTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*ta
 
 	// add step
 	clean := utils.Slice2Map(only)
+	dirs := getCleanDirs(clean, dc)
+
+	t.AddStep(&step.UmountFilesystem{
+		Directorys:     dirs,
+		IgnoreUmounted: true,
+		IgnoreNotFound: true,
+		ExecWithSudo:   true,
+		ExecInLocal:    false,
+	})
 	t.AddStep(&step.RemoveFile{
-		Files:        getCleanDirs(clean, dc),
+		Files:        dirs,
 		ExecWithSudo: true,
 		ExecInLocal:  false,
 	})

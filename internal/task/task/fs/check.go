@@ -27,7 +27,7 @@ import (
 	"strings"
 
 	"github.com/opencurve/curveadm/cli/cli"
-	"github.com/opencurve/curveadm/internal/configure/client"
+	client "github.com/opencurve/curveadm/internal/configure/client/fs"
 	"github.com/opencurve/curveadm/internal/task/context"
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
