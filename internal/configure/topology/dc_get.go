@@ -215,3 +215,8 @@ func (dc *DeployConfig) GetProjectLayout() Layout {
 		CoreSystemDir: LAYOUT_CORE_SYSTEM_DIR,
 	}
 }
+
+func GetProjectLayout(kind string) Layout {
+	dc := DeployConfig{kind: kind}
+	return dc.GetProjectLayout()
+}

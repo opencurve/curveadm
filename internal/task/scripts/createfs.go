@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2021 NetEase Inc.
+ *  Copyright (c) 2022 NetEase Inc.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -16,15 +16,32 @@
 
 /*
  * Project: CurveAdm
- * Created Date: 2021-11-25
- * Author: Jingli Chen (Wine93)
+ * Created Date: 2022-01-04
+ * Author: chengyi01
  */
 
 package scripts
 
-var (
-	SCRIPT_WAIT    string = WAIT
-	SCRIPT_COLLECT string = COLLECT
-	SCRIPT_REPORT  string = REPORT
-	SCRIPT_CREATEFS string = CREATEFS
-)
+/*
+ * Usage: create fs before mount fs
+ * Example: createfs /test
+ */
+var CREATEFS = `
+g_curvefs_tool="curvefs_tool"
+g_curvefs_tool_operator="create-fs"
+g_rpc_timeout_ms="-rpcTimeoutMs=5000"
+g_fsname="-fsName="
+g_entrypoint="/entrypoint.sh"
+
+function createfs() {
+    g_fsname=$g_fsname$1
+
+    $g_curvefs_tool $g_curvefs_tool_operator $g_fsname $g_rpc_timeout_ms 
+}
+
+createfs "$@"
+
+if [ $? -eq 0 ]; then
+    $g_entrypoint "$@"
+fi
+`

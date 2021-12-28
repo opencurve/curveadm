@@ -28,6 +28,8 @@ import (
 
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/configure/client"
+	"github.com/opencurve/curveadm/internal/configure/topology"
+	"github.com/opencurve/curveadm/internal/task/scripts"
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
 )
@@ -39,6 +41,8 @@ const (
 	FORMAT_MOUNT_OPTION = "type=bind,source=%s,target=%s,bind-propagation=rshared"
 
 	CLIENT_CONFIG_DELIMITER = "="
+
+	RPC_TIMEOUT_MS = 10000
 )
 
 var (
@@ -57,7 +61,7 @@ var (
 func getMountCommand(cc *client.ClientConfig, mountFSName string) string {
 	format := strings.Join(FORMAT_FUSE_ARGS, " ")
 	fuseArgs := fmt.Sprintf(format, mountFSName, cc.GetClientConfPath(), cc.GetClientMountPath())
-	return fmt.Sprintf("--role=client --args='%s'", fuseArgs)
+	return fmt.Sprintf("/client.sh %s --role=client --args='%s'", mountFSName, fuseArgs)
 }
 
 func getMountVolumes(cc *client.ClientConfig) []step.Volume {
@@ -110,6 +114,29 @@ func newMutate(cc *client.ClientConfig, delimiter string) step.Mutate {
 	}
 }
 
+func newToolsMutate(cc *client.ClientConfig, delimiter string) step.Mutate {
+	clientConfig := cc.GetServiceConfig()
+	tools2client := map[string]string{
+		"mdsAddr" : "mdsOpt.rpcRetryOpt.addrs",
+	}
+	return func(in, key, value string) (out string, err error) {
+		if len(key) == 0 {
+			out = in
+			return
+		}
+		replaceKey := key
+		if tools2client[key] != "" {
+			replaceKey = tools2client[key]
+		}
+		v, ok := clientConfig[strings.ToLower(replaceKey)]
+		if ok {
+			value = v
+		}
+		out = fmt.Sprintf("%s%s%s", key, delimiter, value)
+		return
+	}
+}
+
 func NewMountFSTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task, error) {
 	mountPoint := curvradm.MemStorage().Get(KEY_MOUNT_POINT).(string)
 	mountFSName := curvradm.MemStorage().Get(KEY_MOUNT_FSNAME).(string)
@@ -121,6 +148,8 @@ func NewMountFSTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task
 	root := cc.GetCurveFSPrefix()
 	prefix := cc.GetClientPrefix()
 	containerMountPath := cc.GetClientMountPath()
+	createfsScript := scripts.SCRIPT_CREATEFS
+	createfsScriptPath := "/client.sh"
 	t.AddStep(&step.PullImage{
 		Image:        cc.GetContainerImage(),
 		ExecWithSudo: false,
@@ -142,6 +171,7 @@ func NewMountFSTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task
 		Out:               &containerId,
 		ExecWithSudo:      false,
 		ExecInLocal:       true,
+		Entrypoint:        "/bin/bash",
 	})
 	t.AddStep(&step.SyncFile{ // sync service config
 		ContainerSrcId:    &containerId,
@@ -151,6 +181,23 @@ func NewMountFSTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task
 		KVFieldSplit:      CLIENT_CONFIG_DELIMITER,
 		Mutate:            newMutate(cc, CLIENT_CONFIG_DELIMITER),
 		ExecWithSudo:      false,
+		ExecInLocal:       true,
+	})
+	t.AddStep(&step.SyncFile{ // sync tools config
+		ContainerSrcId:    &containerId,
+		ContainerSrcPath:  fmt.Sprintf("%s/conf/tools.conf", root),
+		ContainerDestId:   &containerId,
+		ContainerDestPath: topology.GetProjectLayout(topology.KIND_CURVEFS).ToolsConfSystemPath,
+		KVFieldSplit:      CLIENT_CONFIG_DELIMITER,
+		Mutate:            newToolsMutate(cc, CLIENT_CONFIG_DELIMITER),
+		ExecWithSudo:      false,
+		ExecInLocal:       true,
+	})
+	t.AddStep(&step.InstallFile{ // install client.sh shell
+		ContainerId:       &containerId,
+		ContainerDestPath: createfsScriptPath,
+		Content:           &createfsScript,
+		ExecWithSudo:      true,
 		ExecInLocal:       true,
 	})
 	t.AddStep(&step.StartContainer{
