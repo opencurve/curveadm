@@ -28,16 +28,19 @@ import (
 
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/configure/client"
+	"github.com/opencurve/curveadm/internal/configure/format"
 	"github.com/opencurve/curveadm/internal/configure/topology"
 	"github.com/opencurve/curveadm/internal/task/task"
-	commTask "github.com/opencurve/curveadm/internal/task/task/common"
-	fsTask "github.com/opencurve/curveadm/internal/task/task/fs"
+	"github.com/opencurve/curveadm/internal/task/task/bs"
+	comm "github.com/opencurve/curveadm/internal/task/task/common"
+	"github.com/opencurve/curveadm/internal/task/task/fs"
 	tui "github.com/opencurve/curveadm/internal/tui/common"
 )
 
 const (
 	TYPE_CONFIG_DEPLOY int = iota
 	TYPE_CONFIG_CLIENT
+	TYPE_CONFIG_FORMAT
 	TYPE_CONFIG_NULL
 )
 
@@ -46,6 +49,7 @@ type configs struct {
 	length int
 	dcs    []*topology.DeployConfig
 	ccs    []*client.ClientConfig
+	fcs    []*format.FormatConfig
 }
 
 const (
@@ -63,6 +67,8 @@ const (
 	MOUNT_FILESYSTEM // fs
 	UMOUNT_FILESYSTEM
 	CHECK_MOUNT_STATUS
+	FORMAT_CHUNKFILE_POOL
+	GET_FORMAT_STATUS
 	UNKNOWN // unknown
 )
 
@@ -106,6 +112,10 @@ func newConfigs(configSlice interface{}) (*configs, error) {
 		configs.ctype = TYPE_CONFIG_CLIENT
 		configs.ccs = configSlice.([]*client.ClientConfig)
 		configs.length = len(configs.ccs)
+	case []*format.FormatConfig:
+		configs.ctype = TYPE_CONFIG_FORMAT
+		configs.fcs = configSlice.([]*format.FormatConfig)
+		configs.length = len(configs.fcs)
 	case *topology.DeployConfig:
 		configs.ctype = TYPE_CONFIG_DEPLOY
 		configs.dcs = append(configs.dcs, configSlice.(*topology.DeployConfig))
@@ -113,6 +123,10 @@ func newConfigs(configSlice interface{}) (*configs, error) {
 	case *client.ClientConfig:
 		configs.ctype = TYPE_CONFIG_CLIENT
 		configs.ccs = append(configs.ccs, configSlice.(*client.ClientConfig))
+		configs.length = 1
+	case *format.FormatConfig:
+		configs.ctype = TYPE_CONFIG_FORMAT
+		configs.fcs = append(configs.fcs, configSlice.(*format.FormatConfig))
 		configs.length = 1
 	case nil:
 		configs.ctype = TYPE_CONFIG_NULL
@@ -127,6 +141,7 @@ func ExecTasks(taskType int, curveadm *cli.CurveAdm, configSlice interface{}) er
 	var t *task.Task
 	var dc *topology.DeployConfig
 	var cc *client.ClientConfig
+	var fc *format.FormatConfig
 
 	configs, err := newConfigs(configSlice)
 	if err != nil {
@@ -148,6 +163,8 @@ func ExecTasks(taskType int, curveadm *cli.CurveAdm, configSlice interface{}) er
 			dc = configs.dcs[i]
 		case TYPE_CONFIG_CLIENT:
 			cc = configs.ccs[i]
+		case TYPE_CONFIG_FORMAT:
+			fc = configs.fcs[i]
 		case TYPE_CONFIG_NULL:
 			// do nothing
 		}
@@ -155,39 +172,43 @@ func ExecTasks(taskType int, curveadm *cli.CurveAdm, configSlice interface{}) er
 		// task type
 		switch taskType {
 		case PULL_IMAGE:
-			t, err = commTask.NewPullImageTask(curveadm, dc)
+			t, err = comm.NewPullImageTask(curveadm, dc)
 		case CREATE_CONTAINER:
-			t, err = commTask.NewCreateContainerTask(curveadm, dc)
+			t, err = comm.NewCreateContainerTask(curveadm, dc)
 		case SYNC_CONFIG:
-			t, err = commTask.NewSyncConfigTask(curveadm, dc)
+			t, err = comm.NewSyncConfigTask(curveadm, dc)
 		case START_SERVICE:
-			t, err = commTask.NewStartServiceTask(curveadm, dc)
+			t, err = comm.NewStartServiceTask(curveadm, dc)
 		case STOP_SERVICE:
-			t, err = commTask.NewStopServiceTask(curveadm, dc)
+			t, err = comm.NewStopServiceTask(curveadm, dc)
 		case RESTART_SERVICE:
-			t, err = commTask.NewRestartServiceTask(curveadm, dc)
+			t, err = comm.NewRestartServiceTask(curveadm, dc)
 		case CREATE_POOL:
-			t, err = commTask.NewCreateTopologyTask(curveadm, dc)
+			t, err = comm.NewCreateTopologyTask(curveadm, dc)
 		case GET_SERVICE_STATUS:
 			option.SilentSubBar = true
 			option.SkipError = true
-			t, err = commTask.NewGetServiceStatusTask(curveadm, dc)
+			t, err = comm.NewGetServiceStatusTask(curveadm, dc)
 		case CLEAN_SERVICE:
-			t, err = commTask.NewCleanServiceTask(curveadm, dc)
+			t, err = comm.NewCleanServiceTask(curveadm, dc)
 		case COLLECT_SERVICE:
-			t, err = commTask.NewCollectServiceTask(curveadm, dc)
+			t, err = comm.NewCollectServiceTask(curveadm, dc)
 		case SYNC_BINARY:
-			//t, err = commTask.NewSyncBinaryTask(curveadm, dc)
+			//t, err = comm.NewSyncBinaryTask(curveadm, dc)
 		case MOUNT_FILESYSTEM:
 			option.SilentSubBar = true
-			t, err = fsTask.NewMountFSTask(curveadm, cc)
+			t, err = fs.NewMountFSTask(curveadm, cc)
 		case UMOUNT_FILESYSTEM:
 			option.SilentSubBar = true
-			t, err = fsTask.NewUmountFSTask(curveadm, cc)
+			t, err = fs.NewUmountFSTask(curveadm, cc)
 		case CHECK_MOUNT_STATUS:
 			option.SilentMainBar = true
 			option.SilentSubBar = true
-			t, err = fsTask.NewGetMountStatusTask(curveadm, cc)
+			t, err = fs.NewGetMountStatusTask(curveadm, cc)
+		case FORMAT_CHUNKFILE_POOL:
+			t, err = bs.NewFormatChunkfilePoolTask(curveadm, fc)
+		case GET_FORMAT_STATUS:
+			t, err = bs.NewGetFormatStatusTask(curveadm, fc)
 		default:
 			return fmt.Errorf("unknown task type %d", taskType)
 		}

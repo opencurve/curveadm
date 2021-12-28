@@ -53,6 +53,7 @@ type (
 		Name              string
 		Pid               string
 		Privileged        bool
+		Remove            bool // automatically remove the container when it exits
 		Restart           string
 		SecurityOptions   []string
 		Ulimits           []string
@@ -90,8 +91,8 @@ type (
 	ListContainers struct {
 		Format       string
 		Filter       string
-		Quiet        bool
-		ShowAll      bool
+		Quiet        bool // Only display numeric IDs
+		ShowAll      bool // Show all containers (default shows just running)
 		Out          *string
 		ExecWithSudo bool
 		ExecInLocal  bool
@@ -118,6 +119,14 @@ type (
 		ContainerDestPath string
 		ExecWithSudo      bool
 		ExecInLocal       bool
+	}
+
+	InpectContainer struct {
+		ContainerId  string
+		Format       string
+		Out          *string
+		ExecWithSudo bool
+		ExecInLocal  bool
 	}
 )
 
@@ -158,6 +167,9 @@ func (s *CreateContainer) Execute(ctx *context.Context) error {
 	}
 	if s.Privileged {
 		cli.AddOption("--privileged")
+	}
+	if s.Remove {
+		cli.AddOption("--rm")
 	}
 	if len(s.Restart) > 0 {
 		cli.AddOption("--restart %s", s.Restart)
@@ -239,6 +251,19 @@ func (s *ListContainers) Execute(ctx *context.Context) error {
 		ExecInLocal:  s.ExecInLocal,
 	})
 	*s.Out = strings.TrimSuffix(out, "\n")
+	return err
+}
+
+func (s *InpectContainer) Execute(ctx *context.Context) error {
+	cli := ctx.Module().DockerCli().InspectContainer(s.ContainerId)
+	if len(s.Format) > 0 {
+		cli.AddOption("--format = %s", s.Format)
+	}
+	out, err := cli.Execute(module.ExecOption{
+		ExecWithSudo: s.ExecWithSudo,
+		ExecInLocal:  s.ExecInLocal,
+	})
+	*s.Out = out
 	return err
 }
 

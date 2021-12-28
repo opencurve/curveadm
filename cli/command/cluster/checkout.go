@@ -25,11 +25,9 @@ package cluster
 import (
 	"fmt"
 
-	"github.com/opencurve/curveadm/pkg/log"
-
-	cliutil "github.com/opencurve/curveadm/internal/utils"
-
 	"github.com/opencurve/curveadm/cli/cli"
+	cliutil "github.com/opencurve/curveadm/internal/utils"
+	"github.com/opencurve/curveadm/pkg/log"
 	"github.com/spf13/cobra"
 )
 

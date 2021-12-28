@@ -37,6 +37,7 @@ import (
 // docker restart [OPTIONS] CONTAINER [CONTAINER...]
 // docker rm [OPTIONS] CONTAINER [CONTAINER...]
 // docker ps [OPTIONS]
+// docker inspect [OPTIONS] NAME|ID [NAME|ID...]
 // docker exec [OPTIONS] CONTAINER COMMAND [ARG...]
 // docker cp [OPTIONS] CONTAINER:SRC_PATH DEST_PATH|-
 const (
@@ -47,6 +48,7 @@ const (
 	TEMPLATE_RESTART_CONTAINER   = "docker restart {{.options}} {{.containers}}"
 	TEMPLATE_REMOVE_CONTAINER    = "docker rm {{.options}} {{.containers}}"
 	TEMPLATE_LIST_CONTAINERS     = "docker ps {{.options}}"
+	TEMPLATE_INSPECT_CONTAINER   = "docker inspect {{.options}} {{.container}}"
 	TEMPLATE_CONTAINER_EXEC      = "docker exec {{.options}} {{.container}} {{.command}}"
 	TEMPLATE_COPY_FROM_CONTAINER = "docker cp {{.options}} {{.container}}:{{.srcPath}} {{.destPath}}"
 	TEMPLATE_COPY_INTO_CONTAINER = "docker cp {{.options}}  {{.srcPath}} {{.container}}:{{.destPath}}"
@@ -112,6 +114,12 @@ func (cli *DockerCli) RemoveContainer(containerId ...string) *DockerCli {
 
 func (cli *DockerCli) ListContainers() *DockerCli {
 	cli.tmpl = template.Must(template.New("ListContainers").Parse(TEMPLATE_LIST_CONTAINERS))
+	return cli
+}
+
+func (cli *DockerCli) InspectContainer(containerId string) *DockerCli {
+	cli.tmpl = template.Must(template.New("InspectContainer").Parse(TEMPLATE_INSPECT_CONTAINER))
+	cli.data["container"] = containerId
 	return cli
 }
 

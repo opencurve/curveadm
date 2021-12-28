@@ -27,7 +27,7 @@ import (
 	"github.com/opencurve/curveadm/internal/configure/topology"
 	task "github.com/opencurve/curveadm/internal/task/task/common"
 	"github.com/opencurve/curveadm/internal/task/tasks"
-	"github.com/opencurve/curveadm/internal/tui"
+	tui "github.com/opencurve/curveadm/internal/tui/service"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/cobra"
 )

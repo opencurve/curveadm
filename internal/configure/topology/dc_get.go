@@ -40,12 +40,19 @@ const (
 	LAYOUT_SERVICE_LOG_DIR                  = "/logs"
 	LAYOUT_SERVICE_DATA_DIR                 = "/data"
 	LAYOUT_TOOLS_DIR                        = "/tools"
-	LAYOUT_CURVEFS_TOOLS_CONFIG_SYSTEM_PATH = "/etc/curvefs/tools.conf"
+	LAYOUT_CURVEBS_CHUNKFILE_POOL_DIR       = "/chunkfilepool"
 	LAYOUT_CURVEBS_TOOLS_CONFIG_SYSTEM_PATH = "/etc/curve/tools.conf"
+	LAYOUT_CURVEFS_TOOLS_CONFIG_SYSTEM_PATH = "/etc/curvefs/tools.conf"
 	LAYOUT_CORE_SYSTEM_DIR                  = "/core"
 
-	BINARY_CURVEBS_TOOL = "curvebs-tool"
-	BINARY_CURVEFS_TOOL = "curvefs_tool"
+	BINARY_CURVEBS_TOOL     = "curvebs-tool"
+	BINARY_CURVEFS_TOOL     = "curvefs_tool"
+	BINARY_CURVEBS_FORMAT   = "curve_format"
+	METAFILE_CHUNKFILE_POOL = "chunkfilepool.meta"
+)
+
+var (
+	DefaultDeployConfig = &DeployConfig{}
 )
 
 func (dc *DeployConfig) get(i *item) interface{} {
@@ -167,11 +174,17 @@ type Layout struct {
 	// tools
 	ToolsRootDir        string // /curvebs/tools
 	ToolsBinDir         string // /curvebs/tools/sbin
+	ToolsDataDir        string // /curvebs/tools/data
 	ToolsConfDir        string // /curvebs/tools/conf
 	ToolsConfPath       string // /curvebs/tools/conf/tools.conf
 	ToolsConfSrcPath    string // /curvebs/conf/tools.conf
 	ToolsConfSystemPath string // /etc/curve/tools.conf
 	ToolsBinaryPath     string // /curvebs/tools/sbin/curvebs-tool
+
+	// format
+	FormatBinaryPath      string // /curvebs/tools/sbin/curve_format
+	ChunkfilePoolDir      string // /curvebs/tools/data/chunkfilepool
+	ChunkfilePoolMetaPath string // /curvebs/tools/data/chunkfilepool.meta
 
 	// core
 	CoreSystemDir string
@@ -186,6 +199,7 @@ func (dc *DeployConfig) GetProjectLayout() Layout {
 	serviceConfDir := fmt.Sprintf("%s/conf", serviceRootDir)
 	toolsRootDir := root + LAYOUT_TOOLS_DIR
 	toolsBinDir := toolsRootDir + LAYOUT_SERVICE_BIN_DIR
+	toolsDataDir := toolsRootDir + LAYOUT_SERVICE_DATA_DIR
 	toolsConfDir := toolsRootDir + LAYOUT_SERVICE_CONF_DIR
 	toolsBinaryName := utils.Choose(kind == KIND_CURVEBS, BINARY_CURVEBS_TOOL, BINARY_CURVEFS_TOOL)
 	toolsConfSystemPath := utils.Choose(kind == KIND_CURVEBS,
@@ -206,12 +220,21 @@ func (dc *DeployConfig) GetProjectLayout() Layout {
 		// tools
 		ToolsRootDir:        toolsRootDir,
 		ToolsBinDir:         toolsRootDir + LAYOUT_SERVICE_BIN_DIR,
+		ToolsDataDir:        toolsRootDir + LAYOUT_SERVICE_DATA_DIR,
 		ToolsConfDir:        toolsRootDir + LAYOUT_SERVICE_CONF_DIR,
 		ToolsConfPath:       fmt.Sprintf("%s/tools.conf", toolsConfDir),
 		ToolsConfSrcPath:    fmt.Sprintf("%s/tools.conf", confSrcDir),
 		ToolsConfSystemPath: toolsConfSystemPath,
 		ToolsBinaryPath:     fmt.Sprintf("%s/%s", toolsBinDir, toolsBinaryName),
+		// format
+		FormatBinaryPath:      fmt.Sprintf("%s/%s", toolsBinDir, BINARY_CURVEBS_FORMAT),
+		ChunkfilePoolDir:      toolsDataDir + LAYOUT_CURVEBS_CHUNKFILE_POOL_DIR,
+		ChunkfilePoolMetaPath: fmt.Sprintf("%s/%s", toolsDataDir, METAFILE_CHUNKFILE_POOL),
 		// core
 		CoreSystemDir: LAYOUT_CORE_SYSTEM_DIR,
 	}
+}
+
+func GetProjectLayout() Layout {
+	return DefaultDeployConfig.GetProjectLayout()
 }
