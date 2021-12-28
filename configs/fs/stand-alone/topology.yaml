@@ -1,10 +1,11 @@
+kind: curvefs
 global:
   user: curve
   ssh_port: 22
   private_key_file: /home/curve/.ssh/id_rsa
   report_usage: true
-  data_dir: /home/${user}/curvefs/data/${service_role}${service_sequence}
-  log_dir: /home/${user}/curvefs/logs/${service_role}${service_sequence}
+  data_dir: /home/${user}/curvefs/data/${service_role}${service_host_sequence}
+  log_dir: /home/${user}/curvefs/logs/${service_role}${service_host_sequence}
   container_image: opencurvedocker/curvefs:latest
   s3.ak: minioadmin
   s3.sk: minioadmin
@@ -16,8 +17,8 @@ global:
 etcd_services:
   config:
     listen.ip: ${target}
-    listen.port: ${service_sequence}2380  # 12380,22380,32380
-    listen.client_port: ${service_sequence}2379  # 12379,22379,32379
+    listen.port: 2380${service_host_sequence}         # 23800,23801,23802
+    listen.client_port: 2379${service_host_sequence}  # 23790,23791,23792
   deploy:
     - host: ${target}
     - host: ${target}
@@ -26,8 +27,8 @@ etcd_services:
 mds_services:
   config:
     listen.ip: ${target}
-    listen.port: ${service_sequence}6700  # 16700,26700,36700
-    listen.dummy_port: ${service_sequence}7700  # 17700,27700,37700
+    listen.port: 670${service_host_sequence}        # 6700,6701,6702
+    listen.dummy_port: 770${service_host_sequence}  # 7700,7701,7702
   deploy:
     - host: ${target}
     - host: ${target}
@@ -36,7 +37,7 @@ mds_services:
 metaserver_services:
   config:
     listen.ip: ${target}
-    listen.port: ${service_sequence}6701
+    listen.port: 680${service_host_sequence}  # 6800,6801,6802
     metaserver.loglevel: 0
   deploy:
     - host: ${target}
