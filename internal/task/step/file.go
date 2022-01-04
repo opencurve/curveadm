@@ -99,7 +99,7 @@ func (s *ReadFile) Execute(ctx *context.Context) error {
 	}
 
 	// localPath
-	localPath := remotePath
+	localPath := utils.RandFilename(TEMP_DIR)
 	defer os.Remove(localPath)
 	if !s.ExecInLocal {
 		err := ctx.Module().File().Download(remotePath, localPath)
@@ -121,7 +121,7 @@ func (s *InstallFile) Execute(ctx *context.Context) error {
 		return err
 	}
 
-	remotePath := localPath
+	remotePath := utils.RandFilename(TEMP_DIR)
 	if !s.ExecInLocal {
 		// defer ctx.Module().Shell().Remove(remotePath).Execute(module.ExecOption{})
 		err = ctx.Module().File().Upload(localPath, remotePath)
