@@ -35,6 +35,10 @@ import (
 	"github.com/opencurve/curveadm/internal/utils"
 )
 
+const (
+	DEFAULT_CHUNKFILE_SIZE = 16 * 1024 * 1024 // 16MB
+)
+
 type (
 	step2SkipFormat struct {
 		device      string
@@ -52,11 +56,13 @@ func (s *step2SkipFormat) Execute(ctx *context.Context) error {
 func genFormatCommand(layout topology.Layout, percent int) string {
 	args := []string{
 		fmt.Sprintf("-allocatePercent=%d", percent),
+		fmt.Sprintf("-fileSize=%d", DEFAULT_CHUNKFILE_SIZE),
 		fmt.Sprintf("-filePoolDir=%s", layout.ChunkfilePoolDir),
 		fmt.Sprintf("-filePoolMetaPath=%s", layout.ChunkfilePoolMetaPath),
 		fmt.Sprintf("-fileSystemPath=%s", layout.ChunkfilePoolDir),
 	}
-	return fmt.Sprintf("'%s %s'", layout.FormatBinaryPath, strings.Join(args, " "))
+	//return fmt.Sprintf("/bin/bash -c 'mkdir -p %s'", layout.ChunkfilePoolDir)
+	return fmt.Sprintf("'mkdir -p %s && %s %s'", layout.ChunkfilePoolDir, layout.FormatBinaryPath, strings.Join(args, " "))
 }
 
 func device2ContainerName(device string) string {
@@ -74,7 +80,7 @@ func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *format.FormatConfig)
 	// add step
 	var oldContainerId, containerId string
 	containerName := device2ContainerName(device)
-	layout := topology.GetProjectLayout()
+	layout := topology.GetCurveBSProjectLayout()
 	toolsDataDir := layout.ToolsDataDir
 	// 1: skip if formating container exist
 	t.AddStep(&step.ListContainers{
@@ -103,11 +109,13 @@ func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *format.FormatConfig)
 		ExecInLocal:  false,
 		ExecWithSudo: true,
 	})
-	t.AddStep(&step.CreateFilesystem{ // mkfs.ext4 MOUNT_POINT
-		Device:       device,
-		ExecInLocal:  false,
-		ExecWithSudo: true,
-	})
+	/*
+		t.AddStep(&step.CreateFilesystem{ // mkfs.ext4 MOUNT_POINT
+			Device:       device,
+			ExecInLocal:  false,
+			ExecWithSudo: true,
+		})
+	*/
 	t.AddStep(&step.MountFilesystem{
 		Source:       device,
 		Directory:    mountPoint,
@@ -120,15 +128,17 @@ func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *format.FormatConfig)
 		ExecInLocal:  false,
 		ExecWithSudo: true,
 	})
+
 	t.AddStep(&step.CreateContainer{
-		Image:      fc.GetContainerIamge(),
-		Entrypoint: genFormatCommand(layout, usagePercent),
-		//Remove:       true,
+		Image:        fc.GetContainerIamge(),
+		Command:      genFormatCommand(layout, usagePercent),
+		Entrypoint:   "/bin/bash",
 		Volumes:      []step.Volume{{HostPath: mountPoint, ContainerPath: toolsDataDir}},
 		Out:          &containerId,
 		ExecInLocal:  false,
 		ExecWithSudo: true,
 	})
+	t.AddStep(&step.InstallFile{})
 	t.AddStep(&step.StartContainer{
 		ContainerId:  &containerId,
 		ExecInLocal:  false,

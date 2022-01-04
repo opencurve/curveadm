@@ -52,7 +52,8 @@ const (
 )
 
 var (
-	DefaultDeployConfig = &DeployConfig{}
+	DefaultCurveBSDeployConfig = &DeployConfig{kind: KIND_CURVEBS}
+	DefaultCurveFSDeployConfig = &DeployConfig{kind: KIND_CURVEFS}
 )
 
 func (dc *DeployConfig) get(i *item) interface{} {
@@ -235,6 +236,6 @@ func (dc *DeployConfig) GetProjectLayout() Layout {
 	}
 }
 
-func GetProjectLayout() Layout {
-	return DefaultDeployConfig.GetProjectLayout()
+func GetCurveBSProjectLayout() Layout {
+	return DefaultCurveBSDeployConfig.GetProjectLayout()
 }
