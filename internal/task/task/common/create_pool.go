@@ -107,13 +107,13 @@ func NewCreateTopologyTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*
 		ExecInLocal:       false,
 	})
 	t.AddStep(&step.ContainerExec{ // wait mds leader election success
-		ContainerId:  containerId,
+		ContainerId:  &containerId,
 		Command:      fmt.Sprintf("bash %s %s", waitScriptPath, clusterMDSAddrs),
 		ExecWithSudo: true,
 		ExecInLocal:  false,
 	})
 	t.AddStep(&step.ContainerExec{ // create topology
-		ContainerId:  containerId,
+		ContainerId:  &containerId,
 		Command:      genCreatePoolCommand(dc, pooltype, poolJSONPath),
 		ExecWithSudo: true,
 		ExecInLocal:  false,
