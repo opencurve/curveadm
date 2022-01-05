@@ -106,6 +106,15 @@ func (s *ReadFile) Execute(ctx *context.Context) error {
 		if err != nil {
 			return err
 		}
+	} else {
+		cmd := ctx.Module().Shell().Rename(remotePath, localPath)
+		_, err := cmd.Execute(module.ExecOption{
+			ExecWithSudo: s.ExecWithSudo,
+			ExecInLocal:  s.ExecInLocal,
+		})
+		if err != nil {
+			return err
+		}
 	}
 
 	data, err := utils.ReadFile(localPath)
@@ -125,6 +134,15 @@ func (s *InstallFile) Execute(ctx *context.Context) error {
 	if !s.ExecInLocal {
 		// defer ctx.Module().Shell().Remove(remotePath).Execute(module.ExecOption{})
 		err = ctx.Module().File().Upload(localPath, remotePath)
+		if err != nil {
+			return err
+		}
+	} else {
+		cmd := ctx.Module().Shell().Rename(localPath, remotePath)
+		_, err := cmd.Execute(module.ExecOption{
+			ExecWithSudo: s.ExecWithSudo,
+			ExecInLocal:  s.ExecInLocal,
+		})
 		if err != nil {
 			return err
 		}

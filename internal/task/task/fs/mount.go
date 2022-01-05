@@ -197,7 +197,7 @@ func NewMountFSTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task
 		ContainerId:       &containerId,
 		ContainerDestPath: createfsScriptPath,
 		Content:           &createfsScript,
-		ExecWithSudo:      true,
+		ExecWithSudo:      false,
 		ExecInLocal:       true,
 	})
 	t.AddStep(&step.StartContainer{
