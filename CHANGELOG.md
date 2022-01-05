@@ -1,3 +1,8 @@
+v0.0.10
+---
+
+* bugfix(*): fixed read & install file error
+
 v0.0.9
 ---
 
