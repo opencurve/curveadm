@@ -1,3 +1,12 @@
+v0.0.9
+---
+
+* bugfix(*): fixed download and upload file conflict for deploy in local machine
+
+v0.0.8
+---
+
+
 v0.0.7
 ---
 
