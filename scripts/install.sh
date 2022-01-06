@@ -11,20 +11,20 @@ g_color_red=`printf '\033[31m'`
 g_color_normal=`printf '\033[0m'`
 
 ############################  BASIC FUNCTIONS
-function msg() {
+msg() {
     printf '%b' "$1" >&2
 }
 
-function success() {
+success() {
     msg "$g_color_yellow[✔]$g_color_normal ${1}${2}"
 }
 
-function die() {
+die() {
     msg "$g_color_red[✘]$g_color_normal ${1}${2}"
     exit 1
 }
 
-function program_must_exist() {
+program_must_exist() {
     local ret='0'
     command -v $1 >/dev/null 2>&1 || { local ret='1'; }
 
@@ -34,7 +34,7 @@ function program_must_exist() {
 }
 
 ############################ FUNCTIONS
-function setup() {
+setup() {
     mkdir -p $g_curveadm_home/{bin,data,logs,temp}
 
     local confpath="$g_curveadm_home/curveadm.cfg"
@@ -50,7 +50,7 @@ __EOF__
     fi
 }
 
-function install_binray() {
+install_binray() {
     local ret=1
     local tempfile="/tmp/curveadm-$(date +%s%6N).tar.gz"
     curl $g_download_url -sLo $tempfile
@@ -67,7 +67,7 @@ function install_binray() {
     fi
 }
 
-function set_profile() {
+set_profile() {
     shell=`echo $SHELL | awk 'BEGIN {FS="/";} { print $NF }'`
     if [ -f "${HOME}/.${shell}_profile" ]; then
         g_profile="${HOME}/.${shell}_profile"
@@ -83,31 +83,31 @@ function set_profile() {
     esac
 }
 
-function print_install_success() {
+print_install_success() {
     success "Install curveadm success, please run 'source $g_profile'\n"
 }
 
-function print_upgrade_success() {
+print_upgrade_success() {
     echo ""
     cat "$g_curveadm_home/CHANGELOG"
     echo ""
     success "Upgrade curveadm success\n"
 }
 
-function install() {
+install() {
     setup
     install_binray
     set_profile
     print_install_success
 }
 
-function upgrade() {
+upgrade() {
     install_binray
     print_upgrade_success
 }
 
-function main() {
-    if [[ $g_upgrade == "true" ]]; then
+main() {
+    if [ $g_upgrade ] && [ $g_upgrade = "true" ]; then
         upgrade
     else
         install
