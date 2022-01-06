@@ -40,13 +40,14 @@ Current version CurveFS only supports S3 storage backend, CurveBS backend will b
 
 ```shell
 # deploy a standalone MinIO S3 storage service
+# minio-data is a local path, you should create this directory before runing the minio container
+mkdir minio-data
 sudo docker run -d --name minio \
     -p 9000:9000 \
     -p 9900:9900 \
-    -v minio-data:/data \     # minio-data is a local path, you should create this directory before runing the minio container
+    -v minio-data:/data \
     --restart unless-stopped \
     minio/minio server /data --console-address ":9900"
-
 ```
 The default Access Key and Secret Key of the root user are both `minioadmin`, the endpoint of S3 service is `http://$IP:9000`, you should create a bucket on browser with URL `http://$IP:9900`, then you can use these infomation to deploy a CurveFS cluster. You can get more reference at [deploy-minio-standalone](https://docs.min.io/minio/baremetal/installation/deploy-minio-standalone.html).
 
