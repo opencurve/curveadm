@@ -41,8 +41,6 @@ const (
 	FORMAT_MOUNT_OPTION = "type=bind,source=%s,target=%s,bind-propagation=rshared"
 
 	CLIENT_CONFIG_DELIMITER = "="
-
-	RPC_TIMEOUT_MS = 10000
 )
 
 var (

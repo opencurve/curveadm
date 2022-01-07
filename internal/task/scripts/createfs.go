@@ -29,7 +29,7 @@ package scripts
 var CREATEFS = `
 g_curvefs_tool="curvefs_tool"
 g_curvefs_tool_operator="create-fs"
-g_rpc_timeout_ms="-rpcTimeoutMs=5000"
+g_rpc_timeout_ms="-rpcTimeoutMs=10000"
 g_fsname="-fsName="
 g_entrypoint="/entrypoint.sh"
 
