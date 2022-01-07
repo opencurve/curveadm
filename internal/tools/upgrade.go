@@ -80,7 +80,7 @@ func Upgrade(curveadm *cli.CurveAdm) error {
 	} else if yes {
 		curveadm.WriteOut("The current version is up-to-date\n")
 		return nil
-	} else if pass := tui.ConfirmYes("Upgrade curveadm to v%s? [y/N]: ", v[0]); !pass {
+	} else if pass := tui.ConfirmYes("Upgrade curveadm to v%s? [YES/No]: ", v[0]); !pass {
 		return nil
 	}
 

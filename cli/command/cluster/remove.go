@@ -66,7 +66,9 @@ func runRemove(curveadm *cli.CurveAdm, options removeOptions) error {
 	}
 
 	// TODO(@Wine93): check all service has removed before delete cluster
-	if pass := common.ConfirmYes("Do you want to continue? [y/N]: "); !pass {
+	curveadm.WriteOut("Warning: This operation will remove cluster %s, and all data in it will be cleaned.\n", clusterName)
+	if pass := common.ConfirmYes("Do you want to continue? [YES/No]: "); !pass {
+		curveadm.WriteOut("Remove cluster canceled\n")
 		return nil
 	} else if err := curveadm.Storage().DeleteCluster(clusterName); err != nil {
 		return err

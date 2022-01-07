@@ -143,7 +143,7 @@ func runSupport(curveadm *cli.CurveAdm, options supportOptions) error {
 	}
 
 	curveadm.WriteOut(color.YellowString(PROMPT))
-	if pass := common.ConfirmYes("Do you want to continue? [y/N]: "); !pass {
+	if pass := common.ConfirmYes("Do you want to continue? [YES/No]: "); !pass {
 		return nil
 	}
 
