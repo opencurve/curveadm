@@ -9,10 +9,9 @@ require (
 	github.com/docker/cli v20.10.9+incompatible
 	github.com/docker/docker v20.10.9+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.6.4 // indirect
-	github.com/fatih/color v1.7.0
+	github.com/fatih/color v1.13.0
 	github.com/fvbommel/sortorder v1.0.2 // indirect
 	github.com/go-resty/resty/v2 v2.7.0
-	github.com/google/uuid v1.2.0
 	github.com/mattn/go-sqlite3 v1.6.0
 	github.com/melbahja/goph v1.2.1
 	github.com/mitchellh/hashstructure/v2 v2.0.2
@@ -20,8 +19,8 @@ require (
 	github.com/moby/term v0.0.0-20210619224110-3f7ff695adc6
 	github.com/pingcap/log v0.0.0-20210906054005-afc726e70354
 	github.com/sergi/go-diff v1.2.0
-	github.com/spf13/cobra v1.2.1
-	github.com/spf13/viper v1.8.1
+	github.com/spf13/cobra v1.3.0
+	github.com/spf13/viper v1.10.0
 	github.com/theupdateframework/notary v0.7.0 // indirect
 	github.com/vbauerster/mpb/v7 v7.1.5
 	go.uber.org/zap v1.19.0
