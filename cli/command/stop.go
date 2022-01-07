@@ -28,6 +28,7 @@ import (
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/configure/topology"
 	"github.com/opencurve/curveadm/internal/task/tasks"
+	tui "github.com/opencurve/curveadm/internal/tui/common"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/cobra"
 )
@@ -73,7 +74,16 @@ func runStop(curveadm *cli.CurveAdm, options stopOptions) error {
 
 	if len(dcs) == 0 {
 		return fmt.Errorf("service not found")
-	} else if err := tasks.ExecTasks(tasks.STOP_SERVICE, curveadm, dcs); err != nil {
+	}
+
+	// stop service
+	curveadm.WriteOut("Warning: Stop all service now, client IO will be hang!\n")
+	if pass := tui.ConfirmYes("Do you want to continue? [YES/No]: "); !pass {
+		curveadm.WriteOut("Stop canceled\n")
+		return nil
+	}
+
+	if err := tasks.ExecTasks(tasks.STOP_SERVICE, curveadm, dcs); err != nil {
 		return curveadm.NewPromptError(err, "")
 	}
 	return nil

@@ -103,7 +103,7 @@ func runCommit(curveadm *cli.CurveAdm, options commitOptions) error {
 
 	if err := validateTopology(oldData, newData); err != nil {
 		return err
-	} else if pass := common.ConfirmYes("Do you want to continue? [y/N]: "); !pass {
+	} else if pass := common.ConfirmYes("Do you want to continue? [YES/No]: "); !pass {
 		return nil
 	} else if err := curveadm.Storage().SetClusterTopology(curveadm.ClusterId(), newData); err != nil {
 		return err
