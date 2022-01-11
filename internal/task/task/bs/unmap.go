@@ -72,7 +72,7 @@ func NewUnmapTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task, 
 
 	// add step
 	var output string
-	containerName := image2ContainerName(user, volume)
+	containerName := volume2ContainerName(user, volume)
 	t.AddStep(&step.ListContainers{
 		ShowAll:      true,
 		Format:       "'{{.ID}} {{.Status}}'",

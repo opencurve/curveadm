@@ -31,37 +31,42 @@ import (
 	"github.com/opencurve/curveadm/internal/task/scripts"
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
-	"github.com/opencurve/curveadm/internal/utils"
 )
 
 const (
 	KEY_MAP_OPTION = "MAP_OPTION"
+	FORMAT_IMAGE   = "cbd:pool/%s_%s_"
 )
 
 type MapOption struct {
-	Volume string
 	User   string
+	Volume string
 	Create bool
 	Size   int
 }
 
 type (
-	step2CheckNBDDaemon struct {
+	step2CheckNEBDClient struct {
 		containerId *string
 		user        string
 		volume      string
 	}
 )
 
-func (s *step2CheckNBDDaemon) Execute(ctx *context.Context) error {
+func (s *step2CheckNEBDClient) Execute(ctx *context.Context) error {
 	if len(*s.containerId) > 0 {
-		return fmt.Errorf("image mapped, please run 'curveadm unmap %s:%s' first", s.user, s.volume)
+		return fmt.Errorf("volume mapped, please run 'curveadm unmap %s:%s' first",
+			s.user, s.volume)
 	}
 	return nil
 }
 
-func image2ContainerName(user, volume string) string {
-	return utils.MD5Sum(fmt.Sprintf("curvebs-iamge-%s_%s", user, volume))
+func formatImage(user, volume string) string {
+	return fmt.Sprintf(FORMAT_IMAGE, volume, user)
+}
+
+func volume2ContainerName(user, volume string) string {
+	return fmt.Sprintf("curvebs-volume-%s", formatImage(user, volume))
 }
 
 func NewMapTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task, error) {
@@ -72,7 +77,7 @@ func NewMapTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task, er
 
 	// add step
 	var containerId string
-	containerName := image2ContainerName(user, volume)
+	containerName := volume2ContainerName(user, volume)
 	mapScriptPath := "/curvebs/nebd/sbin/map.sh"
 	toolsConf := fmt.Sprintf("mdsAddr=%s", cc.GetClusterMDSAddr())
 	mapScript := scripts.MAP
@@ -85,7 +90,7 @@ func NewMapTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task, er
 		ExecWithSudo: true,
 		ExecInLocal:  false,
 	})
-	t.AddStep(&step2CheckNBDDaemon{
+	t.AddStep(&step2CheckNEBDClient{
 		containerId: &containerId,
 		user:        user,
 		volume:      volume,

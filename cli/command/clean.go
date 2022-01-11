@@ -105,7 +105,7 @@ func runClean(curveadm *cli.CurveAdm, options cleanOptions) error {
 
 	// clean service
 	curveadm.WriteOut("Warning: clean role=%s host=%s id=%s only=%s now, %s in it will be cleaned.\n",
-				role, host, id, strings.Join(only, ","), strings.Join(only, ","))
+		role, host, id, strings.Join(only, ","), strings.Join(only, ","))
 	if pass := tui.ConfirmYes("Do you want to continue? [YES/No]: "); !pass {
 		curveadm.WriteOut("Clean canceled\n")
 		return nil

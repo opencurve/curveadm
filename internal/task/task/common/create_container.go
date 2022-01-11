@@ -184,6 +184,8 @@ func NewCreateContainerTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (
 	clusterId := curveadm.ClusterId()
 	dcId := dc.GetId()
 	serviceId := curveadm.GetServiceId(dcId)
+	kind := dc.GetKind()
+	role := dc.GetRole()
 	t.AddStep(&step2GetService{ // if service exist, break task
 		serviceId:   serviceId,
 		containerId: &oldContainerId,
@@ -196,9 +198,10 @@ func NewCreateContainerTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (
 	})
 	t.AddStep(&step.CreateContainer{
 		Image:        dc.GetContainerImage(),
-		Command:      fmt.Sprintf("--role %s --args='%s'", dc.GetRole(), getArguments(dc)),
+		Command:      fmt.Sprintf("--role %s --args='%s'", role, getArguments(dc)),
 		Envs:         []string{"LD_PRELOAD=/usr/local/lib/libjemalloc.so"},
-		Hostname:     fmt.Sprintf("%s-%s", dc.GetKind(), dc.GetRole()),
+		Hostname:     fmt.Sprintf("%s-%s", kind, role),
+		Name:         fmt.Sprintf("%s-%s-%s", kind, role, serviceId),
 		Privileged:   true,
 		Restart:      getRestartPolicy(dc),
 		Ulimits:      []string{"core=-1"},
