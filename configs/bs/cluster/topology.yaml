@@ -2,15 +2,10 @@ kind: curvebs
 global:
   user: curve
   ssh_port: 22
-  private_key_file: /home/curve/.ssh/id_rsa
-  report_usage: true
-  data_dir: /home/${user}/curvefs/data/${service_role}
-  log_dir: /home/${user}/curvefs/logs/${service_role}
-  container_image: opencurvedocker/curvefs:latest
-  s3.ak: minioadmin
-  s3.sk: minioadmin
-  s3.endpoint: http://127.0.0.1:9000
-  s3.bucket_name: <>
+  private_key_file: /home/curve/.ssh/publish_rsa
+  container_image: opencurvedocker/curvebs:v1.2
+  log_dir: /home/${user}/logs/${service_role}${service_replica_sequence}
+  data_dir: /home/${user}/data/${service_role}${service_replica_sequence}
   variable:
     machine1: 10.0.1.1
     machine2: 10.0.1.2
@@ -29,8 +24,8 @@ etcd_services:
 mds_services:
   config:
     listen.ip: ${service_host}
-    listen.port: 6700
-    listen.dummy_port: 7700
+    listen.port: 6666
+    listen.dummy_port: 6667
   deploy:
     - host: ${machine1}
     - host: ${machine2}
@@ -39,23 +34,34 @@ mds_services:
 chunkserver_services:
   config:
     listen.ip: ${service_host}
-    listen.port: 6701
-    metaserver.loglevel: 0
-    copysets: 100  # copysets per chunkserver
-    zone_bucket_per_copyset: 1  # copyset
+    listen.port: 82${format_replica_sequence}  # 8200,8201,8202
+    global.enable_external_server: true
+    data_dir: /data/chunkserver${service_replica_sequence}  # /data/chunkserver0, /data/chunksever1
+    copysets: 100
   deploy:
     - host: ${machine1}
-    - host: ${machine2}
-    - host: ${machine3}
+      replica: 3
       config:
-        metaserver.loglevel: 3
+        listen.external_ip: 10.0.2.0
+    - host: ${machine2}
+      replica: 3
+      config:
+        listen.external_ip: 10.0.2.1
+    - host: ${machine3}
+      replica: 3
+      config:
+        listen.external_ip: 10.0.2.2
 
 snapshotclone_services:
   config:
     listen.ip: ${service_host}
     listen.port: 5555
-    listen.dummy_port: 7700
-    listem.proxy_port:
+    listen.dummy_port: 8081
+    listen.proxy_port: 8080
+    s3.nos_address: <>
+    s3.snapshot_bucket_name: <>
+    s3.ak: <>
+    s3.sk: <>
   deploy:
     - host: ${machine1}
     - host: ${machine2}
