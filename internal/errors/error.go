@@ -22,21 +22,19 @@
 
 package errors
 
-import (
-	"fmt"
-)
+import "fmt"
 
 type ErrorCode struct {
-	code    uint
-	message string
+	code        int
+	description string
 }
 
 func (e ErrorCode) Error() string {
-	return e.message
+	return e.description
 }
 
 func (e ErrorCode) Format(args ...interface{}) ErrorCode {
-	e.message = fmt.Sprintf(e.message, args...)
+	e.description = fmt.Sprintf(e.description, args...)
 	return e
 }
 

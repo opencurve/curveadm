@@ -31,6 +31,7 @@ import (
 	"github.com/opencurve/curveadm/internal/task/scripts"
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
+	"github.com/opencurve/curveadm/internal/utils"
 )
 
 const (
@@ -66,14 +67,14 @@ func formatImage(user, volume string) string {
 }
 
 func volume2ContainerName(user, volume string) string {
-	return fmt.Sprintf("curvebs-volume-%s", formatImage(user, volume))
+	return fmt.Sprintf("curvebs-volume-%s", utils.MD5Sum(formatImage(user, volume)))
 }
 
 func NewMapTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task, error) {
 	option := curvradm.MemStorage().Get(KEY_MAP_OPTION).(MapOption)
 	user, volume := option.User, option.Volume
 	subname := fmt.Sprintf("hostname=%s volume=%s", cc.GetHost(), volume)
-	t := task.NewTask("Map Image", subname, cc.GetSSHConfig())
+	t := task.NewTask("Map Volume", subname, cc.GetSSHConfig())
 
 	// add step
 	var containerId string
@@ -102,8 +103,8 @@ func NewMapTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task, er
 	})
 	t.AddStep(&step.CreateContainer{
 		Image:        cc.GetContainerImage(),
-		Command:      fmt.Sprintf("bash %s %s %s %v %d", mapScriptPath, user, volume, option.Create, option.Size),
-		Entrypoint:   "/exec.sh",
+		Command:      fmt.Sprintf("%s %s %s %v %d", mapScriptPath, user, volume, option.Create, option.Size),
+		Entrypoint:   "/bin/bash",
 		Envs:         []string{"LD_PRELOAD=/usr/local/lib/libjemalloc.so"},
 		Name:         containerName,
 		Pid:          "host",

@@ -68,7 +68,7 @@ func NewUnmapTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task, 
 	option := curvradm.MemStorage().Get(KEY_MAP_OPTION).(MapOption)
 	user, volume := option.User, option.Volume
 	subname := fmt.Sprintf("hostname=%s volume=%s", cc.GetHost(), volume)
-	t := task.NewTask("Unmap Image", subname, cc.GetSSHConfig())
+	t := task.NewTask("Unmap Volume", subname, cc.GetSSHConfig())
 
 	// add step
 	var output string

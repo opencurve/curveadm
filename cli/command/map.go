@@ -54,7 +54,7 @@ func NewMapCommand(curveadm *cli.CurveAdm) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:     "map USER:VOLUME [OPTION]",
-		Short:   "Map an volume to nbd device",
+		Short:   "Map a volume to nbd device",
 		Args:    utils.ExactArgs(1),
 		Example: mapExample,
 		RunE: func(cmd *cobra.Command, args []string) error {

@@ -43,6 +43,8 @@ if [ $g_create == "true" ]; then
     fi
 fi
 
-mkdir -p /curvebs/nebd/data/lock /etc/curve/curvetab
-curve-nbd map cbd:pool/${g_volume}_${g_user}_
+mkdir -p /curvebs/nebd/data/lock
+touch /etc/curve/curvetab
+curve-nbd map --nbds_max=16 cbd:pool/${g_volume}_${g_user}_
+[[ ! -z $(pgrep curve-nbd) ]] && tail --pid=$(pgrep curve-nbd) -f /dev/null
 `

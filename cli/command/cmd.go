@@ -34,11 +34,12 @@ import (
 )
 
 var curveadmExample = `Examples:
-  $ curveadm cluster add c1           # Add a cluster named 'c1'
-  $ curveadm deploy                   # Deploy current cluster
-  $ curveadm start                    # Start current cluster
-  $ curveadm stop                     # Stop current cluster
-  $ curveadm enter 1_etcd_10.0.1.1_1  # Enter specified service`
+  $ curveadm cluster add c1      # Add a cluster named 'c1'
+  $ curveadm deploy              # Deploy current cluster
+  $ curveadm stop                # Stop current cluster service
+  $ curveadm clean               # Clean current cluster
+  $ curveadm enter 6ff561598c6f  # Enter specified service container
+  $ curveadm -u                  # Upgrade curveadm itself to the latest version`
 
 type rootOptions struct {
 	upgrade bool
@@ -46,6 +47,8 @@ type rootOptions struct {
 
 func addSubCommands(cmd *cobra.Command, curveadm *cli.CurveAdm) {
 	cmd.AddCommand(
+		NewCompletionCommand(), // curveadm completion
+
 		cluster.NewClusterCommand(curveadm), // curveadm cluster ...
 		config.NewConfigCommand(curveadm),   // curveadm config ...
 
@@ -64,7 +67,6 @@ func addSubCommands(cmd *cobra.Command, curveadm *cli.CurveAdm) {
 		NewFormatCommand(curveadm),  // curveadm format
 		NewMapCommand(curveadm),     // curveadm map
 		NewUnmapCommand(curveadm),   // curveadm unmap
-		NewCompletionCommand(),      // curveadm bash completion
 	)
 }
 
@@ -80,7 +82,7 @@ func NewCurveAdmCommand(curveadm *cli.CurveAdm) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:     "curveadm [OPTIONS] COMMAND [ARGS...]",
-		Short:   "Deploy and manage CurveFS cluster",
+		Short:   "Deploy and manage CurveBS/CurveFS cluster",
 		Version: cli.Version,
 		Example: curveadmExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -99,7 +101,7 @@ func NewCurveAdmCommand(curveadm *cli.CurveAdm) *cobra.Command {
 
 	cmd.Flags().BoolP("version", "v", false, "Print version information and quit")
 	cmd.PersistentFlags().BoolP("help", "h", false, "Print usage")
-	cmd.Flags().BoolVarP(&options.upgrade, "upgrade", "u", false, "Upgrade the 'curveadm' to the latest version")
+	cmd.Flags().BoolVarP(&options.upgrade, "upgrade", "u", false, "Upgrade curveadm itself to the latest version")
 
 	addSubCommands(cmd, curveadm)
 	setupRootCommand(cmd)

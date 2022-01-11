@@ -41,7 +41,7 @@ func NewCheckCommand(curveadm *cli.CurveAdm) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "check MOUNT_POINT",
-		Short: "Check mount status",
+		Short: "Check filesystem mount status",
 		Args:  cliutil.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			options.mountPoint = args[0]
