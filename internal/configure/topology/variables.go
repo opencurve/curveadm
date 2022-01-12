@@ -64,6 +64,7 @@ type Var struct {
  *   ${service_dummy_port}        "6667" (snapshotclone/mds)
  *   ${service_proxy_port}        "8080" (snapshotclone)
  *   ${service_external_addr}     "10.0.10.1" (chunkserver/metaserver)
+ *   ${service_external_port}     "7800" (metaserver)
  *   ${log_dir}                   "/data/logs"
  *   ${data_dir}                  "/data"
  *   ${random_uuid}               "6fa8f01c411d7655d0354125c36847bb"
@@ -97,6 +98,7 @@ var (
 		{name: "service_dummy_port", role: []string{ROLE_SNAPSHOTCLONE, ROLE_MDS}},
 		{name: "service_proxy_port", role: []string{ROLE_SNAPSHOTCLONE}},
 		{name: "service_external_addr", role: []string{ROLE_CHUNKSERVER, ROLE_METASERVER}},
+		{name: "service_external_port", role: []string{ROLE_METASERVER}},
 		{name: "log_dir"},
 		{name: "data_dir"},
 		{name: "random_uuid"},
@@ -256,6 +258,8 @@ func getValue(name string, dcs []*DeployConfig, idx int) string {
 		return utils.Atoa(dc.get(CONFIG_LISTEN_PROXY_PORT))
 	case "service_external_addr": // chunkserver, metaserver
 		return utils.Atoa(dc.get(CONFIG_LISTEN_EXTERNAL_IP))
+	case "service_external_port": // metaserver
+		return utils.Atoa(dc.get(CONFIG_LISTEN_EXTERNAL_PORT))
 	case "log_dir":
 		return dc.GetProjectLayout().ServiceLogDir
 	case "data_dir":

@@ -132,7 +132,7 @@ func createLogicalPool(dcs []*topology.DeployConfig, logicalPool string) (Logica
 				InternalIp:   dc.GetListenIp(),
 				InternalPort: dc.GetListenPort(),
 				ExternalIp:   dc.GetListenExternalIp(),
-				ExternalPort: dc.GetListenPort(),
+				ExternalPort: dc.GetListenExternalPort(),
 				Zone:         nextZone(),
 			}
 			if kind == KIND_CURVEBS {

@@ -49,7 +49,8 @@ const (
 	DEFAULT_SNAPSHOTCLONE_LISTEN_PORT       = 5555
 	DEFAULT_SNAPSHOTCLONE_LISTEN_DUMMY_PORT = 8081
 	DEFAULT_SNAPSHOTCLONE_LISTEN_PROXY_PORT = 8080
-	DEFAULT_METASERVER_LISTN_PORT           = 6701
+	DEFAULT_METASERVER_LISTN_PORT           = 6800
+	DEFAULT_METASERVER_LISTN_EXTARNAL_PORT  = 7800
 	DEFAULT_CHUNKSERVER_COPYSETS            = 100 // copysets per chunkserver
 	DEFAULT_METASERVER_COPYSETS             = 100 // copysets per metaserver
 )
@@ -209,6 +210,18 @@ var (
 		true,
 		func(dc *DeployConfig) interface{} {
 			return dc.GetHost()
+		},
+	)
+
+	CONFIG_LISTEN_EXTERNAL_PORT = itemset.insert(
+		"listen.external_port",
+		REQUIRE_POSITIVE_INTEGER,
+		true,
+		func(dc *DeployConfig) interface{} {
+			if dc.GetRole() == ROLE_METASERVER {
+				return DEFAULT_METASERVER_LISTN_EXTARNAL_PORT
+			}
+			return dc.GetListenPort()
 		},
 	)
 

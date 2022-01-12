@@ -39,7 +39,8 @@ mds_services:
 metaserver_services:
   config:
     listen.ip: ${service_host}
-    listen.port: 6701
+    listen.port: 6800
+    listen.external_port: 7800
     metaserver.loglevel: 0
   deploy:
     - host: ${machine1}
