@@ -26,6 +26,7 @@ import (
 	"bytes"
 	"fmt"
 	"os/exec"
+	"strings"
 	"text/template"
 
 	ssh "github.com/melbahja/goph"
@@ -33,8 +34,10 @@ import (
 )
 
 type ExecOption struct {
-	ExecWithSudo bool
-	ExecInLocal  bool
+	ExecWithSudo  bool
+	ExecInLocal   bool
+	ExecSudoAlias string
+	ExexSudoAlias string
 }
 
 type Module struct {
@@ -79,8 +82,13 @@ func execCommand(sshClient *ssh.Client,
 
 	cmd := buffer.String()
 	if options.ExecWithSudo {
-		cmd = "sudo " + cmd
+		sudo := "sudo"
+		if len(options.ExecSudoAlias) > 0 {
+			sudo = options.ExecSudoAlias
+		}
+		cmd = strings.Join([]string{sudo, cmd}, " ")
 	}
+	cmd = strings.TrimLeft(cmd, " ")
 
 	var out []byte
 	if options.ExecInLocal {

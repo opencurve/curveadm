@@ -97,13 +97,14 @@ func NewGetMountStatusTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*ta
 	var output string
 	containerName := mountPoint2ContainerName(mountPoint)
 	t.AddStep(&step.ListContainers{
-		ShowAll:      true,
-		Format:       "'{{.ID}} {{.Status}}'",
-		Quiet:        true,
-		Filter:       fmt.Sprintf("name=%s", containerName),
-		Out:          &output,
-		ExecWithSudo: false,
-		ExecInLocal:  true,
+		ShowAll:       true,
+		Format:        "'{{.ID}} {{.Status}}'",
+		Quiet:         true,
+		Filter:        fmt.Sprintf("name=%s", containerName),
+		Out:           &output,
+		ExecWithSudo:  false,
+		ExecInLocal:   true,
+		ExecSudoAlias: curvradm.SudoAlias(),
 	})
 	t.AddStep(&step2FormatMountStatus{
 		output:     &output,

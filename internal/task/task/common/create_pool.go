@@ -98,6 +98,7 @@ func NewCreateTopologyTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*
 		Content:           &clusterPool,
 		ExecWithSudo:      true,
 		ExecInLocal:       false,
+		ExecSudoAlias:     curveadm.SudoAlias(),
 	})
 	t.AddStep(&step.InstallFile{ // install wait script
 		ContainerId:       &containerId,
@@ -105,18 +106,21 @@ func NewCreateTopologyTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*
 		Content:           &waitScript,
 		ExecWithSudo:      true,
 		ExecInLocal:       false,
+		ExecSudoAlias:     curveadm.SudoAlias(),
 	})
 	t.AddStep(&step.ContainerExec{ // wait mds leader election success
-		ContainerId:  &containerId,
-		Command:      fmt.Sprintf("bash %s %s", waitScriptPath, clusterMDSAddrs),
-		ExecWithSudo: true,
-		ExecInLocal:  false,
+		ContainerId:   &containerId,
+		Command:       fmt.Sprintf("bash %s %s", waitScriptPath, clusterMDSAddrs),
+		ExecWithSudo:  true,
+		ExecInLocal:   false,
+		ExecSudoAlias: curveadm.SudoAlias(),
 	})
 	t.AddStep(&step.ContainerExec{ // create topology
-		ContainerId:  &containerId,
-		Command:      genCreatePoolCommand(dc, pooltype, poolJSONPath),
-		ExecWithSudo: true,
-		ExecInLocal:  false,
+		ContainerId:   &containerId,
+		Command:       genCreatePoolCommand(dc, pooltype, poolJSONPath),
+		ExecWithSudo:  true,
+		ExecInLocal:   false,
+		ExecSudoAlias: curveadm.SudoAlias(),
 	})
 
 	return t, nil

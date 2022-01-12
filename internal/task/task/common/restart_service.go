@@ -47,14 +47,16 @@ func NewRestartServiceTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*
 
 	// add step
 	t.AddStep(&step.RestartContainer{
-		ContainerId:  containerId,
-		ExecWithSudo: true,
-		ExecInLocal:  false,
+		ContainerId:   containerId,
+		ExecWithSudo:  true,
+		ExecInLocal:   false,
+		ExecSudoAlias: curveadm.SudoAlias(),
 	})
 	t.AddStep(&step2PostStart{
-		ContainerId:  containerId,
-		ExecWithSudo: true,
-		ExecInLocal:  false,
+		ContainerId:   containerId,
+		ExecWithSudo:  true,
+		ExecInLocal:   false,
+		ExecSudoAlias: curveadm.SudoAlias(),
 	})
 
 	return t, nil

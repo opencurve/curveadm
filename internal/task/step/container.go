@@ -31,9 +31,10 @@ import (
 
 type (
 	PullImage struct {
-		Image        string
-		ExecWithSudo bool
-		ExecInLocal  bool
+		Image         string
+		ExecWithSudo  bool
+		ExecInLocal   bool
+		ExecSudoAlias string
 	}
 
 	Volume struct { // bind mount a volume
@@ -61,48 +62,55 @@ type (
 		Out               *string
 		ExecWithSudo      bool
 		ExecInLocal       bool
+		ExecSudoAlias     string
 	}
 
 	StartContainer struct {
-		ContainerId  *string
-		ExecWithSudo bool
-		ExecInLocal  bool
+		ContainerId   *string
+		ExecWithSudo  bool
+		ExecInLocal   bool
+		ExecSudoAlias string
 	}
 
 	StopContainer struct {
-		ContainerId  string
-		Time         int
-		ExecWithSudo bool
-		ExecInLocal  bool
+		ContainerId   string
+		Time          int
+		ExecWithSudo  bool
+		ExecInLocal   bool
+		ExecSudoAlias string
 	}
 
 	RestartContainer struct {
-		ContainerId  string
-		ExecWithSudo bool
-		ExecInLocal  bool
+		ContainerId   string
+		ExecWithSudo  bool
+		ExecInLocal   bool
+		ExecSudoAlias string
 	}
 
 	RemoveContainer struct {
-		ContainerId  string
-		ExecWithSudo bool
-		ExecInLocal  bool
+		ContainerId   string
+		ExecWithSudo  bool
+		ExecInLocal   bool
+		ExecSudoAlias string
 	}
 
 	ListContainers struct {
-		Format       string
-		Filter       string
-		Quiet        bool // Only display numeric IDs
-		ShowAll      bool // Show all containers (default shows just running)
-		Out          *string
-		ExecWithSudo bool
-		ExecInLocal  bool
+		Format        string
+		Filter        string
+		Quiet         bool // Only display numeric IDs
+		ShowAll       bool // Show all containers (default shows just running)
+		Out           *string
+		ExecWithSudo  bool
+		ExecInLocal   bool
+		ExecSudoAlias string
 	}
 
 	ContainerExec struct {
-		ContainerId  *string
-		Command      string
-		ExecWithSudo bool
-		ExecInLocal  bool
+		ContainerId   *string
+		Command       string
+		ExecWithSudo  bool
+		ExecInLocal   bool
+		ExecSudoAlias string
 	}
 
 	CopyFromContainer struct {
@@ -111,6 +119,7 @@ type (
 		HostDestPath     string
 		ExecWithSudo     bool
 		ExecInLocal      bool
+		ExecSudoAlias    string
 	}
 
 	CopyIntoContainer struct {
@@ -119,22 +128,25 @@ type (
 		ContainerDestPath string
 		ExecWithSudo      bool
 		ExecInLocal       bool
+		ExecSudoAlias     string
 	}
 
-	InpectContainer struct {
-		ContainerId  string
-		Format       string
-		Out          *string
-		ExecWithSudo bool
-		ExecInLocal  bool
+	InspectContainer struct {
+		ContainerId   string
+		Format        string
+		Out           *string
+		ExecWithSudo  bool
+		ExecInLocal   bool
+		ExecSudoAlias string
 	}
 )
 
 func (s *PullImage) Execute(ctx *context.Context) error {
 	cli := ctx.Module().DockerCli().PullImage(s.Image)
 	_, err := cli.Execute(module.ExecOption{
-		ExecWithSudo: s.ExecWithSudo,
-		ExecInLocal:  s.ExecInLocal,
+		ExecWithSudo:  s.ExecWithSudo,
+		ExecInLocal:   s.ExecInLocal,
+		ExecSudoAlias: s.ExecSudoAlias,
 	})
 	return err
 }
@@ -186,8 +198,9 @@ func (s *CreateContainer) Execute(ctx *context.Context) error {
 	cli.AddOption("--network host")
 
 	out, err := cli.Execute(module.ExecOption{
-		ExecWithSudo: s.ExecWithSudo,
-		ExecInLocal:  s.ExecInLocal,
+		ExecWithSudo:  s.ExecWithSudo,
+		ExecInLocal:   s.ExecInLocal,
+		ExecSudoAlias: s.ExecSudoAlias,
 	})
 	*s.Out = strings.TrimSuffix(out, "\n")
 	return err
@@ -196,8 +209,9 @@ func (s *CreateContainer) Execute(ctx *context.Context) error {
 func (s *StartContainer) Execute(ctx *context.Context) error {
 	cli := ctx.Module().DockerCli().StartContainer(*s.ContainerId)
 	_, err := cli.Execute(module.ExecOption{
-		ExecWithSudo: s.ExecWithSudo,
-		ExecInLocal:  s.ExecInLocal,
+		ExecWithSudo:  s.ExecWithSudo,
+		ExecInLocal:   s.ExecInLocal,
+		ExecSudoAlias: s.ExecSudoAlias,
 	})
 	return err
 }
@@ -208,8 +222,9 @@ func (s *StopContainer) Execute(ctx *context.Context) error {
 		cli.AddOption("--time %d", s.Time)
 	}
 	_, err := cli.Execute(module.ExecOption{
-		ExecWithSudo: s.ExecWithSudo,
-		ExecInLocal:  s.ExecInLocal,
+		ExecWithSudo:  s.ExecWithSudo,
+		ExecInLocal:   s.ExecInLocal,
+		ExecSudoAlias: s.ExecSudoAlias,
 	})
 	return err
 }
@@ -217,8 +232,9 @@ func (s *StopContainer) Execute(ctx *context.Context) error {
 func (s *RestartContainer) Execute(ctx *context.Context) error {
 	cli := ctx.Module().DockerCli().RestartContainer(s.ContainerId)
 	_, err := cli.Execute(module.ExecOption{
-		ExecWithSudo: s.ExecWithSudo,
-		ExecInLocal:  s.ExecInLocal,
+		ExecWithSudo:  s.ExecWithSudo,
+		ExecInLocal:   s.ExecInLocal,
+		ExecSudoAlias: s.ExecSudoAlias,
 	})
 	return err
 }
@@ -226,8 +242,9 @@ func (s *RestartContainer) Execute(ctx *context.Context) error {
 func (s *RemoveContainer) Execute(ctx *context.Context) error {
 	cli := ctx.Module().DockerCli().RemoveContainer(s.ContainerId)
 	_, err := cli.Execute(module.ExecOption{
-		ExecWithSudo: s.ExecWithSudo,
-		ExecInLocal:  s.ExecInLocal,
+		ExecWithSudo:  s.ExecWithSudo,
+		ExecInLocal:   s.ExecInLocal,
+		ExecSudoAlias: s.ExecSudoAlias,
 	})
 	return err
 }
@@ -247,21 +264,23 @@ func (s *ListContainers) Execute(ctx *context.Context) error {
 		cli.AddOption("--all")
 	}
 	out, err := cli.Execute(module.ExecOption{
-		ExecWithSudo: s.ExecWithSudo,
-		ExecInLocal:  s.ExecInLocal,
+		ExecWithSudo:  s.ExecWithSudo,
+		ExecInLocal:   s.ExecInLocal,
+		ExecSudoAlias: s.ExecSudoAlias,
 	})
 	*s.Out = strings.TrimSuffix(out, "\n")
 	return err
 }
 
-func (s *InpectContainer) Execute(ctx *context.Context) error {
+func (s *InspectContainer) Execute(ctx *context.Context) error {
 	cli := ctx.Module().DockerCli().InspectContainer(s.ContainerId)
 	if len(s.Format) > 0 {
 		cli.AddOption("--format = %s", s.Format)
 	}
 	out, err := cli.Execute(module.ExecOption{
-		ExecWithSudo: s.ExecWithSudo,
-		ExecInLocal:  s.ExecInLocal,
+		ExecWithSudo:  s.ExecWithSudo,
+		ExecInLocal:   s.ExecInLocal,
+		ExecSudoAlias: s.ExecSudoAlias,
 	})
 	*s.Out = out
 	return err
@@ -270,8 +289,9 @@ func (s *InpectContainer) Execute(ctx *context.Context) error {
 func (s *ContainerExec) Execute(ctx *context.Context) error {
 	cli := ctx.Module().DockerCli().ContainerExec(*s.ContainerId, s.Command)
 	_, err := cli.Execute(module.ExecOption{
-		ExecWithSudo: s.ExecWithSudo,
-		ExecInLocal:  s.ExecInLocal,
+		ExecWithSudo:  s.ExecWithSudo,
+		ExecInLocal:   s.ExecInLocal,
+		ExecSudoAlias: s.ExecSudoAlias,
 	})
 	return err
 }
@@ -279,8 +299,9 @@ func (s *ContainerExec) Execute(ctx *context.Context) error {
 func (s *CopyFromContainer) Execute(ctx *context.Context) error {
 	cli := ctx.Module().DockerCli().CopyFromContainer(s.ContainerId, s.ContainerSrcPath, s.HostDestPath)
 	_, err := cli.Execute(module.ExecOption{
-		ExecWithSudo: s.ExecWithSudo,
-		ExecInLocal:  s.ExecInLocal,
+		ExecWithSudo:  s.ExecWithSudo,
+		ExecInLocal:   s.ExecInLocal,
+		ExecSudoAlias: s.ExecSudoAlias,
 	})
 	return err
 }
@@ -288,8 +309,9 @@ func (s *CopyFromContainer) Execute(ctx *context.Context) error {
 func (s *CopyIntoContainer) Execute(ctx *context.Context) error {
 	cli := ctx.Module().DockerCli().CopyIntoContainer(s.HostSrcPath, s.ContainerId, s.ContainerDestPath)
 	_, err := cli.Execute(module.ExecOption{
-		ExecWithSudo: s.ExecWithSudo,
-		ExecInLocal:  s.ExecInLocal,
+		ExecWithSudo:  s.ExecWithSudo,
+		ExecInLocal:   s.ExecInLocal,
+		ExecSudoAlias: s.ExecSudoAlias,
 	})
 	return err
 }

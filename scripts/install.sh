@@ -43,6 +43,7 @@ setup() {
         cat << __EOF__ > $confpath
 [defaults]
 log_level = error
+sudo_alias = "sudo"
 
 [ssh_connection]
 retries = 3

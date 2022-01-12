@@ -70,8 +70,8 @@ func volume2ContainerName(user, volume string) string {
 	return fmt.Sprintf("curvebs-volume-%s", utils.MD5Sum(formatImage(user, volume)))
 }
 
-func NewMapTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task, error) {
-	option := curvradm.MemStorage().Get(KEY_MAP_OPTION).(MapOption)
+func NewMapTask(curveadm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task, error) {
+	option := curveadm.MemStorage().Get(KEY_MAP_OPTION).(MapOption)
 	user, volume := option.User, option.Volume
 	subname := fmt.Sprintf("hostname=%s volume=%s", cc.GetHost(), volume)
 	t := task.NewTask("Map Volume", subname, cc.GetSSHConfig())
@@ -83,13 +83,14 @@ func NewMapTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task, er
 	toolsConf := fmt.Sprintf("mdsAddr=%s", cc.GetClusterMDSAddr())
 	mapScript := scripts.MAP
 	t.AddStep(&step.ListContainers{
-		ShowAll:      true,
-		Format:       "'{{.ID}}'",
-		Quiet:        true,
-		Filter:       fmt.Sprintf("name=%s", containerName),
-		Out:          &containerId,
-		ExecWithSudo: true,
-		ExecInLocal:  false,
+		ShowAll:       true,
+		Format:        "'{{.ID}}'",
+		Quiet:         true,
+		Filter:        fmt.Sprintf("name=%s", containerName),
+		Out:           &containerId,
+		ExecWithSudo:  true,
+		ExecInLocal:   false,
+		ExecSudoAlias: curveadm.SudoAlias(),
 	})
 	t.AddStep(&step2CheckNEBDClient{
 		containerId: &containerId,
@@ -97,22 +98,24 @@ func NewMapTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task, er
 		volume:      volume,
 	})
 	t.AddStep(&step.PullImage{
-		Image:        cc.GetContainerImage(),
-		ExecWithSudo: true,
-		ExecInLocal:  false,
+		Image:         cc.GetContainerImage(),
+		ExecWithSudo:  true,
+		ExecInLocal:   false,
+		ExecSudoAlias: curveadm.SudoAlias(),
 	})
 	t.AddStep(&step.CreateContainer{
-		Image:        cc.GetContainerImage(),
-		Command:      fmt.Sprintf("%s %s %s %v %d", mapScriptPath, user, volume, option.Create, option.Size),
-		Entrypoint:   "/bin/bash",
-		Envs:         []string{"LD_PRELOAD=/usr/local/lib/libjemalloc.so"},
-		Name:         containerName,
-		Pid:          "host",
-		Privileged:   true,
-		Volumes:      getVolumes(cc),
-		Out:          &containerId,
-		ExecWithSudo: true,
-		ExecInLocal:  false,
+		Image:         cc.GetContainerImage(),
+		Command:       fmt.Sprintf("%s %s %s %v %d", mapScriptPath, user, volume, option.Create, option.Size),
+		Entrypoint:    "/bin/bash",
+		Envs:          []string{"LD_PRELOAD=/usr/local/lib/libjemalloc.so"},
+		Name:          containerName,
+		Pid:           "host",
+		Privileged:    true,
+		Volumes:       getVolumes(cc),
+		Out:           &containerId,
+		ExecWithSudo:  true,
+		ExecInLocal:   false,
+		ExecSudoAlias: curveadm.SudoAlias(),
 	})
 	t.AddStep(&step.InstallFile{ // install tools.conf
 		Content:           &toolsConf,
@@ -120,6 +123,7 @@ func NewMapTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task, er
 		ContainerDestPath: "/etc/curve/tools.conf",
 		ExecWithSudo:      true,
 		ExecInLocal:       false,
+		ExecSudoAlias:     curveadm.SudoAlias(),
 	})
 	t.AddStep(&step.InstallFile{ // install map.sh
 		Content:           &mapScript,
@@ -127,6 +131,7 @@ func NewMapTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task, er
 		ContainerDestPath: mapScriptPath,
 		ExecWithSudo:      true,
 		ExecInLocal:       false,
+		ExecSudoAlias:     curveadm.SudoAlias(),
 	})
 	t.AddStep(&step.SyncFile{ // sync nebd-client config
 		ContainerSrcId:    &containerId,
@@ -137,11 +142,13 @@ func NewMapTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task, er
 		Mutate:            newMutate(cc, CLIENT_CONFIG_DELIMITER),
 		ExecWithSudo:      true,
 		ExecInLocal:       false,
+		ExecSudoAlias:     curveadm.SudoAlias(),
 	})
 	t.AddStep(&step.StartContainer{
-		ContainerId:  &containerId,
-		ExecWithSudo: true,
-		ExecInLocal:  false,
+		ContainerId:   &containerId,
+		ExecWithSudo:  true,
+		ExecInLocal:   false,
+		ExecSudoAlias: curveadm.SudoAlias(),
 	})
 
 	return t, nil

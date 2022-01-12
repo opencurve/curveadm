@@ -80,11 +80,8 @@ func NewCurveAdm() (*CurveAdm, error) {
 		tempDir: rootDir + "/temp",
 	}
 
-	if err = curveadm.init(); err != nil {
-		return nil, err
-	}
-
-	return curveadm, nil
+	err = curveadm.init()
+	return curveadm, err
 }
 
 func (curveadm *CurveAdm) init() error {
@@ -190,6 +187,9 @@ func (curveadm *CurveAdm) FilterDeployConfig(deployConfigs []*topology.DeployCon
 
 	return dcs
 }
+
+func (curveadm *CurveAdm) SudoAlias() string { return curveadm.config.GetSudoAlias() }
+func (curveadm *CurveAdm) SSHTimeout() int   { return curveadm.config.GetSSHTimeout() }
 
 func (curveadm *CurveAdm) WriteOut(format string, a ...interface{}) (int, error) {
 	output := fmt.Sprintf(format, a...)

@@ -97,19 +97,21 @@ func NewGetFormatStatusTask(curveadm *cli.CurveAdm, fc *format.FormatConfig) (*t
 	var deviceUsage, containerStatus string
 	containerName := device2ContainerName(device)
 	t.AddStep(&step.ShowDiskFree{
-		Files:        []string{device},
-		Format:       "pcent",
-		Out:          &deviceUsage,
-		ExecInLocal:  false,
-		ExecWithSudo: false,
+		Files:         []string{device},
+		Format:        "pcent",
+		Out:           &deviceUsage,
+		ExecWithSudo:  false,
+		ExecInLocal:   false,
+		ExecSudoAlias: curveadm.SudoAlias(),
 	})
 	t.AddStep(&step.ListContainers{
-		ShowAll:      true,
-		Format:       "'{{.Status}}'",
-		Filter:       fmt.Sprintf("name=%s", containerName),
-		Out:          &containerStatus,
-		ExecInLocal:  false,
-		ExecWithSudo: true,
+		ShowAll:       true,
+		Format:        "'{{.Status}}'",
+		Filter:        fmt.Sprintf("name=%s", containerName),
+		Out:           &containerStatus,
+		ExecWithSudo:  true,
+		ExecInLocal:   false,
+		ExecSudoAlias: curveadm.SudoAlias(),
 	})
 	t.AddStep(&step2FormatStatus{
 		config:          fc,

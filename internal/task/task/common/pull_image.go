@@ -35,9 +35,10 @@ func NewPullImageTask(curvradm *cli.CurveAdm, dc *topology.DeployConfig) (*task.
 	subname := fmt.Sprintf("host=%s image=%s", dc.GetHost(), dc.GetContainerImage())
 	t := task.NewTask("Pull Image", subname, dc.GetSSHConfig())
 	t.AddStep(&step.PullImage{
-		Image:        dc.GetContainerImage(),
-		ExecWithSudo: true,
-		ExecInLocal:  false,
+		Image:         dc.GetContainerImage(),
+		ExecWithSudo:  true,
+		ExecInLocal:   false,
+		ExecSudoAlias: curvradm.SudoAlias(),
 	})
 	return t, nil
 }

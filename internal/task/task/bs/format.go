@@ -76,13 +76,14 @@ func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *format.FormatConfig)
 		usagePercent, DEFAULT_CHUNKFILE_SIZE, layout.ChunkfilePoolDir, layout.ChunkfilePoolMetaPath)
 	// 1: skip if formating container exist
 	t.AddStep(&step.ListContainers{
-		ShowAll:      true,
-		Format:       "'{{.ID}}'",
-		Quiet:        true,
-		Filter:       fmt.Sprintf("name=%s", containerName),
-		Out:          &oldContainerId,
-		ExecInLocal:  false,
-		ExecWithSudo: true,
+		ShowAll:       true,
+		Format:        "'{{.ID}}'",
+		Quiet:         true,
+		Filter:        fmt.Sprintf("name=%s", containerName),
+		Out:           &oldContainerId,
+		ExecInLocal:   false,
+		ExecWithSudo:  true,
+		ExecSudoAlias: curveadm.SudoAlias(),
 	})
 	t.AddStep(&step2SkipFormat{
 		device:      device,
@@ -95,39 +96,45 @@ func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *format.FormatConfig)
 		IgnoreNotFound: true,
 		ExecInLocal:    false,
 		ExecWithSudo:   true,
+		ExecSudoAlias:  curveadm.SudoAlias(),
 	})
 	t.AddStep(&step.CreateDirectory{
-		Paths:        []string{mountPoint},
-		ExecInLocal:  false,
-		ExecWithSudo: true,
+		Paths:         []string{mountPoint},
+		ExecInLocal:   false,
+		ExecWithSudo:  true,
+		ExecSudoAlias: curveadm.SudoAlias(),
 	})
 	t.AddStep(&step.CreateFilesystem{ // mkfs.ext4 MOUNT_POINT
-		Device:       device,
-		ExecInLocal:  false,
-		ExecWithSudo: true,
+		Device:        device,
+		ExecInLocal:   false,
+		ExecWithSudo:  true,
+		ExecSudoAlias: curveadm.SudoAlias(),
 	})
 	t.AddStep(&step.MountFilesystem{
-		Source:       device,
-		Directory:    mountPoint,
-		ExecInLocal:  false,
-		ExecWithSudo: true,
+		Source:        device,
+		Directory:     mountPoint,
+		ExecInLocal:   false,
+		ExecWithSudo:  true,
+		ExecSudoAlias: curveadm.SudoAlias(),
 	})
 	// 3: run container to format chunkfile pool
 	t.AddStep(&step.PullImage{
-		Image:        fc.GetContainerIamge(),
-		ExecInLocal:  false,
-		ExecWithSudo: true,
+		Image:         fc.GetContainerIamge(),
+		ExecInLocal:   false,
+		ExecWithSudo:  true,
+		ExecSudoAlias: curveadm.SudoAlias(),
 	})
 	t.AddStep(&step.CreateContainer{
-		Image:        fc.GetContainerIamge(),
-		Command:      formatCommand,
-		Entrypoint:   "/bin/bash",
-		Name:         containerName,
-		Remove:       true,
-		Volumes:      []step.Volume{{HostPath: mountPoint, ContainerPath: chunkfilePoolRootDir}},
-		Out:          &containerId,
-		ExecInLocal:  false,
-		ExecWithSudo: true,
+		Image:         fc.GetContainerIamge(),
+		Command:       formatCommand,
+		Entrypoint:    "/bin/bash",
+		Name:          containerName,
+		Remove:        true,
+		Volumes:       []step.Volume{{HostPath: mountPoint, ContainerPath: chunkfilePoolRootDir}},
+		Out:           &containerId,
+		ExecInLocal:   false,
+		ExecWithSudo:  true,
+		ExecSudoAlias: curveadm.SudoAlias(),
 	})
 	t.AddStep(&step.InstallFile{
 		ContainerId:       &containerId,
@@ -135,11 +142,13 @@ func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *format.FormatConfig)
 		Content:           &formatScript,
 		ExecInLocal:       false,
 		ExecWithSudo:      true,
+		ExecSudoAlias:     curveadm.SudoAlias(),
 	})
 	t.AddStep(&step.StartContainer{
-		ContainerId:  &containerId,
-		ExecInLocal:  false,
-		ExecWithSudo: true,
+		ContainerId:   &containerId,
+		ExecInLocal:   false,
+		ExecWithSudo:  true,
+		ExecSudoAlias: curveadm.SudoAlias(),
 	})
 	return t, nil
 }

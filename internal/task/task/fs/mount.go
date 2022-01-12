@@ -115,7 +115,7 @@ func newMutate(cc *client.ClientConfig, delimiter string) step.Mutate {
 func newToolsMutate(cc *client.ClientConfig, delimiter string) step.Mutate {
 	clientConfig := cc.GetServiceConfig()
 	tools2client := map[string]string{
-		"mdsAddr" : "mdsOpt.rpcRetryOpt.addrs",
+		"mdsAddr": "mdsOpt.rpcRetryOpt.addrs",
 	}
 	return func(in, key, value string) (out string, err error) {
 		if len(key) == 0 {
@@ -155,8 +155,9 @@ func NewMountFSTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task
 	})
 	t.AddStep(&step.CreateContainer{
 		Image:             cc.GetContainerImage(),
-		Envs:              []string{"LD_PRELOAD=/usr/local/lib/libjemalloc.so"},
 		Command:           getMountCommand(cc, mountFSName),
+		Entrypoint:        "/bin/bash",
+		Envs:              []string{"LD_PRELOAD=/usr/local/lib/libjemalloc.so"},
 		Name:              mountPoint2ContainerName(mountPoint),
 		Mount:             fmt.Sprintf(FORMAT_MOUNT_OPTION, mountPoint, containerMountPath),
 		Volumes:           getMountVolumes(cc),
@@ -169,7 +170,7 @@ func NewMountFSTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task
 		Out:               &containerId,
 		ExecWithSudo:      false,
 		ExecInLocal:       true,
-		Entrypoint:        "/bin/bash",
+		ExecSudoAlias:     curvradm.SudoAlias(),
 	})
 	t.AddStep(&step.SyncFile{ // sync service config
 		ContainerSrcId:    &containerId,
@@ -180,6 +181,7 @@ func NewMountFSTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task
 		Mutate:            newMutate(cc, CLIENT_CONFIG_DELIMITER),
 		ExecWithSudo:      false,
 		ExecInLocal:       true,
+		ExecSudoAlias:     curvradm.SudoAlias(),
 	})
 	t.AddStep(&step.SyncFile{ // sync tools config
 		ContainerSrcId:    &containerId,
@@ -190,6 +192,7 @@ func NewMountFSTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task
 		Mutate:            newToolsMutate(cc, CLIENT_CONFIG_DELIMITER),
 		ExecWithSudo:      false,
 		ExecInLocal:       true,
+		ExecSudoAlias:     curvradm.SudoAlias(),
 	})
 	t.AddStep(&step.InstallFile{ // install client.sh shell
 		ContainerId:       &containerId,
@@ -197,11 +200,13 @@ func NewMountFSTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task
 		Content:           &createfsScript,
 		ExecWithSudo:      false,
 		ExecInLocal:       true,
+		ExecSudoAlias:     curvradm.SudoAlias(),
 	})
 	t.AddStep(&step.StartContainer{
-		ContainerId:  &containerId,
-		ExecWithSudo: false,
-		ExecInLocal:  true,
+		ContainerId:   &containerId,
+		ExecWithSudo:  false,
+		ExecInLocal:   true,
+		ExecSudoAlias: curvradm.SudoAlias(),
 	})
 
 	return t, nil

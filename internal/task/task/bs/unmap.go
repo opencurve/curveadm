@@ -36,9 +36,10 @@ import (
 
 type (
 	step2UnmapImage struct {
-		output *string
-		user   string
-		volume string
+		output        *string
+		user          string
+		volume        string
+		execSudoAlias string
 	}
 )
 
@@ -58,8 +59,9 @@ func (s *step2UnmapImage) Execute(ctx *context.Context) error {
 	command := fmt.Sprintf("curve-nbd unmap cbd:pool/%s_%s_", s.volume, s.user)
 	dockerCli := ctx.Module().DockerCli().ContainerExec(containerId, command)
 	_, err := dockerCli.Execute(module.ExecOption{
-		ExecWithSudo: true,
-		ExecInLocal:  false,
+		ExecWithSudo:  true,
+		ExecInLocal:   false,
+		ExecSudoAlias: s.execSudoAlias,
 	})
 	return err
 }
@@ -74,28 +76,32 @@ func NewUnmapTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task, 
 	var output string
 	containerName := volume2ContainerName(user, volume)
 	t.AddStep(&step.ListContainers{
-		ShowAll:      true,
-		Format:       "'{{.ID}} {{.Status}}'",
-		Quiet:        true,
-		Filter:       fmt.Sprintf("name=%s", containerName),
-		Out:          &output,
-		ExecWithSudo: true,
-		ExecInLocal:  false,
+		ShowAll:       true,
+		Format:        "'{{.ID}} {{.Status}}'",
+		Quiet:         true,
+		Filter:        fmt.Sprintf("name=%s", containerName),
+		Out:           &output,
+		ExecWithSudo:  true,
+		ExecInLocal:   false,
+		ExecSudoAlias: curvradm.SudoAlias(),
 	})
 	t.AddStep(&step2UnmapImage{
-		output: &output,
-		user:   user,
-		volume: volume,
+		output:        &output,
+		user:          user,
+		volume:        volume,
+		execSudoAlias: curvradm.SudoAlias(),
 	})
 	t.AddStep(&step.StopContainer{
-		ContainerId:  containerName,
-		ExecWithSudo: true,
-		ExecInLocal:  false,
+		ContainerId:   containerName,
+		ExecWithSudo:  true,
+		ExecInLocal:   false,
+		ExecSudoAlias: curvradm.SudoAlias(),
 	})
 	t.AddStep(&step.RemoveContainer{
-		ContainerId:  containerName,
-		ExecWithSudo: true,
-		ExecInLocal:  false,
+		ContainerId:   containerName,
+		ExecWithSudo:  true,
+		ExecInLocal:   false,
+		ExecSudoAlias: curvradm.SudoAlias(),
 	})
 
 	return t, nil

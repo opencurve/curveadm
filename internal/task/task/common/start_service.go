@@ -40,9 +40,10 @@ const (
 )
 
 type step2PostStart struct {
-	ContainerId  string
-	ExecWithSudo bool
-	ExecInLocal  bool
+	ContainerId   string
+	ExecWithSudo  bool
+	ExecInLocal   bool
+	ExecSudoAlias string
 }
 
 func (s *step2PostStart) Execute(ctx *context.Context) error {
@@ -67,14 +68,16 @@ func NewStartServiceTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*ta
 
 	// add step
 	t.AddStep(&step.StartContainer{
-		ContainerId:  &containerId,
-		ExecWithSudo: true,
-		ExecInLocal:  false,
+		ContainerId:   &containerId,
+		ExecWithSudo:  true,
+		ExecInLocal:   false,
+		ExecSudoAlias: curveadm.SudoAlias(),
 	})
 	t.AddStep(&step2PostStart{
-		ContainerId:  containerId,
-		ExecWithSudo: true,
-		ExecInLocal:  false,
+		ContainerId:   containerId,
+		ExecWithSudo:  true,
+		ExecInLocal:   false,
+		ExecSudoAlias: curveadm.SudoAlias(),
 	})
 
 	return t, nil

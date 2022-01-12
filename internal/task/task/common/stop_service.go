@@ -45,9 +45,10 @@ func NewStopServiceTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*tas
 		dc.GetHost(), dc.GetRole(), tui.TrimContainerId(containerId))
 	t := task.NewTask("Stop Service", subname, dc.GetSSHConfig())
 	t.AddStep(&step.StopContainer{
-		ContainerId:  containerId,
-		ExecWithSudo: true,
-		ExecInLocal:  false,
+		ContainerId:   containerId,
+		ExecWithSudo:  true,
+		ExecInLocal:   false,
+		ExecSudoAlias: curveadm.SudoAlias(),
 	})
 	return t, nil
 }

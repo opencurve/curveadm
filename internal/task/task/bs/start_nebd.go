@@ -98,37 +98,41 @@ func NewStartNEBDServiceTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*
 	// add step
 	var containerId string
 	t.AddStep(&step.ListContainers{
-		ShowAll:      true,
-		Format:       "'{{.ID}}'",
-		Quiet:        true,
-		Filter:       fmt.Sprintf("name=%s", DEFAULT_NEBD_CONTAINER_NAME),
-		Out:          &containerId,
-		ExecWithSudo: true,
-		ExecInLocal:  false,
+		ShowAll:       true,
+		Format:        "'{{.ID}}'",
+		Quiet:         true,
+		Filter:        fmt.Sprintf("name=%s", DEFAULT_NEBD_CONTAINER_NAME),
+		Out:           &containerId,
+		ExecWithSudo:  true,
+		ExecInLocal:   false,
+		ExecSudoAlias: curvradm.SudoAlias(),
 	})
 	t.AddStep(&step2CheckNEBDServer{ // skip if nebd-server exist
 		containerId: &containerId,
 	})
 	t.AddStep(&step.CreateDirectory{
-		Paths:        []string{cc.GetLogDir(), cc.GetDataDir()},
-		ExecWithSudo: true,
-		ExecInLocal:  false,
+		Paths:         []string{cc.GetLogDir(), cc.GetDataDir()},
+		ExecWithSudo:  true,
+		ExecInLocal:   false,
+		ExecSudoAlias: curvradm.SudoAlias(),
 	})
 	t.AddStep(&step.PullImage{
-		Image:        cc.GetContainerImage(),
-		ExecWithSudo: true,
-		ExecInLocal:  false,
+		Image:         cc.GetContainerImage(),
+		ExecWithSudo:  true,
+		ExecInLocal:   false,
+		ExecSudoAlias: curvradm.SudoAlias(),
 	})
 	t.AddStep(&step.CreateContainer{
-		Image:        cc.GetContainerImage(),
-		Envs:         []string{"LD_PRELOAD=/usr/local/lib/libjemalloc.so"},
-		Command:      fmt.Sprintf("--role nebd"),
-		Name:         DEFAULT_NEBD_CONTAINER_NAME,
-		Privileged:   true,
-		Volumes:      getVolumes(cc),
-		Out:          &containerId,
-		ExecWithSudo: true,
-		ExecInLocal:  false,
+		Image:         cc.GetContainerImage(),
+		Envs:          []string{"LD_PRELOAD=/usr/local/lib/libjemalloc.so"},
+		Command:       fmt.Sprintf("--role nebd"),
+		Name:          DEFAULT_NEBD_CONTAINER_NAME,
+		Privileged:    true,
+		Volumes:       getVolumes(cc),
+		Out:           &containerId,
+		ExecWithSudo:  true,
+		ExecInLocal:   false,
+		ExecSudoAlias: curvradm.SudoAlias(),
 	})
 	for _, filename := range []string{"client.conf", "nebd-server.conf"} {
 		t.AddStep(&step.SyncFile{
@@ -140,12 +144,14 @@ func NewStartNEBDServiceTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*
 			Mutate:            newMutate(cc, CLIENT_CONFIG_DELIMITER),
 			ExecWithSudo:      true,
 			ExecInLocal:       false,
+			ExecSudoAlias:     curvradm.SudoAlias(),
 		})
 	}
 	t.AddStep(&step.StartContainer{
-		ContainerId:  &containerId,
-		ExecWithSudo: true,
-		ExecInLocal:  false,
+		ContainerId:   &containerId,
+		ExecWithSudo:  true,
+		ExecInLocal:   false,
+		ExecSudoAlias: curvradm.SudoAlias(),
 	})
 
 	return t, nil

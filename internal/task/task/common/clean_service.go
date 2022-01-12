@@ -39,18 +39,19 @@ import (
 
 const (
 	KEY_CLEAN_ITEMS = "CLEAN_ITEMS"
-	ITEM_LOG        = "log"
-	ITEM_DATA       = "data"
-	ITEM_CONTAINER  = "container"
+	ITEM_LOG        = "LOG"
+	ITEM_DATA       = "DATA"
+	ITEM_CONTAINER  = "CONTAINER"
 )
 
 type step2CleanContainer struct {
-	config       *topology.DeployConfig
-	serviceId    string
-	containerId  string
-	storage      *storage.Storage
-	execWithSudo bool
-	execInLocal  bool
+	config        *topology.DeployConfig
+	serviceId     string
+	containerId   string
+	storage       *storage.Storage
+	execWithSudo  bool
+	execInLocal   bool
+	execSudoAlias string
 }
 
 func (s *step2CleanContainer) Execute(ctx *context.Context) error {
@@ -63,8 +64,9 @@ func (s *step2CleanContainer) Execute(ctx *context.Context) error {
 
 	cli := ctx.Module().DockerCli().RemoveContainer(s.containerId)
 	out, err := cli.Execute(module.ExecOption{
-		ExecWithSudo: s.execWithSudo,
-		ExecInLocal:  s.execInLocal,
+		ExecWithSudo:  s.execWithSudo,
+		ExecInLocal:   s.execInLocal,
+		ExecSudoAlias: s.execSudoAlias,
 	})
 
 	// container has removed
@@ -104,27 +106,29 @@ func NewCleanServiceTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*ta
 	// add step
 	clean := utils.Slice2Map(only)
 	dirs := getCleanDirs(clean, dc)
-
 	t.AddStep(&step.UmountFilesystem{
 		Directorys:     dirs,
 		IgnoreUmounted: true,
 		IgnoreNotFound: true,
 		ExecWithSudo:   true,
 		ExecInLocal:    false,
+		ExecSudoAlias:  curveadm.SudoAlias(),
 	})
 	t.AddStep(&step.RemoveFile{
-		Files:        dirs,
-		ExecWithSudo: true,
-		ExecInLocal:  false,
+		Files:         dirs,
+		ExecWithSudo:  true,
+		ExecInLocal:   false,
+		ExecSudoAlias: curveadm.SudoAlias(),
 	})
 	if clean[ITEM_CONTAINER] == true {
 		t.AddStep(&step2CleanContainer{
-			config:       dc,
-			serviceId:    serviceId,
-			containerId:  containerId,
-			storage:      curveadm.Storage(),
-			execWithSudo: true,
-			execInLocal:  false,
+			config:        dc,
+			serviceId:     serviceId,
+			containerId:   containerId,
+			storage:       curveadm.Storage(),
+			execWithSudo:  true,
+			execInLocal:   false,
+			execSudoAlias: curveadm.SudoAlias(),
 		})
 	}
 

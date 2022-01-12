@@ -104,11 +104,13 @@ func NewGetServiceStatusTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) 
 	// add step
 	var status string
 	t.AddStep(&step.ListContainers{
-		ShowAll:      true,
-		Format:       `"{{.Status}}"`,
-		Filter:       fmt.Sprintf("id=%s", containerId),
-		ExecWithSudo: true,
-		Out:          &status,
+		ShowAll:       true,
+		Format:        `"{{.Status}}"`,
+		Filter:        fmt.Sprintf("id=%s", containerId),
+		ExecWithSudo:  true,
+		ExecInLocal:   false,
+		ExecSudoAlias: curveadm.SudoAlias(),
+		Out:           &status,
 	})
 	t.AddStep(&step2FormatStatus{
 		config:      dc,

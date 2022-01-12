@@ -48,6 +48,7 @@ type (
 		Content          *string
 		ExecWithSudo     bool
 		ExecInLocal      bool
+		ExecSudoAlias    string
 	}
 
 	InstallFile struct {
@@ -57,6 +58,7 @@ type (
 		ContainerDestPath string
 		ExecWithSudo      bool
 		ExecInLocal       bool
+		ExecSudoAlias     string
 	}
 
 	Mutate func(string, string, string) (string, error)
@@ -77,6 +79,7 @@ type (
 		Mutate            func(string, string, string) (string, error)
 		ExecWithSudo      bool
 		ExecInLocal       bool
+		ExecSudoAlias     string
 	}
 )
 
@@ -90,8 +93,9 @@ func (s *ReadFile) Execute(ctx *context.Context) error {
 		// defer ctx.Module().Shell().Remove(remotePath).Execute(module.ExecOption{})
 		dockerCli := ctx.Module().DockerCli().CopyFromContainer(s.ContainerId, s.ContainerSrcPath, remotePath)
 		_, err := dockerCli.Execute(module.ExecOption{
-			ExecWithSudo: s.ExecWithSudo,
-			ExecInLocal:  s.ExecInLocal,
+			ExecWithSudo:  s.ExecWithSudo,
+			ExecInLocal:   s.ExecInLocal,
+			ExecSudoAlias: s.ExecSudoAlias,
 		})
 		if err != nil {
 			return err
@@ -109,8 +113,9 @@ func (s *ReadFile) Execute(ctx *context.Context) error {
 	} else {
 		cmd := ctx.Module().Shell().Rename(remotePath, localPath)
 		_, err := cmd.Execute(module.ExecOption{
-			ExecWithSudo: s.ExecWithSudo,
-			ExecInLocal:  s.ExecInLocal,
+			ExecWithSudo:  s.ExecWithSudo,
+			ExecInLocal:   s.ExecInLocal,
+			ExecSudoAlias: s.ExecSudoAlias,
 		})
 		if err != nil {
 			return err
@@ -140,8 +145,9 @@ func (s *InstallFile) Execute(ctx *context.Context) error {
 	} else {
 		cmd := ctx.Module().Shell().Rename(localPath, remotePath)
 		_, err := cmd.Execute(module.ExecOption{
-			ExecWithSudo: s.ExecWithSudo,
-			ExecInLocal:  s.ExecInLocal,
+			ExecWithSudo:  s.ExecWithSudo,
+			ExecInLocal:   s.ExecInLocal,
+			ExecSudoAlias: s.ExecSudoAlias,
 		})
 		if err != nil {
 			return err
@@ -151,14 +157,16 @@ func (s *InstallFile) Execute(ctx *context.Context) error {
 	if len(s.HostDestPath) > 0 {
 		cmd := ctx.Module().Shell().Rename(remotePath, s.HostDestPath)
 		_, err = cmd.Execute(module.ExecOption{
-			ExecWithSudo: s.ExecWithSudo,
-			ExecInLocal:  s.ExecInLocal,
+			ExecWithSudo:  s.ExecWithSudo,
+			ExecInLocal:   s.ExecInLocal,
+			ExecSudoAlias: s.ExecSudoAlias,
 		})
 	} else {
 		cli := ctx.Module().DockerCli().CopyIntoContainer(remotePath, *s.ContainerId, s.ContainerDestPath)
 		_, err = cli.Execute(module.ExecOption{
-			ExecWithSudo: s.ExecWithSudo,
-			ExecInLocal:  s.ExecInLocal,
+			ExecWithSudo:  s.ExecWithSudo,
+			ExecInLocal:   s.ExecInLocal,
+			ExecSudoAlias: s.ExecSudoAlias,
 		})
 	}
 	return err
@@ -215,6 +223,7 @@ func (s *SyncFile) Execute(ctx *context.Context) error {
 		Content:          &input,
 		ExecWithSudo:     s.ExecWithSudo,
 		ExecInLocal:      s.ExecInLocal,
+		ExecSudoAlias:    s.ExecSudoAlias,
 	})
 	steps = append(steps, &Filter{
 		KVFieldSplit: s.KVFieldSplit,
@@ -228,6 +237,7 @@ func (s *SyncFile) Execute(ctx *context.Context) error {
 		Content:           &output,
 		ExecWithSudo:      s.ExecWithSudo,
 		ExecInLocal:       s.ExecInLocal,
+		ExecSudoAlias:     s.ExecSudoAlias,
 	})
 
 	for _, step := range steps {

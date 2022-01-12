@@ -118,6 +118,7 @@ func NewSyncConfigTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task
 			Mutate:            newMutate(dc, delimiter, conf.Name == "nginx.conf"),
 			ExecWithSudo:      true,
 			ExecInLocal:       false,
+			ExecSudoAlias:     curveadm.SudoAlias(),
 		})
 	}
 	t.AddStep(&step.SyncFile{ // sync tools config
@@ -129,6 +130,7 @@ func NewSyncConfigTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task
 		Mutate:            newMutate(dc, DEFAULT_CONFIG_DELIMITER, false),
 		ExecWithSudo:      true,
 		ExecInLocal:       false,
+		ExecSudoAlias:     curveadm.SudoAlias(),
 	})
 	t.AddStep(&step.InstallFile{ // install report script
 		ContainerId:       &containerId,
@@ -136,6 +138,7 @@ func NewSyncConfigTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task
 		Content:           &reportScript,
 		ExecWithSudo:      true,
 		ExecInLocal:       false,
+		ExecSudoAlias:     curveadm.SudoAlias(),
 	})
 	t.AddStep(&step.InstallFile{ // install crontab file
 		ContainerId:       &containerId,
@@ -143,6 +146,7 @@ func NewSyncConfigTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task
 		Content:           &crontab,
 		ExecWithSudo:      true,
 		ExecInLocal:       false,
+		ExecSudoAlias:     curveadm.SudoAlias(),
 	})
 
 	return t, nil

@@ -36,28 +36,32 @@ const (
 
 type (
 	CreateDirectory struct {
-		Paths        []string
-		ExecWithSudo bool
-		ExecInLocal  bool
+		Paths         []string
+		ExecWithSudo  bool
+		ExecInLocal   bool
+		ExecSudoAlias string
 	}
 
 	RemoveFile struct {
-		Files        []string
-		ExecWithSudo bool
-		ExecInLocal  bool
+		Files         []string
+		ExecWithSudo  bool
+		ExecInLocal   bool
+		ExecSudoAlias string
 	}
 
 	CreateFilesystem struct {
-		Device       string
-		ExecWithSudo bool
-		ExecInLocal  bool
+		Device        string
+		ExecWithSudo  bool
+		ExecInLocal   bool
+		ExecSudoAlias string
 	}
 
 	MountFilesystem struct {
-		Source       string
-		Directory    string
-		ExecWithSudo bool
-		ExecInLocal  bool
+		Source        string
+		Directory     string
+		ExecWithSudo  bool
+		ExecInLocal   bool
+		ExecSudoAlias string
 	}
 
 	UmountFilesystem struct {
@@ -66,21 +70,24 @@ type (
 		IgnoreNotFound bool
 		ExecWithSudo   bool
 		ExecInLocal    bool
+		ExecSudoAlias  string
 	}
 
 	Fuser struct {
-		Name         string
-		ExecWithSudo bool
-		ExecInLocal  bool
+		Name          string
+		ExecWithSudo  bool
+		ExecInLocal   bool
+		ExecSudoAlias string
 	}
 
 	// see also: https://linuxize.com/post/how-to-check-disk-space-in-linux-using-the-df-command/#output-format
 	ShowDiskFree struct {
-		Files        []string
-		Format       string
-		Out          *string
-		ExecWithSudo bool
-		ExecInLocal  bool
+		Files         []string
+		Format        string
+		Out           *string
+		ExecWithSudo  bool
+		ExecInLocal   bool
+		ExecSudoAlias string
 	}
 )
 
@@ -93,8 +100,9 @@ func (s *CreateDirectory) Execute(ctx *context.Context) error {
 		cmd := ctx.Module().Shell().Mkdir(path)
 		cmd.AddOption("--parents") // no error if existing, make parent directories as needed
 		_, err := cmd.Execute(module.ExecOption{
-			ExecWithSudo: s.ExecWithSudo,
-			ExecInLocal:  s.ExecInLocal,
+			ExecWithSudo:  s.ExecWithSudo,
+			ExecInLocal:   s.ExecInLocal,
+			ExexSudoAlias: s.ExecSudoAlias,
 		})
 		if err != nil {
 			return err
@@ -113,8 +121,9 @@ func (s *RemoveFile) Execute(ctx *context.Context) error {
 		cmd.AddOption("--force")     // ignore nonexistent files and arguments, never prompt
 		cmd.AddOption("--recursive") // remove directories and their contents recursively
 		_, err := cmd.Execute(module.ExecOption{
-			ExecWithSudo: s.ExecWithSudo,
-			ExecInLocal:  s.ExecInLocal,
+			ExecWithSudo:  s.ExecWithSudo,
+			ExecInLocal:   s.ExecInLocal,
+			ExexSudoAlias: s.ExecSudoAlias,
 		})
 		if err != nil {
 			return err
@@ -129,8 +138,9 @@ func (s *CreateFilesystem) Execute(ctx *context.Context) error {
 	// on a block special device, or if other parameters do not make sense
 	cmd.AddOption("-F")
 	_, err := cmd.Execute(module.ExecOption{
-		ExecWithSudo: s.ExecWithSudo,
-		ExecInLocal:  s.ExecInLocal,
+		ExecWithSudo:  s.ExecWithSudo,
+		ExecInLocal:   s.ExecInLocal,
+		ExexSudoAlias: s.ExecSudoAlias,
 	})
 	return err
 }
@@ -138,8 +148,9 @@ func (s *CreateFilesystem) Execute(ctx *context.Context) error {
 func (s *MountFilesystem) Execute(ctx *context.Context) error {
 	cmd := ctx.Module().Shell().Mount(s.Source, s.Directory)
 	_, err := cmd.Execute(module.ExecOption{
-		ExecWithSudo: s.ExecWithSudo,
-		ExecInLocal:  s.ExecInLocal,
+		ExecWithSudo:  s.ExecWithSudo,
+		ExecInLocal:   s.ExecInLocal,
+		ExexSudoAlias: s.ExecSudoAlias,
 	})
 	return err
 }
@@ -152,8 +163,9 @@ func (s *UmountFilesystem) Execute(ctx *context.Context) error {
 
 		cmd := ctx.Module().Shell().Umount(directory)
 		out, err := cmd.Execute(module.ExecOption{
-			ExecWithSudo: s.ExecWithSudo,
-			ExecInLocal:  s.ExecInLocal,
+			ExecWithSudo:  s.ExecWithSudo,
+			ExecInLocal:   s.ExecInLocal,
+			ExexSudoAlias: s.ExecSudoAlias,
 		})
 
 		out = strings.TrimSuffix(out, "\n")
@@ -174,8 +186,9 @@ func (s *ShowDiskFree) Execute(ctx *context.Context) error {
 	}
 
 	out, err := cmd.Execute(module.ExecOption{
-		ExecWithSudo: s.ExecWithSudo,
-		ExecInLocal:  s.ExecInLocal,
+		ExecWithSudo:  s.ExecWithSudo,
+		ExecInLocal:   s.ExecInLocal,
+		ExexSudoAlias: s.ExecSudoAlias,
 	})
 	if err != nil {
 		return err
