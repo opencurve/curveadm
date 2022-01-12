@@ -27,27 +27,49 @@ import (
 	"github.com/spf13/viper"
 )
 
+/*
+ * [defaults]
+ * log_level = error
+ * sudo_alias = ""
+ *
+ * [ssh_connection]
+ * retries = 3
+ * timeout = 10
+ */
 const (
-	LOG_LEVEL = "log_level"
+	KEY_LOG_LEVEL   = "log_level"
+	KEY_SUDO_ALIAS  = "sudo_method"
+	KEY_SSH_RETRIES = "retries"
+	KEY_SSH_TIMEOUT = "timeout"
 )
 
-type CurveAdmConfig struct {
-	LogLevel   string
-	SshTimeout int
-	SshRetries int
-}
-
 type (
-	curveadm struct {
+	CurveAdmConfig struct {
+		LogLevel   string
+		SudoAlias  string
+		SSHRetries int
+		SSHTimeout int
+	}
+
+	global struct {
 		Defaults       map[string]interface{} `mapstructure:"defaults"`
-		SshConnections map[string]interface{} `mapstructure:"ssh_connections"`
+		SSHConnections map[string]interface{} `mapstructure:"ssh_connections"`
+	}
+)
+
+var (
+	defaultCurveAdmConfig = &CurveAdmConfig{
+		LogLevel:   "error",
+		SudoAlias:  "sudo",
+		SSHRetries: 3,
+		SSHTimeout: 10,
 	}
 )
 
 func ParseCurveAdmConfig(filename string) (*CurveAdmConfig, error) {
-	curveAdmConfig := &CurveAdmConfig{"error", 10, 3}
+	admConfig := defaultCurveAdmConfig
 	if !utils.PathExist(filename) {
-		return curveAdmConfig, nil
+		return admConfig, nil
 	}
 
 	// parse curveadm config
@@ -59,18 +81,33 @@ func ParseCurveAdmConfig(filename string) (*CurveAdmConfig, error) {
 		return nil, err
 	}
 
-	curveadm := &curveadm{}
-	err = parser.Unmarshal(curveadm)
+	global := &global{}
+	err = parser.Unmarshal(global)
 	if err != nil {
 		return nil, err
 	}
 
-	defaults := curveadm.Defaults
+	// default section
+	defaults := global.Defaults
 	if defaults != nil {
-		if v, ok := defaults[LOG_LEVEL]; ok {
-			curveAdmConfig.LogLevel = v.(string)
+		if v, ok := defaults[KEY_LOG_LEVEL]; ok {
+			admConfig.LogLevel = v.(string)
+		}
+		if v, ok := defaults[KEY_SUDO_ALIAS]; ok {
+			admConfig.SudoAlias = v.(string)
 		}
 	}
 
-	return curveAdmConfig, nil
+	// ssh_connection
+	sshConnection := global.SSHConnections
+	if sshConnection != nil {
+		if v, ok := sshConnection[KEY_SSH_RETRIES]; ok {
+			admConfig.SSHRetries = v.(int)
+		}
+		if v, ok := sshConnection[KEY_SSH_TIMEOUT]; ok {
+			admConfig.SSHTimeout = v.(int)
+		}
+	}
+
+	return admConfig, nil
 }

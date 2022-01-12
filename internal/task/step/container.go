@@ -121,7 +121,7 @@ type (
 		ExecInLocal       bool
 	}
 
-	InpectContainer struct {
+	InspectContainer struct {
 		ContainerId  string
 		Format       string
 		Out          *string
@@ -254,7 +254,7 @@ func (s *ListContainers) Execute(ctx *context.Context) error {
 	return err
 }
 
-func (s *InpectContainer) Execute(ctx *context.Context) error {
+func (s *InspectContainer) Execute(ctx *context.Context) error {
 	cli := ctx.Module().DockerCli().InspectContainer(s.ContainerId)
 	if len(s.Format) > 0 {
 		cli.AddOption("--format = %s", s.Format)
