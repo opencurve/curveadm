@@ -56,6 +56,7 @@ type (
 		HostDestPath      string
 		ContainerId       *string
 		ContainerDestPath string
+		Mode              string
 		ExecWithSudo      bool
 		ExecInLocal       bool
 		ExecSudoAlias     string
@@ -145,7 +146,17 @@ func (s *InstallFile) Execute(ctx *context.Context) error {
 	} else {
 		cmd := ctx.Module().Shell().Rename(localPath, remotePath)
 		_, err := cmd.Execute(module.ExecOption{
-			ExecWithSudo:  s.ExecWithSudo,
+			ExecInLocal:   s.ExecInLocal,
+			ExecSudoAlias: s.ExecSudoAlias,
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	if len(s.Mode) > 0 {
+		cmd := ctx.Module().Shell().Chmod(s.Mode, remotePath)
+		_, err = cmd.Execute(module.ExecOption{
 			ExecInLocal:   s.ExecInLocal,
 			ExecSudoAlias: s.ExecSudoAlias,
 		})

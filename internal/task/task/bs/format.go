@@ -36,7 +36,8 @@ import (
 )
 
 const (
-	DEFAULT_CHUNKFILE_SIZE = 16 * 1024 * 1024 // 16MB
+	DEFAULT_CHUNKFILE_SIZE        = 16 * 1024 * 1024 // 16MB
+	DEFAULT_CHUNKFILE_HEADER_SIZE = 4 * 1024         // 4KB
 )
 
 type (

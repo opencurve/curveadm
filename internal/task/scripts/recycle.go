@@ -16,35 +16,23 @@
 
 /*
  * Project: CurveAdm
- * Created Date: 2022-01-10
+ * Created Date: 2022-01-13
  * Author: Jingli Chen (Wine93)
  */
 
 package scripts
 
 /*
- * Usage: map USER VOLUME CREATE SIZE
- * Example: map curve test true 10
+ * Usage: recycle SOURCE DESTINATION SIZE
+ * Example: recycle '/data/chunkserver0/copysets /data/chunkserver0/recycler' /data/chunkserver0/chunkfilepool 16781312
  */
-var MAP = `
-#!/usr/bin/env bash
-
-g_user=$1
-g_volume=$2
-g_create=$3
-g_size=$4
-
-if [ $g_create == "true" ]; then
-    output=$(curve_ops_tool create -userName=$g_user -fileName=$g_volume -fileLength=$g_size)
-    if [ $? -ne 0 ]; then
-        if [ "$output" != "CreateFile fail with errCode: 101" ]; then
-            exit 1
-        fi
-    fi
-fi
-
-mkdir -p /curvebs/nebd/data/lock
-touch /etc/curve/curvetab
-curve-nbd map --nbds_max=16 cbd:pool/${g_volume}_${g_user}_
-[[ ! -z $(pgrep curve-nbd) ]] && tail --pid=$(pgrep curve-nbd) -f /dev/null
+var RECYCLE = `
+g_source=$1
+g_dest=$2
+g_size=$3
+chunkid=$(ls -vr ${g_dest} | head -n 1)
+for file in $(find $g_source -type f -size ${g_size}c -printf '%p\n'); do
+    chunkid=$((chunkid+1))
+    mv $file $g_dest/$chunkid
+done
 `

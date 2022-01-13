@@ -45,10 +45,11 @@ var (
 )
 
 type cleanOptions struct {
-	id   string
-	role string
-	host string
-	only []string
+	id             string
+	role           string
+	host           string
+	only           []string
+	withoutRecycle bool
 }
 
 func NewCleanCommand(curveadm *cli.CurveAdm) *cobra.Command {
@@ -78,6 +79,7 @@ func NewCleanCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	flags.StringVarP(&options.role, "role", "", "*", "Specify service role")
 	flags.StringVarP(&options.host, "host", "", "*", "Specify service host")
 	flags.StringSliceVarP(&options.only, "only", "o", []string{"log", "data", "container"}, "Specify clean item")
+	flags.BoolVarP(&options.withoutRecycle, "no-recycle", "", false, "Remove data directory directly instead of recycle chunks")
 
 	return cmd
 }
@@ -114,6 +116,7 @@ func runClean(curveadm *cli.CurveAdm, options cleanOptions) error {
 	curveadm.WriteOut("\n")
 	memStorage := curveadm.MemStorage()
 	memStorage.Set(task.KEY_CLEAN_ITEMS, only)
+	memStorage.Set(task.KEY_RECYCLE, options.withoutRecycle == false)
 	err = tasks.ExecTasks(tasks.CLEAN_SERVICE, curveadm, dcs)
 	if err != nil {
 		return curveadm.NewPromptError(err, "")

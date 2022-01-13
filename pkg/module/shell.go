@@ -36,15 +36,17 @@ import (
 // mv [OPTION]... SOURCE DEST
 // umount [options] <directory>
 const (
-	TEMPLATE_MKDIR    = "mkdir {{.options}} {{.directorys}}"
-	TEMPLATE_RMDIR    = "rmdir {{.options}} {{.directorys}}"
-	TEMPLATE_REMOVE   = "rm {{.options}} {{.files}}"
-	TEMPLATE_RENAME   = "mv {{.options}} {{.source}} {{.dest}}"
-	TEMPLATE_MKFS     = "mkfs.ext4 {{.options}} {{.device}}"
-	TEMPLATE_MOUNT    = "mount {{.options}} {{.source}} {{.directory}}"
-	TEMPLATE_UMOUNT   = "umount {{.options}} {{.directory}}"
-	TEMPLATE_DISKFREE = "df {{.options}} {{.files}}"
-	TEMPLATE_COMMAND  = "bash -c '{{.command}}'"
+	TEMPLATE_MKDIR       = "mkdir {{.options}} {{.directorys}}"
+	TEMPLATE_RMDIR       = "rmdir {{.options}} {{.directorys}}"
+	TEMPLATE_REMOVE      = "rm {{.options}} {{.files}}"
+	TEMPLATE_RENAME      = "mv {{.options}} {{.source}} {{.dest}}"
+	TEMPLATE_MKFS        = "mkfs.ext4 {{.options}} {{.device}}"
+	TEMPLATE_CHMOD       = "chmod {{.options}} {{.mode}} {{.file}}"
+	TEMPLATE_MOUNT       = "mount {{.options}} {{.source}} {{.directory}}"
+	TEMPLATE_UMOUNT      = "umount {{.options}} {{.directory}}"
+	TEMPLATE_DISKFREE    = "df {{.options}} {{.files}}"
+	TEMPLATE_COMMAND     = "bash -c '{{.command}}'"
+	TEMPLATE_EXEC_SCEIPT = "{{.scriptPath}} {{.arguments}}"
 )
 
 type Shell struct {
@@ -99,6 +101,13 @@ func (s *Shell) Mkfs(device string) *Shell {
 	return s
 }
 
+func (s *Shell) Chmod(mode, file string) *Shell {
+	s.tmpl = template.Must(template.New("Chmod").Parse(TEMPLATE_CHMOD))
+	s.data["mode"] = mode
+	s.data["file"] = file
+	return s
+}
+
 func (s *Shell) Mount(source, directory string) *Shell {
 	s.tmpl = template.Must(template.New("Mount").Parse(TEMPLATE_MOUNT))
 	s.data["source"] = source
@@ -121,6 +130,13 @@ func (s *Shell) DiskFree(file ...string) *Shell {
 func (s *Shell) Command(command string) *Shell {
 	s.tmpl = template.Must(template.New("Command").Parse(TEMPLATE_COMMAND))
 	s.data["command"] = command
+	return s
+}
+
+func (s *Shell) ExecScript(scriptPath string, args ...string) *Shell {
+	s.tmpl = template.Must(template.New("ExecScript").Parse(TEMPLATE_EXEC_SCEIPT))
+	s.data["scriptPath"] = scriptPath
+	s.data["arguments"] = strings.Join(args, " ")
 	return s
 }
 

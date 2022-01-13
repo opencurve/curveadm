@@ -40,7 +40,9 @@ const (
 	LAYOUT_SERVICE_LOG_DIR                  = "/logs"
 	LAYOUT_SERVICE_DATA_DIR                 = "/data"
 	LAYOUT_TOOLS_DIR                        = "/tools"
-	LAYOUT_CURVEBS_CHUNKFILE_POOL_DIR       = "/chunkfilepool"
+	LAYOUT_CURVEBS_CHUNKFILE_POOL_DIR       = "chunkfilepool"
+	LAYOUT_CURVEBS_COPYSETS_DIR             = "copysets"
+	LAYOUT_CURVEBS_RECYCLER_DIR             = "recycler"
 	LAYOUT_CURVEBS_TOOLS_CONFIG_SYSTEM_PATH = "/etc/curve/tools.conf"
 	LAYOUT_CURVEFS_TOOLS_CONFIG_SYSTEM_PATH = "/etc/curvefs/tools.conf"
 	LAYOUT_CORE_SYSTEM_DIR                  = "/core"
@@ -49,6 +51,7 @@ const (
 	BINARY_CURVEBS_FORMAT   = "curve_format"
 	BINARY_CURVEFS_TOOL     = "curvefs_tool"
 	METAFILE_CHUNKFILE_POOL = "chunkfilepool.meta"
+	METAFILE_CHUNKSERVER_ID = "chunkserver.dat"
 )
 
 var (
@@ -274,7 +277,7 @@ func (dc *DeployConfig) GetProjectLayout() Layout {
 		// format
 		FormatBinaryPath:      fmt.Sprintf("%s/%s", toolsBinDir, BINARY_CURVEBS_FORMAT),
 		ChunkfilePoolRootDir:  chunkserverDataDir,
-		ChunkfilePoolDir:      chunkserverDataDir + LAYOUT_CURVEBS_CHUNKFILE_POOL_DIR,
+		ChunkfilePoolDir:      fmt.Sprintf("%s/%s", chunkserverDataDir, LAYOUT_CURVEBS_CHUNKFILE_POOL_DIR),
 		ChunkfilePoolMetaPath: fmt.Sprintf("%s/%s", chunkserverDataDir, METAFILE_CHUNKFILE_POOL),
 
 		// core

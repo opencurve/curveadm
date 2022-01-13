@@ -28,5 +28,6 @@ var (
 	SCRIPT_REPORT   string = REPORT
 	SCRIPT_FORMAT   string = FORMAT
 	SCRIPT_MAP      string = MAP
+	SCRIPT_RECYCLE  string = RECYCLE
 	SCRIPT_CREATEFS string = CREATEFS
 )

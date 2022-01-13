@@ -32,6 +32,7 @@ import (
 const (
 	ERR_NOT_MOUNTED          = "not mounted"
 	ERR_MOUNTPOINT_NOT_FOUND = "mountpoint not found"
+	ERROR_DEVICE_BUSY        = "Device or resource busy"
 )
 
 type (
@@ -120,12 +121,14 @@ func (s *RemoveFile) Execute(ctx *context.Context) error {
 		cmd := ctx.Module().Shell().Remove(file)
 		cmd.AddOption("--force")     // ignore nonexistent files and arguments, never prompt
 		cmd.AddOption("--recursive") // remove directories and their contents recursively
-		_, err := cmd.Execute(module.ExecOption{
+		out, err := cmd.Execute(module.ExecOption{
 			ExecWithSudo:  s.ExecWithSudo,
 			ExecInLocal:   s.ExecInLocal,
 			ExexSudoAlias: s.ExecSudoAlias,
 		})
-		if err != nil {
+		// device busy: maybe directory is mount point
+		out = strings.TrimSuffix(out, "\n")
+		if err != nil && !strings.HasSuffix(out, ERROR_DEVICE_BUSY) {
 			return err
 		}
 	}
