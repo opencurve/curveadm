@@ -39,6 +39,7 @@ const (
 	URL_INSTALL_SCRIPT   = "http://curveadm.nos-eastchina1.126.net/script/install.sh"
 	HEADER_VERSION       = "X-Nos-Meta-Curveadm-Version"
 	ENV_CURVEADM_UPGRAD  = "CURVEADM_UPGRADE"
+	ENV_CURVEADM_VERSION = "CURVEADM_VERSION"
 )
 
 func calcVersion(v string) int {
@@ -65,27 +66,41 @@ func isLatest(currentVersion, remoteVersion string) (error, bool) {
 	return nil, v1 >= v2
 }
 
-func Upgrade(curveadm *cli.CurveAdm) error {
+func compareWithRemote(curveadm *cli.CurveAdm) (bool, error) {
 	client := resty.New()
 	resp, err := client.R().Head(URL_DOWNLOAD_CURVADM)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	headers := resp.Header()
 	if v, ok := headers[HEADER_VERSION]; !ok {
-		return fmt.Errorf("response header '%s' not exist", HEADER_VERSION)
+		return false, fmt.Errorf("response header '%s' not exist", HEADER_VERSION)
 	} else if err, yes := isLatest(cli.Version, v[0]); err != nil {
-		return err
+		return false, err
 	} else if yes {
 		curveadm.WriteOut("The current version is up-to-date\n")
-		return nil
+		return false, nil
 	} else if pass := tui.ConfirmYes("Upgrade curveadm to v%s? [YES/No]: ", v[0]); !pass {
-		return nil
+		return false, nil
+	}
+	return true, nil
+}
+
+func Upgrade(curveadm *cli.CurveAdm) error {
+	version := os.Getenv(ENV_CURVEADM_VERSION)
+	if len(version) == 0 {
+		ok, err := compareWithRemote(curveadm)
+		if err != nil {
+			return err
+		} else if !ok {
+			return nil
+		}
 	}
 
 	cmd := exec.Command("/bin/bash", "-c", fmt.Sprintf("curl -fsSL %s | bash", URL_INSTALL_SCRIPT))
 	cmd.Env = append(os.Environ(), fmt.Sprintf("%s=true", ENV_CURVEADM_UPGRAD))
+	cmd.Env = append(os.Environ(), fmt.Sprintf("%s=%s", ENV_CURVEADM_VERSION, version))
 	cmd.Stderr = curveadm.Err()
 	cmd.Stdout = curveadm.Out()
 	return cmd.Run()
