@@ -56,9 +56,9 @@ var (
 	}
 )
 
-func getMountCommand(cc *client.ClientConfig, mountFSName string) string {
+func getMountCommand(cc *client.ClientConfig, mountFSName string, mountPoint string) string {
 	format := strings.Join(FORMAT_FUSE_ARGS, " ")
-	fuseArgs := fmt.Sprintf(format, mountFSName, cc.GetClientConfPath(), cc.GetClientMountPath())
+	fuseArgs := fmt.Sprintf(format, mountFSName, cc.GetClientConfPath(), cc.GetClientMountPath(mountPoint))
 	return fmt.Sprintf("/client.sh %s --role=client --args='%s'", mountFSName, fuseArgs)
 }
 
@@ -145,7 +145,7 @@ func NewMountFSTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task
 	var containerId string
 	root := cc.GetCurveFSPrefix()
 	prefix := cc.GetClientPrefix()
-	containerMountPath := cc.GetClientMountPath()
+	containerMountPath := cc.GetClientMountPath(mountPoint)
 	createfsScript := scripts.SCRIPT_CREATEFS
 	createfsScriptPath := "/client.sh"
 	t.AddStep(&step.PullImage{
@@ -155,7 +155,7 @@ func NewMountFSTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task
 	})
 	t.AddStep(&step.CreateContainer{
 		Image:             cc.GetContainerImage(),
-		Command:           getMountCommand(cc, mountFSName),
+		Command:           getMountCommand(cc, mountFSName, mountPoint),
 		Entrypoint:        "/bin/bash",
 		Envs:              []string{"LD_PRELOAD=/usr/local/lib/libjemalloc.so"},
 		Name:              mountPoint2ContainerName(mountPoint),

@@ -160,8 +160,8 @@ func (c *ClientConfig) GetClientConfPath() string {
 	return fmt.Sprintf("%s/client/conf/client.conf", LAYOUT_CURVEFS_ROOT_DIR)
 }
 
-func (c *ClientConfig) GetClientMountPath() string {
-	return fmt.Sprintf("%s/client/mnt", LAYOUT_CURVEFS_ROOT_DIR)
+func (c *ClientConfig) GetClientMountPath(subPath string) string {
+	return fmt.Sprintf("%s/client/mnt%s", LAYOUT_CURVEFS_ROOT_DIR, subPath)
 }
 
 func (c *ClientConfig) GetCoreLocateDir() string {
