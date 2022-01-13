@@ -102,7 +102,7 @@ func getArguments(dc *topology.DeployConfig) string {
 		// chunkserver
 		"conf":                  layout.ServiceConfPath,
 		"chunkServerIp":         dc.GetListenIp(),
-		"enableExternalServer":  true,
+		"enableExternalServer":  dc.GetEnableExternalServer(),
 		"chunkServerExternalIp": dc.GetListenExternalIp(),
 		"chunkServerPort":       dc.GetListenPort(),
 		"chunkFilePoolDir":      dataDir,

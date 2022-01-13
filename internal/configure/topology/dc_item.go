@@ -51,6 +51,7 @@ const (
 	DEFAULT_SNAPSHOTCLONE_LISTEN_PROXY_PORT = 8080
 	DEFAULT_METASERVER_LISTN_PORT           = 6800
 	DEFAULT_METASERVER_LISTN_EXTARNAL_PORT  = 7800
+	DEFAULT_ENABLE_EXTERNAL_SERVER          = false
 	DEFAULT_CHUNKSERVER_COPYSETS            = 100 // copysets per chunkserver
 	DEFAULT_METASERVER_COPYSETS             = 100 // copysets per metaserver
 )
@@ -223,6 +224,13 @@ var (
 			}
 			return dc.GetListenPort()
 		},
+	)
+
+	CONFIG_ENABLE_EXTERNAL_SERVER = itemset.insert(
+		"global.enable_external_server",
+		REQUIRE_BOOL,
+		false,
+		DEFAULT_ENABLE_EXTERNAL_SERVER,
 	)
 
 	CONFIG_COPYSETS = itemset.insert(

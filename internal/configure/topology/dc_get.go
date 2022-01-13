@@ -143,6 +143,9 @@ func (dc *DeployConfig) GetListenDummyPort() int     { return dc.getInt(CONFIG_L
 func (dc *DeployConfig) GetListenProxyPort() int     { return dc.getInt(CONFIG_LISTEN_PROXY_PORT) }
 func (dc *DeployConfig) GetListenExternalIp() string { return dc.getString(CONFIG_LISTEN_EXTERNAL_IP) }
 func (dc *DeployConfig) GetCopysets() int            { return dc.getInt(CONFIG_COPYSETS) }
+func (dc *DeployConfig) GetEnableExternalServer() bool {
+	return dc.getBool(CONFIG_ENABLE_EXTERNAL_SERVER)
+}
 
 // (3): service project layout
 /* /curvebs
