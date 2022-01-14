@@ -152,9 +152,9 @@ func ConfirmNo(format string, a ...interface{}) bool {
 }
 
 func ConfirmYes(format string, a ...interface{}) bool {
-	ans := prompt(fmt.Sprintf(format, a...) + "(default=No)")
+	ans := prompt(fmt.Sprintf(format, a...) + " [yes/no]: (default=no)")
 	switch strings.TrimSpace(ans) {
-	case "YES":
+	case "yes":
 		return true
 	default:
 		return false

@@ -1,15 +1,19 @@
 #!/usr/bin/env bash
 
 ############################  GLOBAL VARIABLES
-g_upgrade="$CURVEADM_UPGRADE"
-g_version="${CURVEADM_VERSION:=latest}"
-g_curveadm_home="$HOME/.curveadm"
-g_bin_dir="$g_curveadm_home/bin"
-g_profile="${HOME}/.profile"
-g_download_url="https://curveadm.nos-eastchina1.126.net/release/curveadm-${g_version}.tar.gz"
 g_color_yellow=`printf '\033[33m'`
 g_color_red=`printf '\033[31m'`
 g_color_normal=`printf '\033[0m'`
+g_curveadm_home="$HOME/.curveadm"
+g_bin_dir="$g_curveadm_home/bin"
+g_profile="${HOME}/.profile"
+g_root_url="https://curveadm.nos-eastchina1.126.net/release"
+g_latest_url="${g_root_url}/__version"
+g_latest_version=$(curl -Is $g_latest_url | awk 'BEGIN {FS=": "}; /^x-nos-meta-curveadm-version/{print $2}')
+g_latest_version=${g_latest_version//[$'\t\r\n ']}
+g_upgrade="$CURVEADM_UPGRADE"
+g_version="${CURVEADM_VERSION:=$g_latest_version}"
+g_download_url="${g_root_url}/curveadm-${g_version}.tar.gz"
 
 ############################  BASIC FUNCTIONS
 msg() {
@@ -86,14 +90,14 @@ set_profile() {
 }
 
 print_install_success() {
-    success "Install curveadm success, please run 'source $g_profile'\n"
+    success "Install curveadm $g_version success, please run 'source $g_profile'\n"
 }
 
 print_upgrade_success() {
-    echo ""
-    cat "$g_curveadm_home/CHANGELOG"
-    echo ""
-    success "Upgrade curveadm success\n"
+    if [ -f "$g_curveadm_home/CHANGELOG" ]; then
+        cat "$g_curveadm_home/CHANGELOG"
+    fi
+    success "Upgrade curveadm to $g_version success\n"
 }
 
 install() {
@@ -109,7 +113,7 @@ upgrade() {
 }
 
 main() {
-    if [ $g_upgrade ] && [ $g_upgrade = "true" ]; then
+    if [ $g_upgrade = "true" ]; then
         upgrade
     else
         install
