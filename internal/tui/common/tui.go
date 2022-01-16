@@ -141,16 +141,6 @@ func prompt(prompt string) string {
 	return strings.TrimSuffix(input, "\n")
 }
 
-func ConfirmNo(format string, a ...interface{}) bool {
-	ans := prompt(fmt.Sprintf(format, a...) + "(default=Y)")
-	switch strings.TrimSpace(strings.ToLower(ans)) {
-	case "n", "no":
-		return true
-	default:
-		return false
-	}
-}
-
 func ConfirmYes(format string, a ...interface{}) bool {
 	ans := prompt(fmt.Sprintf(format, a...) + " [yes/no]: (default=no)")
 	switch strings.TrimSpace(ans) {

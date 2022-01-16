@@ -27,7 +27,7 @@ import (
 )
 
 const (
-	DEFAULT_SSH_TIMEOUT = 10
+	DEFAULT_SSH_TIMEOUT = 10 // seconds
 )
 
 type (

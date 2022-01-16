@@ -76,9 +76,7 @@ func runStop(curveadm *cli.CurveAdm, options stopOptions) error {
 		return fmt.Errorf("service not found")
 	}
 
-	// stop service
-	curveadm.WriteOut("Warning: Stop all service now, client IO will be hang!\n")
-	if pass := tui.ConfirmYes("Do you want to continue? [YES/No]: "); !pass {
+	if pass := tui.ConfirmYes(tui.PromptStopService()); !pass {
 		curveadm.WriteOut("Stop canceled\n")
 		return nil
 	}

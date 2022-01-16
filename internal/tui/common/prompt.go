@@ -16,8 +16,90 @@
 
 /*
  * Project: CurveAdm
- * Created Date: 2021-12-22
+ * Created Date: 2022-01-14
  * Author: Jingli Chen (Wine93)
  */
 
 package common
+
+import (
+	"bytes"
+	"fmt"
+	"strings"
+	"text/template"
+
+	"github.com/fatih/color"
+)
+
+const (
+	PROMPT_REMOVE_CLUSTER = `{{.warning}}
+Do you want to continue?`
+
+	PROMPT_STOP_SERVICE = `{{.warning}}
+Do you want to continue?`
+
+	PROMPT_CLEAN_SERVICE = `{{.warning}}
+  - Service role: {{.role}} ("*" means all roles)
+  - Service host: {{.host}} ("*" means all hosts)
+  - Clean items : [{{.items}}]
+Do you want to continue?`
+
+	PROMPT_COLLECT_SERVICE = `
+FYI:
+  > We have collected logs for troubleshooting,
+  > and now we will send these logs to the curve center.
+  > Please don't worry about the data security,
+  > we guarantee that all logs are encrypted
+  > and only you have the secret key.
+`
+
+	DEFAULT_CONFIRM_PROMPT = "Do you want to continue?"
+)
+
+type Prompt struct {
+	tmpl *template.Template
+	data map[string]interface{}
+}
+
+func NewPrompt(text string) *Prompt {
+	return &Prompt{
+		tmpl: template.Must(template.New("prompt").Parse(text)),
+		data: map[string]interface{}{},
+	}
+}
+
+func (p *Prompt) Build() string {
+	buffer := bytes.NewBufferString("")
+	err := p.tmpl.Execute(buffer, p.data)
+	if err != nil {
+		return ""
+	}
+	return buffer.String()
+}
+
+func PromptRemoveCluster(clusterName string) string {
+	prompt := NewPrompt(PROMPT_REMOVE_CLUSTER)
+	prompt.data["warning"] = fmt.Sprintf("WARNING: cluster '%s' will be removed,\n"+
+		"and all data in it will be cleaned up", clusterName)
+	return prompt.Build()
+}
+
+func PromptStopService() string {
+	prompt := NewPrompt(PROMPT_STOP_SERVICE)
+	prompt.data["warning"] = "WARNING: stop service may cause client IO be hang"
+	return prompt.Build()
+}
+
+func PromptCleanService(role, host string, items []string) string {
+	prompt := NewPrompt(PROMPT_CLEAN_SERVICE)
+	prompt.data["warning"] = "WARNING: service items which matched will be cleaned up"
+	prompt.data["role"] = role
+	prompt.data["host"] = host
+	prompt.data["items"] = strings.Join(items, ",")
+	return prompt.Build()
+}
+
+func PromptCollectService() string {
+	prompt := NewPrompt(color.YellowString(PROMPT_COLLECT_SERVICE) + DEFAULT_CONFIRM_PROMPT)
+	return prompt.Build()
+}

@@ -26,7 +26,7 @@ import (
 	"fmt"
 
 	"github.com/opencurve/curveadm/cli/cli"
-	"github.com/opencurve/curveadm/internal/tui/common"
+	tui "github.com/opencurve/curveadm/internal/tui/common"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
 	"github.com/opencurve/curveadm/pkg/log"
 	"github.com/spf13/cobra"
@@ -66,8 +66,7 @@ func runRemove(curveadm *cli.CurveAdm, options removeOptions) error {
 	}
 
 	// TODO(@Wine93): check all service has removed before delete cluster
-	curveadm.WriteOut("Warning: This operation will remove cluster %s, and all data in it will be cleaned.\n", clusterName)
-	if pass := common.ConfirmYes("Do you want to continue? [YES/No]: "); !pass {
+	if pass := tui.ConfirmYes(tui.PromptRemoveCluster(clusterName)); !pass {
 		curveadm.WriteOut("Remove cluster canceled\n")
 		return nil
 	} else if err := curveadm.Storage().DeleteCluster(clusterName); err != nil {

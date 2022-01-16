@@ -33,20 +33,10 @@ import (
 	task "github.com/opencurve/curveadm/internal/task/task/common"
 	"github.com/opencurve/curveadm/internal/task/tasks"
 	"github.com/opencurve/curveadm/internal/tools"
-	"github.com/opencurve/curveadm/internal/tui/common"
+	tui "github.com/opencurve/curveadm/internal/tui/common"
 	"github.com/opencurve/curveadm/internal/utils"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/cobra"
-)
-
-const (
-	PROMPT = `FYI:
-  > We have collected logs for troubleshooting,
-  > and now we will send these logs to the curve center.
-  > Please don't worry about the data security,
-  > we guarantee that all logs are encrypted
-  > and only you have the secret key.
-`
 )
 
 type supportOptions struct {
@@ -142,8 +132,7 @@ func runSupport(curveadm *cli.CurveAdm, options supportOptions) error {
 		return err
 	}
 
-	curveadm.WriteOut(color.YellowString(PROMPT))
-	if pass := common.ConfirmYes("Do you want to continue? [YES/No]: "); !pass {
+	if pass := tui.ConfirmYes(tui.PromptCollectService()); !pass {
 		return nil
 	}
 

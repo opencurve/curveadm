@@ -24,7 +24,6 @@ package command
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/configure/topology"
@@ -41,7 +40,11 @@ var (
   $ curveadm clean --only='log,data'             # Clean log and data for all services
   $ curveadm clean --role=etcd --only=container  # Clean container for etcd services`
 
-	supportOnlyFlag = map[string]bool{"log": true, "data": true, "container": true}
+	supportOnlyFlag = map[string]bool{
+		task.ITEM_LOG:       true,
+		task.ITEM_DATA:      true,
+		task.ITEM_CONTAINER: true,
+	}
 )
 
 type cleanOptions struct {
@@ -105,10 +108,7 @@ func runClean(curveadm *cli.CurveAdm, options cleanOptions) error {
 		return nil
 	}
 
-	// clean service
-	curveadm.WriteOut("Warning: clean role=%s host=%s id=%s only=%s now, %s in it will be cleaned.\n",
-		role, host, id, strings.Join(only, ","), strings.Join(only, ","))
-	if pass := tui.ConfirmYes("Do you want to continue? [YES/No]: "); !pass {
+	if pass := tui.ConfirmYes(tui.PromptCleanService(role, host, only)); !pass {
 		curveadm.WriteOut("Clean canceled\n")
 		return nil
 	}
