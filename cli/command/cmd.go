@@ -47,8 +47,6 @@ type rootOptions struct {
 
 func addSubCommands(cmd *cobra.Command, curveadm *cli.CurveAdm) {
 	cmd.AddCommand(
-		NewCompletionCommand(), // curveadm completion
-
 		cluster.NewClusterCommand(curveadm), // curveadm cluster ...
 		config.NewConfigCommand(curveadm),   // curveadm config ...
 
@@ -59,6 +57,7 @@ func addSubCommands(cmd *cobra.Command, curveadm *cli.CurveAdm) {
 		NewReloadCommand(curveadm),  // curveadm reload
 		NewStatusCommand(curveadm),  // curveadm status
 		NewCleanCommand(curveadm),   // curveadm clean
+		NewUpgradeCommand(curveadm), // curveadm upgrade
 		NewEnterCommand(curveadm),   // curveadm enter
 		NewMountCommand(curveadm),   // curveadm mount
 		NewUmountCommand(curveadm),  // curveadm umount
@@ -67,6 +66,8 @@ func addSubCommands(cmd *cobra.Command, curveadm *cli.CurveAdm) {
 		NewFormatCommand(curveadm),  // curveadm format
 		NewMapCommand(curveadm),     // curveadm map
 		NewUnmapCommand(curveadm),   // curveadm unmap
+
+		NewCompletionCommand(), // curveadm completion
 	)
 }
 
