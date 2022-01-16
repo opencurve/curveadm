@@ -113,7 +113,7 @@ upgrade() {
 }
 
 main() {
-    if [ $g_upgrade = "true" ]; then
+    if [ $g_upgrade == "true" ]; then
         upgrade
     else
         install
