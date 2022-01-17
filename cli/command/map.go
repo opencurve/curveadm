@@ -66,7 +66,7 @@ func NewMapCommand(curveadm *cli.CurveAdm) *cobra.Command {
 
 	flags := cmd.Flags()
 	flags.StringVarP(&options.filename, "conf", "c", "client.yaml", "Specify client configuration file")
-	flags.BoolVarP(&options.create, "create", "", false, "")
+	flags.BoolVarP(&options.create, "create", "", false, "Create volume iff not exist")
 	flags.StringVarP(&options.size, "size", "", "10GB", "Specify volume size")
 
 	return cmd

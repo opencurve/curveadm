@@ -103,7 +103,7 @@ func (s *CreateDirectory) Execute(ctx *context.Context) error {
 		_, err := cmd.Execute(module.ExecOption{
 			ExecWithSudo:  s.ExecWithSudo,
 			ExecInLocal:   s.ExecInLocal,
-			ExexSudoAlias: s.ExecSudoAlias,
+			ExecSudoAlias: s.ExecSudoAlias,
 		})
 		if err != nil {
 			return err
@@ -124,7 +124,7 @@ func (s *RemoveFile) Execute(ctx *context.Context) error {
 		out, err := cmd.Execute(module.ExecOption{
 			ExecWithSudo:  s.ExecWithSudo,
 			ExecInLocal:   s.ExecInLocal,
-			ExexSudoAlias: s.ExecSudoAlias,
+			ExecSudoAlias: s.ExecSudoAlias,
 		})
 		// device busy: maybe directory is mount point
 		out = strings.TrimSuffix(out, "\n")
@@ -143,7 +143,7 @@ func (s *CreateFilesystem) Execute(ctx *context.Context) error {
 	_, err := cmd.Execute(module.ExecOption{
 		ExecWithSudo:  s.ExecWithSudo,
 		ExecInLocal:   s.ExecInLocal,
-		ExexSudoAlias: s.ExecSudoAlias,
+		ExecSudoAlias: s.ExecSudoAlias,
 	})
 	return err
 }
@@ -153,7 +153,7 @@ func (s *MountFilesystem) Execute(ctx *context.Context) error {
 	_, err := cmd.Execute(module.ExecOption{
 		ExecWithSudo:  s.ExecWithSudo,
 		ExecInLocal:   s.ExecInLocal,
-		ExexSudoAlias: s.ExecSudoAlias,
+		ExecSudoAlias: s.ExecSudoAlias,
 	})
 	return err
 }
@@ -168,7 +168,7 @@ func (s *UmountFilesystem) Execute(ctx *context.Context) error {
 		out, err := cmd.Execute(module.ExecOption{
 			ExecWithSudo:  s.ExecWithSudo,
 			ExecInLocal:   s.ExecInLocal,
-			ExexSudoAlias: s.ExecSudoAlias,
+			ExecSudoAlias: s.ExecSudoAlias,
 		})
 
 		out = strings.TrimSuffix(out, "\n")
@@ -191,7 +191,7 @@ func (s *ShowDiskFree) Execute(ctx *context.Context) error {
 	out, err := cmd.Execute(module.ExecOption{
 		ExecWithSudo:  s.ExecWithSudo,
 		ExecInLocal:   s.ExecInLocal,
-		ExexSudoAlias: s.ExecSudoAlias,
+		ExecSudoAlias: s.ExecSudoAlias,
 	})
 	if err != nil {
 		return err

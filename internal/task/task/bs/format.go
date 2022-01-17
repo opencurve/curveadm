@@ -82,8 +82,8 @@ func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *format.FormatConfig)
 		Quiet:         true,
 		Filter:        fmt.Sprintf("name=%s", containerName),
 		Out:           &oldContainerId,
-		ExecInLocal:   false,
 		ExecWithSudo:  true,
+		ExecInLocal:   false,
 		ExecSudoAlias: curveadm.SudoAlias(),
 	})
 	t.AddStep(&step2SkipFormat{
@@ -95,34 +95,34 @@ func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *format.FormatConfig)
 		Directorys:     []string{device},
 		IgnoreUmounted: true,
 		IgnoreNotFound: true,
-		ExecInLocal:    false,
 		ExecWithSudo:   true,
+		ExecInLocal:    false,
 		ExecSudoAlias:  curveadm.SudoAlias(),
 	})
 	t.AddStep(&step.CreateDirectory{
 		Paths:         []string{mountPoint},
-		ExecInLocal:   false,
 		ExecWithSudo:  true,
+		ExecInLocal:   false,
 		ExecSudoAlias: curveadm.SudoAlias(),
 	})
 	t.AddStep(&step.CreateFilesystem{ // mkfs.ext4 MOUNT_POINT
 		Device:        device,
-		ExecInLocal:   false,
 		ExecWithSudo:  true,
+		ExecInLocal:   false,
 		ExecSudoAlias: curveadm.SudoAlias(),
 	})
 	t.AddStep(&step.MountFilesystem{
 		Source:        device,
 		Directory:     mountPoint,
-		ExecInLocal:   false,
 		ExecWithSudo:  true,
+		ExecInLocal:   false,
 		ExecSudoAlias: curveadm.SudoAlias(),
 	})
 	// 3: run container to format chunkfile pool
 	t.AddStep(&step.PullImage{
 		Image:         fc.GetContainerIamge(),
-		ExecInLocal:   false,
 		ExecWithSudo:  true,
+		ExecInLocal:   false,
 		ExecSudoAlias: curveadm.SudoAlias(),
 	})
 	t.AddStep(&step.CreateContainer{
@@ -133,22 +133,22 @@ func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *format.FormatConfig)
 		Remove:        true,
 		Volumes:       []step.Volume{{HostPath: mountPoint, ContainerPath: chunkfilePoolRootDir}},
 		Out:           &containerId,
-		ExecInLocal:   false,
 		ExecWithSudo:  true,
+		ExecInLocal:   false,
 		ExecSudoAlias: curveadm.SudoAlias(),
 	})
 	t.AddStep(&step.InstallFile{
 		ContainerId:       &containerId,
 		ContainerDestPath: formatScriptPath,
 		Content:           &formatScript,
-		ExecInLocal:       false,
 		ExecWithSudo:      true,
+		ExecInLocal:       false,
 		ExecSudoAlias:     curveadm.SudoAlias(),
 	})
 	t.AddStep(&step.StartContainer{
 		ContainerId:   &containerId,
-		ExecInLocal:   false,
 		ExecWithSudo:  true,
+		ExecInLocal:   false,
 		ExecSudoAlias: curveadm.SudoAlias(),
 	})
 	return t, nil

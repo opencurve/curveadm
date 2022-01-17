@@ -6,6 +6,10 @@ global:
   container_image: opencurvedocker/curvebs:v1.2
   log_dir: /home/${user}/logs/${service_role}${service_replica_sequence}
   data_dir: /home/${user}/data/${service_role}${service_replica_sequence}
+  s3.nos_address: <>
+  s3.snapshot_bucket_name: <>
+  s3.ak: <>
+  s3.sk: <>
   variable:
     machine1: 10.0.1.1
     machine2: 10.0.1.2
@@ -35,22 +39,15 @@ chunkserver_services:
   config:
     listen.ip: ${service_host}
     listen.port: 82${format_replica_sequence}  # 8200,8201,8202
-    global.enable_external_server: true
     data_dir: /data/chunkserver${service_replica_sequence}  # /data/chunkserver0, /data/chunksever1
     copysets: 100
   deploy:
     - host: ${machine1}
       replica: 3
-      config:
-        listen.external_ip: 10.0.2.0
     - host: ${machine2}
       replica: 3
-      config:
-        listen.external_ip: 10.0.2.1
     - host: ${machine3}
       replica: 3
-      config:
-        listen.external_ip: 10.0.2.2
 
 snapshotclone_services:
   config:
@@ -58,10 +55,6 @@ snapshotclone_services:
     listen.port: 5555
     listen.dummy_port: 8081
     listen.proxy_port: 8080
-    s3.nos_address: <>
-    s3.snapshot_bucket_name: <>
-    s3.ak: <>
-    s3.sk: <>
   deploy:
     - host: ${machine1}
     - host: ${machine2}

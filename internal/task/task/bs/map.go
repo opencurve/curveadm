@@ -32,6 +32,7 @@ import (
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
 	"github.com/opencurve/curveadm/internal/utils"
+	"github.com/opencurve/curveadm/pkg/module"
 )
 
 const (
@@ -52,6 +53,12 @@ type (
 		user        string
 		volume      string
 	}
+
+	step2CreateNBDDevice struct {
+		execWithSudo  bool
+		execInLocal   bool
+		execSudoAlias string
+	}
 )
 
 func (s *step2CheckNEBDClient) Execute(ctx *context.Context) error {
@@ -60,6 +67,16 @@ func (s *step2CheckNEBDClient) Execute(ctx *context.Context) error {
 			s.user, s.volume)
 	}
 	return nil
+}
+
+func (s *step2CreateNBDDevice) Execute(ctx *context.Context) error {
+	cmd := ctx.Module().Shell().ModProbe("nbd", "nbds_max=64")
+	_, err := cmd.Execute(module.ExecOption{
+		ExecWithSudo:  s.execWithSudo,
+		ExecInLocal:   s.execInLocal,
+		ExecSudoAlias: s.execSudoAlias,
+	})
+	return err
 }
 
 func formatImage(user, volume string) string {
@@ -96,6 +113,11 @@ func NewMapTask(curveadm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task, er
 		containerId: &containerId,
 		user:        user,
 		volume:      volume,
+	})
+	t.AddStep(&step2CreateNBDDevice{
+		execWithSudo:  true,
+		execInLocal:   false,
+		execSudoAlias: curveadm.SudoAlias(),
 	})
 	t.AddStep(&step.PullImage{
 		Image:         cc.GetContainerImage(),
