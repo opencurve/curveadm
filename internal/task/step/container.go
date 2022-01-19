@@ -87,6 +87,13 @@ type (
 		ExecSudoAlias string
 	}
 
+	WaitContainer struct {
+		ContainerId   string
+		ExecWithSudo  bool
+		ExecInLocal   bool
+		ExecSudoAlias string
+	}
+
 	RemoveContainer struct {
 		ContainerId   string
 		ExecWithSudo  bool
@@ -231,6 +238,16 @@ func (s *StopContainer) Execute(ctx *context.Context) error {
 
 func (s *RestartContainer) Execute(ctx *context.Context) error {
 	cli := ctx.Module().DockerCli().RestartContainer(s.ContainerId)
+	_, err := cli.Execute(module.ExecOption{
+		ExecWithSudo:  s.ExecWithSudo,
+		ExecInLocal:   s.ExecInLocal,
+		ExecSudoAlias: s.ExecSudoAlias,
+	})
+	return err
+}
+
+func (s *WaitContainer) Execute(ctx *context.Context) error {
+	cli := ctx.Module().DockerCli().WaitContainer(s.ContainerId)
 	_, err := cli.Execute(module.ExecOption{
 		ExecWithSudo:  s.ExecWithSudo,
 		ExecInLocal:   s.ExecInLocal,

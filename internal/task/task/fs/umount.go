@@ -24,16 +24,38 @@ package fs
 
 import (
 	"fmt"
+	"path"
 
 	"github.com/opencurve/curveadm/cli/cli"
 	client "github.com/opencurve/curveadm/internal/configure/client/fs"
+	"github.com/opencurve/curveadm/internal/task/context"
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
 )
 
-const (
-	DEFAULT_WAIT_STOP_SECONDS = 24 * 3600 // 1 day
+type (
+	step2CheckMountPoint struct {
+		mountPoint string
+	}
+
+	step2CheckMountStatus struct {
+		output *string
+	}
 )
+
+func (s *step2CheckMountPoint) Execute(ctx *context.Context) error {
+	if !path.IsAbs(s.mountPoint) {
+		return fmt.Errorf("%s: is not an absolute path", s.mountPoint)
+	}
+	return nil
+}
+
+func (s *step2CheckMountStatus) Execute(ctx *context.Context) error {
+	if len(*s.output) == 0 { // not mounted
+		return task.ERR_SKIP_TASK
+	}
+	return nil
+}
 
 func NewUmountFSTask(curveadm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task, error) {
 	mountPoint := curveadm.MemStorage().Get(KEY_MOUNT_POINT).(string)
@@ -41,21 +63,36 @@ func NewUmountFSTask(curveadm *cli.CurveAdm, cc *client.ClientConfig) (*task.Tas
 	t := task.NewTask("Umount FileSystem", subname, nil)
 
 	// add step
-	containerId := mountPoint2ContainerName(mountPoint)
+	var output string
+	containerName := mountPoint2ContainerName(mountPoint)
+	t.AddStep(&step2CheckMountPoint{
+		mountPoint: mountPoint,
+	})
 	t.AddStep(&step.UmountFilesystem{
 		Directorys:     []string{mountPoint},
 		IgnoreUmounted: true,
 		ExecWithSudo:   false,
 		ExecInLocal:    true,
 	})
-	t.AddStep(&step.StopContainer{
-		ContainerId:  containerId,
-		Time:         DEFAULT_WAIT_STOP_SECONDS,
+	t.AddStep(&step.ListContainers{
+		ShowAll:      true,
+		Format:       "'{{.Status}}'",
+		Quiet:        true,
+		Filter:       fmt.Sprintf("name=%s", containerName),
+		Out:          &output,
+		ExecWithSudo: false,
+		ExecInLocal:  true,
+	})
+	t.AddStep(&step2CheckMountStatus{
+		output: &output,
+	})
+	t.AddStep(&step.WaitContainer{
+		ContainerId:  containerName,
 		ExecWithSudo: false,
 		ExecInLocal:  true,
 	})
 	t.AddStep(&step.RemoveContainer{
-		ContainerId:  containerId,
+		ContainerId:  containerName,
 		ExecWithSudo: false,
 		ExecInLocal:  true,
 	})

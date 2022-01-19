@@ -164,11 +164,6 @@ func NewCommand(format string, a ...interface{}) *exec.Cmd {
 	return exec.Command(args[0], args[1:]...)
 }
 
-func PathExist(path string) bool {
-	_, err := os.Stat(path)
-	return err == nil
-}
-
 func Slice2Map(s []string) map[string]bool {
 	m := map[string]bool{}
 	for _, item := range s {

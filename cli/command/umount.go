@@ -23,12 +23,9 @@
 package command
 
 import (
-	"strings"
-
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/task/task/fs"
 	"github.com/opencurve/curveadm/internal/task/tasks"
-	"github.com/opencurve/curveadm/internal/utils"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/cobra"
 )
@@ -55,29 +52,8 @@ func NewUmountCommand(curveadm *cli.CurveAdm) *cobra.Command {
 }
 
 func runUmount(curveadm *cli.CurveAdm, options umountOptions) error {
-	// check mount point
-	mountPoint := strings.TrimSuffix(options.mountPoint, "/")
-	err := utils.CheckMountPoint(mountPoint)
-	if err != nil {
-		return err
-	}
-
-	// check mount status
-	curveadm.MemStorage().Set(fs.KEY_MOUNT_POINT, mountPoint)
-	err = tasks.ExecTasks(tasks.CHECK_MOUNT_STATUS, curveadm, nil)
-	if err != nil {
-		return curveadm.NewPromptError(err, "")
-	} else {
-		v := curveadm.MemStorage().Get(fs.KEY_MOUNT_STATUS)
-		status := v.(fs.MountStatus).Status
-		if status == fs.STATUS_UNMOUNTED {
-			curveadm.WriteOut("%s: not mounted\n", mountPoint)
-			return nil
-		}
-	}
-
-	// umount filesystem
-	err = tasks.ExecTasks(tasks.UMOUNT_FILESYSTEM, curveadm, nil)
+	curveadm.MemStorage().Set(fs.KEY_MOUNT_POINT, options.mountPoint)
+	err := tasks.ExecTasks(tasks.UMOUNT_FILESYSTEM, curveadm, nil)
 	if err != nil {
 		return curveadm.NewPromptError(err, "")
 	}

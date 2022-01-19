@@ -75,7 +75,8 @@ type (
 	}
 
 	Fuser struct {
-		Name          string
+		Names         []string
+		Out           *string
 		ExecWithSudo  bool
 		ExecInLocal   bool
 		ExecSudoAlias string
@@ -179,6 +180,21 @@ func (s *UmountFilesystem) Execute(ctx *context.Context) error {
 			return err
 		}
 	}
+	return nil
+}
+
+func (s *Fuser) Execute(ctx *context.Context) error {
+	cmd := ctx.Module().Shell().Fuser(s.Names...)
+	out, err := cmd.Execute(module.ExecOption{
+		ExecWithSudo:  s.ExecWithSudo,
+		ExecInLocal:   s.ExecInLocal,
+		ExecSudoAlias: s.ExecSudoAlias,
+	})
+	if err != nil {
+		return err
+	}
+
+	*s.Out = strings.TrimSuffix(out, "\n")
 	return nil
 }
 

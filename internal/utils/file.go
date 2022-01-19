@@ -27,6 +27,11 @@ import (
 	"os"
 )
 
+func PathExist(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
+}
+
 func RandFilename(dir string) string {
 	return fmt.Sprintf("%s/%s", dir, RandString(8))
 }

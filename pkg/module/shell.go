@@ -45,6 +45,7 @@ const (
 	TEMPLATE_MOUNT       = "mount {{.options}} {{.source}} {{.directory}}"
 	TEMPLATE_UMOUNT      = "umount {{.options}} {{.directory}}"
 	TEMPLATE_DISKFREE    = "df {{.options}} {{.files}}"
+	TEMPLATE_FUSER       = "fuser {{.options}} {{.names}}"
 	TEMPLATE_MODPROBE    = "modprobe {{.options}} {{.modulename}} {{.arguments}}"
 	TEMPLATE_COMMAND     = "bash -c '{{.command}}'"
 	TEMPLATE_EXEC_SCEIPT = "{{.scriptPath}} {{.arguments}}"
@@ -125,6 +126,12 @@ func (s *Shell) Umount(directory string) *Shell {
 func (s *Shell) DiskFree(file ...string) *Shell {
 	s.tmpl = template.Must(template.New("DiskFree").Parse(TEMPLATE_DISKFREE))
 	s.data["files"] = strings.Join(file, " ")
+	return s
+}
+
+func (s *Shell) Fuser(name ...string) *Shell {
+	s.tmpl = template.Must(template.New("Fuser").Parse(TEMPLATE_FUSER))
+	s.data["names"] = strings.Join(name, " ")
 	return s
 }
 

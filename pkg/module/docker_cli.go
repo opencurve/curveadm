@@ -35,6 +35,7 @@ import (
 // docker start [OPTIONS] CONTAINER [CONTAINER...]
 // docker stop [OPTIONS] CONTAINER [CONTAINER...]
 // docker restart [OPTIONS] CONTAINER [CONTAINER...]
+// docker wait {{.options}} {{.containers}}
 // docker rm [OPTIONS] CONTAINER [CONTAINER...]
 // docker ps [OPTIONS]
 // docker inspect [OPTIONS] NAME|ID [NAME|ID...]
@@ -46,6 +47,7 @@ const (
 	TEMPLATE_START_CONTAINER     = "docker start {{.options}} {{.containers}}"
 	TEMPLATE_STOP_CONTAINER      = "docker stop {{.options}} {{.containers}}"
 	TEMPLATE_RESTART_CONTAINER   = "docker restart {{.options}} {{.containers}}"
+	TEMPLATE_WAIT_CONTAINER      = "docker wait {{.options}} {{.containers}}"
 	TEMPLATE_REMOVE_CONTAINER    = "docker rm {{.options}} {{.containers}}"
 	TEMPLATE_LIST_CONTAINERS     = "docker ps {{.options}}"
 	TEMPLATE_INSPECT_CONTAINER   = "docker inspect {{.options}} {{.container}}"
@@ -102,6 +104,12 @@ func (cli *DockerCli) StopContainer(containerId ...string) *DockerCli {
 
 func (cli *DockerCli) RestartContainer(containerId ...string) *DockerCli {
 	cli.tmpl = template.Must(template.New("RestartContainer").Parse(TEMPLATE_RESTART_CONTAINER))
+	cli.data["containers"] = strings.Join(containerId, " ")
+	return cli
+}
+
+func (cli *DockerCli) WaitContainer(containerId ...string) *DockerCli {
+	cli.tmpl = template.Must(template.New("WaitContainer").Parse(TEMPLATE_WAIT_CONTAINER))
 	cli.data["containers"] = strings.Join(containerId, " ")
 	return cli
 }
