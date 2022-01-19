@@ -202,6 +202,7 @@ func NewCreateContainerTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (
 		Command:       fmt.Sprintf("--role %s --args='%s'", role, getArguments(dc)),
 		Envs:          []string{"LD_PRELOAD=/usr/local/lib/libjemalloc.so"},
 		Hostname:      fmt.Sprintf("%s-%s", kind, role),
+		Init:          true,
 		Name:          fmt.Sprintf("%s-%s-%s", kind, role, serviceId),
 		Privileged:    true,
 		Restart:       getRestartPolicy(dc),

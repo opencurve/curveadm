@@ -49,6 +49,7 @@ type (
 		Entrypoint        string
 		Envs              []string
 		Hostname          string
+		Init              bool
 		LinuxCapabilities []string
 		Mount             string
 		Name              string
@@ -171,6 +172,9 @@ func (s *CreateContainer) Execute(ctx *context.Context) error {
 	}
 	if len(s.Hostname) > 0 {
 		cli.AddOption("--hostname %s", s.Hostname)
+	}
+	if s.Init {
+		cli.AddOption("--init")
 	}
 	for _, capability := range s.LinuxCapabilities {
 		cli.AddOption("--cap-add %s", capability)
