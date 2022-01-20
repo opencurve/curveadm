@@ -206,6 +206,7 @@ func NewMountFSTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task
 		ContainerId:   &containerId,
 		ExecWithSudo:  false,
 		ExecInLocal:   true,
+		ExecAttach:    true,
 		ExecSudoAlias: curvradm.SudoAlias(),
 	})
 

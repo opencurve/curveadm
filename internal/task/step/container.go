@@ -69,6 +69,7 @@ type (
 		ContainerId   *string
 		ExecWithSudo  bool
 		ExecInLocal   bool
+		ExecAttach    bool
 		ExecSudoAlias string
 	}
 
@@ -208,9 +209,13 @@ func (s *CreateContainer) Execute(ctx *context.Context) error {
 
 func (s *StartContainer) Execute(ctx *context.Context) error {
 	cli := ctx.Module().DockerCli().StartContainer(*s.ContainerId)
+	if s.ExecAttach {
+		cli.AddOption("--attach")
+	}
 	_, err := cli.Execute(module.ExecOption{
 		ExecWithSudo:  s.ExecWithSudo,
 		ExecInLocal:   s.ExecInLocal,
+		ExecAttach:    s.ExecAttach,
 		ExecSudoAlias: s.ExecSudoAlias,
 	})
 	return err

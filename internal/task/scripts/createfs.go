@@ -43,5 +43,7 @@ createfs "$@"
 
 if [ $? -eq 0 ]; then
     $g_entrypoint "$@"
+else
+    exit 1
 fi
 `

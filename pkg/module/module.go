@@ -37,6 +37,7 @@ type ExecOption struct {
 	ExecWithSudo  bool
 	ExecInLocal   bool
 	ExecSudoAlias string
+	ExecAttach    bool
 }
 
 type Module struct {
