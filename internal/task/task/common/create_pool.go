@@ -115,7 +115,7 @@ func NewCreateTopologyTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*
 		ExecInLocal:   false,
 		ExecSudoAlias: curveadm.SudoAlias(),
 	})
-	if pooltype == TYPE_LOGICAL_POOL {
+	if dc.GetKind() == topology.KIND_CURVEBS && pooltype == TYPE_LOGICAL_POOL {
 		waitChunkserversScript := scripts.SCRIPT_WAIT_CHUNKSERVERS
 		waitChunkserversScriptPath := fmt.Sprintf("%s/wait_chunkservers.sh", layout.ToolsBinDir)
 		t.AddStep(&step.InstallFile{ // install wait_chunkservers script

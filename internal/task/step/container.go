@@ -297,7 +297,7 @@ func (s *ListContainers) Execute(ctx *context.Context) error {
 func (s *InspectContainer) Execute(ctx *context.Context) error {
 	cli := ctx.Module().DockerCli().InspectContainer(s.ContainerId)
 	if len(s.Format) > 0 {
-		cli.AddOption("--format = %s", s.Format)
+		cli.AddOption("--format=%s", s.Format)
 	}
 	out, err := cli.Execute(module.ExecOption{
 		ExecWithSudo:  s.ExecWithSudo,

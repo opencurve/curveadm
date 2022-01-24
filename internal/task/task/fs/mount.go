@@ -24,11 +24,14 @@ package fs
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/opencurve/curveadm/cli/cli"
 	client "github.com/opencurve/curveadm/internal/configure/client/fs"
 	"github.com/opencurve/curveadm/internal/configure/topology"
+	"github.com/opencurve/curveadm/internal/task/context"
 	"github.com/opencurve/curveadm/internal/task/scripts"
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
@@ -55,6 +58,53 @@ var (
 		"%s",         // mount path
 	}
 )
+
+type (
+	waitMountDone struct {
+		ContainerId    *string
+		ExecWithSudo   bool
+		ExecInLocal    bool
+		ExecTimeoutSec int
+		ExecSudoAlias  string
+	}
+)
+
+var (
+	CONTAINER_ABNORMAL_STATUS = map[string]bool{
+		"dead":   true,
+		"exited": true,
+	}
+)
+
+func (s *waitMountDone) Execute(ctx *context.Context) error {
+	var output string
+	getStatusStep := &step.InspectContainer{
+		ContainerId:   *s.ContainerId,
+		Format:        "'{{.State.ExitCode}} {{.State.Status}}'",
+		Out:           &output,
+		ExecWithSudo:  s.ExecWithSudo,
+		ExecInLocal:   s.ExecInLocal,
+		ExecSudoAlias: s.ExecSudoAlias,
+	}
+	// check status
+	var err error
+	var status string
+	var exitCode int
+	for i := 0; i < s.ExecTimeoutSec; i++ {
+		time.Sleep(time.Second)
+		err = getStatusStep.Execute(ctx)
+		stringSlice := strings.Split(strings.TrimRight(output, "\n"), " ")
+		exitCode, _ = strconv.Atoi(stringSlice[0])
+		status = stringSlice[1]
+		if err != nil || CONTAINER_ABNORMAL_STATUS[status] {
+			break
+		}
+	}
+	if err == nil && exitCode != 0 {
+		return fmt.Errorf("please use `docker logs %s` for details", *s.ContainerId)
+	}
+	return err
+}
 
 func getMountCommand(cc *client.ClientConfig, mountFSName string, mountPoint string) string {
 	format := strings.Join(FORMAT_FUSE_ARGS, " ")
@@ -208,6 +258,13 @@ func NewMountFSTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task
 		ExecWithSudo:  false,
 		ExecInLocal:   true,
 		ExecSudoAlias: curvradm.SudoAlias(),
+	})
+	t.AddStep(&waitMountDone{
+		ContainerId:    &containerId,
+		ExecWithSudo:   false,
+		ExecInLocal:    true,
+		ExecTimeoutSec: 10,
+		ExecSudoAlias:  curvradm.SudoAlias(),
 	})
 
 	return t, nil
