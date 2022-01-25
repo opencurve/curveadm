@@ -173,8 +173,8 @@ func (s *UmountFilesystem) Execute(ctx *context.Context) error {
 		})
 
 		out = strings.TrimSuffix(out, "\n")
-		if (s.IgnoreUmounted && strings.HasSuffix(out, ERR_NOT_MOUNTED)) ||
-			(s.IgnoreNotFound && strings.HasSuffix(out, ERR_MOUNTPOINT_NOT_FOUND)) {
+		if (s.IgnoreUmounted && strings.Contains(out, ERR_NOT_MOUNTED)) ||
+			(s.IgnoreNotFound && strings.Contains(out, ERR_MOUNTPOINT_NOT_FOUND)) {
 			continue
 		} else if err != nil {
 			return err
