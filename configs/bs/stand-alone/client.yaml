@@ -1,0 +1,7 @@
+user: curve
+host: 10.0.1.1
+ssh_port: 22
+private_key_file: /home/curve/.ssh/id_rsa
+container_image: opencurvedocker/curvebs:v1.2
+mds.listen.addr: 10.0.1.1:16700,10.0.1.1:26700,10.0.1.1:36700
+log_dir: /home/curve/curvebs/logs/client
