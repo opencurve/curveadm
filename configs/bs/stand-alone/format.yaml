@@ -4,6 +4,6 @@ private_key_file: /home/curve/.ssh/publish_rsa
 host:
   - 10.0.1.1
 disk:
-  - /dev/sda:/data/chunkserver0:1  # device:mount_path:format_percent
-  - /dev/sdb:/data/chunkserver1:1
-  - /dev/sdc:/data/chunkserver2:1
+  - /dev/sda:/data/chunkserver0:90  # device:mount_path:format_percent%
+  - /dev/sdb:/data/chunkserver1:90
+  - /dev/sdc:/data/chunkserver2:90

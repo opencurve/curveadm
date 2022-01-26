@@ -6,6 +6,6 @@ host:
   - 10.0.1.2
   - 10.0.1.3
 disk:
-  - /dev/sda:/data/chunkserver0:1  # device:mount_path:format_percent
-  - /dev/sdb:/data/chunkserver1:1
-  - /dev/sdc:/data/chunkserver2:1
+  - /dev/sda:/data/chunkserver0:90  # device:mount_path:format_percent%
+  - /dev/sdb:/data/chunkserver1:90
+  - /dev/sdc:/data/chunkserver2:90
