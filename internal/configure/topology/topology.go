@@ -82,6 +82,9 @@ func newIfNil(config map[string]interface{}) map[string]interface{} {
 }
 
 func ParseTopology(data string) ([]*DeployConfig, error) {
+	if len(data) == 0 {
+		return nil, fmt.Errorf("cluster topology is empty")
+	}
 	parser := viper.NewWithOptions(viper.KeyDelimiter("::"))
 	parser.SetConfigType("yaml")
 	err := parser.ReadConfig(bytes.NewBuffer([]byte(data)))

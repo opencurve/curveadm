@@ -73,11 +73,15 @@ func getClusterMdsAddr(dcs []*topology.DeployConfig) string {
 }
 
 func runStatus(curveadm *cli.CurveAdm, options statusOptions) error {
+	if curveadm.ClusterId() == -1 {
+		curveadm.WriteOut("No cluster, please add a cluster firstly\n")
+		return nil
+	}
 	dcs, err := topology.ParseTopology(curveadm.ClusterTopologyData())
 	if err != nil {
 		return err
 	} else if len(dcs) == 0 {
-		curveadm.WriteOut("No service")
+		curveadm.WriteOut("No service, please check your cluster topology\n")
 		return nil
 	}
 
@@ -88,7 +92,7 @@ func runStatus(curveadm *cli.CurveAdm, options statusOptions) error {
 	})
 
 	if err := tasks.ExecTasks(tasks.GET_SERVICE_STATUS, curveadm, dcs); err != nil {
-		return curveadm.NewPromptError(err, "")
+		return curveadm.NewPromptError(err, "Did you deploy the cluster?")
 	}
 
 	// display status
