@@ -48,7 +48,7 @@ type (
 		Device     string
 		MountPoint string
 		Formatted  string // 85/90
-		Status     string // Idle, Formating
+		Status     string // Done, Mounting, Pulling image, Formating
 	}
 )
 
@@ -72,9 +72,17 @@ func (s *step2FormatStatus) Execute(ctx *context.Context) error {
 	formated := fmt.Sprintf("%s/%d", deviceUsage, s.config.GetUsagePercent())
 
 	// status
-	status := "Idle"
-	if len(*s.containerStatus) > 1 {
+	status := "Done"
+	usage, ok := utils.Str2Int(strings.TrimPrefix(deviceUsage, " "))
+	if !ok {
+		return fmt.Errorf("'%s': get device usage failed", deviceUsage)
+	}
+	if usage == 0 {
+		status = "Mounting"
+	} else if len(*s.containerStatus) > 1 {
 		status = "Formatting"
+	} else if usage < s.config.GetUsagePercent() {
+		status = "Pulling image"
 	}
 
 	id := fmt.Sprintf("%s:%s", host, device)
