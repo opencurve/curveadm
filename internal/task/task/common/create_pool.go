@@ -115,6 +115,25 @@ func NewCreateTopologyTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*
 		ExecInLocal:   false,
 		ExecSudoAlias: curveadm.SudoAlias(),
 	})
+	if pooltype == TYPE_LOGICAL_POOL {
+		waitChunkserversScript := scripts.SCRIPT_WAIT_CHUNKSERVERS
+		waitChunkserversScriptPath := fmt.Sprintf("%s/wait_chunkservers.sh", layout.ToolsBinDir)
+		t.AddStep(&step.InstallFile{ // install wait_chunkservers script
+			ContainerId:       &containerId,
+			ContainerDestPath: waitChunkserversScriptPath,
+			Content:           &waitChunkserversScript,
+			ExecWithSudo:      true,
+			ExecInLocal:       false,
+			ExecSudoAlias:     curveadm.SudoAlias(),
+		})
+		t.AddStep(&step.ContainerExec{ // wait all chunkservers online before create logical pool
+			ContainerId:   &containerId,
+			Command:       fmt.Sprintf("bash %s", waitChunkserversScriptPath),
+			ExecWithSudo:  true,
+			ExecInLocal:   false,
+			ExecSudoAlias: curveadm.SudoAlias(),
+		})
+	}
 	t.AddStep(&step.ContainerExec{ // create topology
 		ContainerId:   &containerId,
 		Command:       genCreatePoolCommand(dc, pooltype, poolJSONPath),
