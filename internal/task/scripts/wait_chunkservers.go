@@ -16,20 +16,28 @@
 
 /*
  * Project: CurveAdm
- * Created Date: 2021-11-25
- * Author: Jingli Chen (Wine93)
+ * Created Date: 2022-03-09
+ * Author: aspirer
  */
 
 package scripts
 
-var (
-	SCRIPT_WAIT              string = WAIT
-	SCRIPT_COLLECT           string = COLLECT
-	SCRIPT_REPORT            string = REPORT
-	SCRIPT_FORMAT            string = FORMAT
-	SCRIPT_MAP               string = MAP
-	SCRIPT_TARGET            string = TARGET
-	SCRIPT_RECYCLE           string = RECYCLE
-	SCRIPT_CREATEFS          string = CREATEFS
-	SCRIPT_WAIT_CHUNKSERVERS string = WAIT_CHUNKSERVERS
-)
+/*
+ * Usage: no args, just run it in bash
+ */
+var WAIT_CHUNKSERVERS = `
+wait=0
+while ((wait<20))
+do
+    status=$(curve_ops_tool chunkserver-status |grep "offline")
+    total=$(echo ${status} | grep -c "total num = 0")
+    offline=$(echo ${status} | grep -c "offline = 0")
+    if [ ${total} -eq 0 ] && [ ${offline} -eq 1 ]; then
+        exit 0
+    fi
+    sleep 0.5s
+    wait=$(expr ${wait} + 1)
+done
+echo "wait chunkservers online timeout"
+exit 1
+`
