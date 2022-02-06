@@ -25,9 +25,12 @@ package cli
 import (
 	"fmt"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/cli/command"
+	"github.com/opencurve/curveadm/pkg/log"
 )
 
 func Execute() {
@@ -38,8 +41,21 @@ func Execute() {
 	}
 
 	cmd := command.NewCurveAdmCommand(curveadm)
-	err = cmd.Execute()
+	res := cmd.Execute()
+
+	// init audit logger
+	now := time.Now().Format("2006-01-02")
+	logpath := fmt.Sprintf("%s/curveadm-audit-%s.log", curveadm.LogDir(), now)
+	err = log.Init("info", logpath)
 	if err != nil {
+		fmt.Printf("Init audit logger failed: %s", err)
 		os.Exit(1)
+	}
+
+	if res != nil {
+		log.Error(strings.Join(os.Args[1:], " "), log.Field("result", "failed"))
+		os.Exit(1)
+	} else {
+		log.Info(strings.Join(os.Args[1:], " "), log.Field("result", "success"))
 	}
 }
