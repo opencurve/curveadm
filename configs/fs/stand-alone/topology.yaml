@@ -39,10 +39,11 @@ metaserver_services:
     listen.ip: ${target}
     listen.port: 680${service_host_sequence}           # 6800,6801,6802
     listen.external_port: 780${service_host_sequence}  # 7800,7801,7802
+    global.enable_external_server: true
     metaserver.loglevel: 0
   deploy:
     - host: ${target}
     - host: ${target}
     - host: ${target}
       config:
-        metaserver.loglevel: 3
+        metaserver.loglevel: 0

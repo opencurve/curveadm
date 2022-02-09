@@ -41,10 +41,11 @@ metaserver_services:
     listen.ip: ${service_host}
     listen.port: 6800
     listen.external_port: 7800
+    global.enable_external_server: true
     metaserver.loglevel: 0
   deploy:
     - host: ${machine1}
     - host: ${machine2}
     - host: ${machine3}
       config:
-        metaserver.loglevel: 3
+        metaserver.loglevel: 0
