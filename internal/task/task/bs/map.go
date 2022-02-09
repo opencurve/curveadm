@@ -38,6 +38,11 @@ import (
 const (
 	KEY_MAP_OPTION = "MAP_OPTION"
 	FORMAT_IMAGE   = "cbd:pool/%s_%s_"
+
+	FORMAT_TOOLS_CONF = `mdsAddr=%s
+rootUserName=root
+rootUserPassword=root_password
+`
 )
 
 type MapOption struct {
@@ -97,7 +102,7 @@ func NewMapTask(curveadm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task, er
 	var containerId string
 	containerName := volume2ContainerName(user, volume)
 	mapScriptPath := "/curvebs/nebd/sbin/map.sh"
-	toolsConf := fmt.Sprintf("mdsAddr=%s", cc.GetClusterMDSAddr())
+	toolsConf := fmt.Sprintf(FORMAT_TOOLS_CONF, cc.GetClusterMDSAddr())
 	mapScript := scripts.MAP
 	t.AddStep(&step.ListContainers{
 		ShowAll:       true,
@@ -130,6 +135,7 @@ func NewMapTask(curveadm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task, er
 		Command:       fmt.Sprintf("%s %s %s %v %d", mapScriptPath, user, volume, option.Create, option.Size),
 		Entrypoint:    "/bin/bash",
 		Envs:          []string{"LD_PRELOAD=/usr/local/lib/libjemalloc.so"},
+		Init:          true,
 		Name:          containerName,
 		Pid:           "host",
 		Privileged:    true,

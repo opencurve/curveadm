@@ -158,6 +158,7 @@ func NewMountFSTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task
 		Command:           getMountCommand(cc, mountFSName, mountPoint),
 		Entrypoint:        "/bin/bash",
 		Envs:              []string{"LD_PRELOAD=/usr/local/lib/libjemalloc.so"},
+		Init:              true,
 		Name:              mountPoint2ContainerName(mountPoint),
 		Mount:             fmt.Sprintf(FORMAT_MOUNT_OPTION, mountPoint, containerMountPath),
 		Volumes:           getMountVolumes(cc),

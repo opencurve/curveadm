@@ -16,19 +16,30 @@
 
 /*
  * Project: CurveAdm
- * Created Date: 2021-11-25
+ * Created Date: 2022-02-08
  * Author: Jingli Chen (Wine93)
  */
 
-package scripts
+package target
 
-var (
-	SCRIPT_WAIT     string = WAIT
-	SCRIPT_COLLECT  string = COLLECT
-	SCRIPT_REPORT   string = REPORT
-	SCRIPT_FORMAT   string = FORMAT
-	SCRIPT_MAP      string = MAP
-	SCRIPT_TARGET   string = TARGET
-	SCRIPT_RECYCLE  string = RECYCLE
-	SCRIPT_CREATEFS string = CREATEFS
+import (
+	"github.com/opencurve/curveadm/cli/cli"
+	cliutil "github.com/opencurve/curveadm/internal/utils"
+	"github.com/spf13/cobra"
 )
+
+func NewTargetCommand(curveadm *cli.CurveAdm) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "target",
+		Short: "Manage SCSI target of CurveBS",
+		Args:  cliutil.NoArgs,
+		RunE:  cliutil.ShowHelp(curveadm.Err()),
+	}
+
+	cmd.AddCommand(
+		NewAddCommand(curveadm),
+		NewDeleteCommand(curveadm),
+		NewListCommand(curveadm),
+	)
+	return cmd
+}

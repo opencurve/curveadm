@@ -68,8 +68,12 @@ const (
 	COLLECT_SERVICE
 	// bs
 	START_NEBD_SERVICE
+	START_TARGET_DAEMON
 	MAP_IMAGE
 	UNMAP_IMAGE
+	ADD_TARGET
+	DELETE_TARGET
+	LIST_TARGETS
 	// fs
 	MOUNT_FILESYSTEM
 	UMOUNT_FILESYSTEM
@@ -215,12 +219,24 @@ func ExecTasks(taskType int, curveadm *cli.CurveAdm, configSlice interface{}) er
 		case START_NEBD_SERVICE:
 			option.SilentSubBar = true
 			t, err = bs.NewStartNEBDServiceTask(curveadm, bcc)
+		case START_TARGET_DAEMON:
+			option.SilentSubBar = true
+			t, err = bs.NewStartTargetDaemonTask(curveadm, bcc)
 		case MAP_IMAGE:
 			option.SilentSubBar = true
 			t, err = bs.NewMapTask(curveadm, bcc)
 		case UNMAP_IMAGE:
 			option.SilentSubBar = true
 			t, err = bs.NewUnmapTask(curveadm, bcc)
+		case ADD_TARGET:
+			option.SilentSubBar = true
+			t, err = bs.NewAddTargetTask(curveadm, bcc)
+		case DELETE_TARGET:
+			option.SilentSubBar = true
+			t, err = bs.NewDeleteTargetTask(curveadm, bcc)
+		case LIST_TARGETS:
+			option.SilentSubBar = true
+			t, err = bs.NewListTargetsTask(curveadm, bcc)
 		default:
 			return fmt.Errorf("unknown task type %d", taskType)
 		}

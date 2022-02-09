@@ -116,6 +116,7 @@ type (
 	ContainerExec struct {
 		ContainerId   *string
 		Command       string
+		Out           *string
 		ExecWithSudo  bool
 		ExecInLocal   bool
 		ExecSudoAlias string
@@ -309,11 +310,14 @@ func (s *InspectContainer) Execute(ctx *context.Context) error {
 
 func (s *ContainerExec) Execute(ctx *context.Context) error {
 	cli := ctx.Module().DockerCli().ContainerExec(*s.ContainerId, s.Command)
-	_, err := cli.Execute(module.ExecOption{
+	out, err := cli.Execute(module.ExecOption{
 		ExecWithSudo:  s.ExecWithSudo,
 		ExecInLocal:   s.ExecInLocal,
 		ExecSudoAlias: s.ExecSudoAlias,
 	})
+	if s.Out != nil {
+		*s.Out = out
+	}
 	return err
 }
 

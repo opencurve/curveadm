@@ -91,7 +91,7 @@ func getVolumes(cc *client.ClientConfig) []step.Volume {
 	return volumes
 }
 
-func NewStartNEBDServiceTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task, error) {
+func NewStartNEBDServiceTask(curveadm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task, error) {
 	subname := fmt.Sprintf("hostname=%s image=%s", cc.GetHost(), cc.GetContainerImage())
 	t := task.NewTask("Start NEBD Service", subname, cc.GetSSHConfig())
 
@@ -105,7 +105,7 @@ func NewStartNEBDServiceTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*
 		Out:           &containerId,
 		ExecWithSudo:  true,
 		ExecInLocal:   false,
-		ExecSudoAlias: curvradm.SudoAlias(),
+		ExecSudoAlias: curveadm.SudoAlias(),
 	})
 	t.AddStep(&step2CheckNEBDServer{ // skip if nebd-server exist
 		containerId: &containerId,
@@ -114,25 +114,26 @@ func NewStartNEBDServiceTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*
 		Paths:         []string{cc.GetLogDir(), cc.GetDataDir()},
 		ExecWithSudo:  true,
 		ExecInLocal:   false,
-		ExecSudoAlias: curvradm.SudoAlias(),
+		ExecSudoAlias: curveadm.SudoAlias(),
 	})
 	t.AddStep(&step.PullImage{
 		Image:         cc.GetContainerImage(),
 		ExecWithSudo:  true,
 		ExecInLocal:   false,
-		ExecSudoAlias: curvradm.SudoAlias(),
+		ExecSudoAlias: curveadm.SudoAlias(),
 	})
 	t.AddStep(&step.CreateContainer{
 		Image:         cc.GetContainerImage(),
 		Envs:          []string{"LD_PRELOAD=/usr/local/lib/libjemalloc.so"},
 		Command:       fmt.Sprintf("--role nebd"),
+		Init:          true,
 		Name:          DEFAULT_NEBD_CONTAINER_NAME,
 		Privileged:    true,
 		Volumes:       getVolumes(cc),
 		Out:           &containerId,
 		ExecWithSudo:  true,
 		ExecInLocal:   false,
-		ExecSudoAlias: curvradm.SudoAlias(),
+		ExecSudoAlias: curveadm.SudoAlias(),
 	})
 	for _, filename := range []string{"client.conf", "nebd-server.conf"} {
 		t.AddStep(&step.SyncFile{
@@ -144,14 +145,14 @@ func NewStartNEBDServiceTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*
 			Mutate:            newMutate(cc, CLIENT_CONFIG_DELIMITER),
 			ExecWithSudo:      true,
 			ExecInLocal:       false,
-			ExecSudoAlias:     curvradm.SudoAlias(),
+			ExecSudoAlias:     curveadm.SudoAlias(),
 		})
 	}
 	t.AddStep(&step.StartContainer{
 		ContainerId:   &containerId,
 		ExecWithSudo:  true,
 		ExecInLocal:   false,
-		ExecSudoAlias: curvradm.SudoAlias(),
+		ExecSudoAlias: curveadm.SudoAlias(),
 	})
 
 	return t, nil
