@@ -259,7 +259,10 @@ func getValue(name string, dcs []*DeployConfig, idx int) string {
 	case "service_external_addr": // chunkserver, metaserver
 		return utils.Atoa(dc.get(CONFIG_LISTEN_EXTERNAL_IP))
 	case "service_external_port": // metaserver
-		return utils.Atoa(dc.get(CONFIG_LISTEN_EXTERNAL_PORT))
+		if utils.Atoa(dc.get(CONFIG_ENABLE_EXTERNAL_SERVER)) == "true" {
+			return utils.Atoa(dc.get(CONFIG_LISTEN_EXTERNAL_PORT))
+		}
+		return utils.Atoa(dc.get(CONFIG_LISTEN_PORT))
 	case "log_dir":
 		return dc.GetProjectLayout().ServiceLogDir
 	case "data_dir":
