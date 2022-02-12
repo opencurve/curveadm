@@ -81,7 +81,10 @@ func NewAddCommand(curveadm *cli.CurveAdm) *cobra.Command {
 func parseImage(image string) (user, volume string, err error) {
 	items := strings.Split(image, ":")
 	if len(items) != 2 || len(items[0]) == 0 || len(items[1]) == 0 {
-		return "", "", fmt.Errorf("invalid image name")
+		return "", "", fmt.Errorf("invalid volume format, please run --help to get example")
+	}
+	if !strings.HasPrefix(items[1], "/") {
+		return "", "", fmt.Errorf("invalid volume format, image name must start with /")
 	}
 	return items[0], items[1], nil
 }
