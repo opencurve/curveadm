@@ -49,6 +49,7 @@ type (
 		progress *mpb.Progress
 		mainBar  *mpb.Bar
 		subBar   map[string]*mpb.Bar
+		sync.RWMutex
 	}
 )
 
@@ -139,6 +140,8 @@ func (ts *Tasks) addMainBar() {
 }
 
 func (ts *Tasks) addSubBar(t *task.Task) {
+	ts.RLock()
+	defer ts.RUnlock()
 	if ts.subBar[t.Ptid()] != nil {
 		return
 	}
@@ -155,6 +158,8 @@ func (ts *Tasks) addSubBar(t *task.Task) {
 }
 
 func (ts *Tasks) getSubBar(t *task.Task) *mpb.Bar {
+	ts.RLock()
+	defer ts.RUnlock()
 	return ts.subBar[t.Ptid()]
 }
 
