@@ -135,7 +135,6 @@ func NewMapTask(curveadm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task, er
 		Command:       fmt.Sprintf("%s %s %s %v %d", mapScriptPath, user, volume, option.Create, option.Size),
 		Entrypoint:    "/bin/bash",
 		Envs:          []string{"LD_PRELOAD=/usr/local/lib/libjemalloc.so"},
-		Init:          true,
 		Name:          containerName,
 		Pid:           "host",
 		Privileged:    true,

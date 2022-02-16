@@ -126,7 +126,6 @@ func NewStartNEBDServiceTask(curveadm *cli.CurveAdm, cc *client.ClientConfig) (*
 		Image:         cc.GetContainerImage(),
 		Envs:          []string{"LD_PRELOAD=/usr/local/lib/libjemalloc.so"},
 		Command:       fmt.Sprintf("--role nebd"),
-		Init:          true,
 		Name:          DEFAULT_NEBD_CONTAINER_NAME,
 		Privileged:    true,
 		Volumes:       getVolumes(cc),
