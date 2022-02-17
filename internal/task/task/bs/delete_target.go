@@ -45,7 +45,7 @@ type (
 func (s *step2CheckTgtdStatus) Execute(ctx *context.Context) error {
 	output := *s.output
 	items := strings.Split(output, " ")
-	if len(items) == 0 || !strings.HasPrefix(items[1], "Up") {
+	if len(items) < 2 || !strings.HasPrefix(items[1], "Up") {
 		return fmt.Errorf("Target daemon not running")
 	}
 
