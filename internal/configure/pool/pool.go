@@ -117,6 +117,7 @@ func genNextZone(zones int) func() string {
 }
 
 func createLogicalPool(dcs []*topology.DeployConfig, logicalPool string) (LogicalPool, []Server) {
+	var zone string
 	copysets := 0
 	servers := []Server{}
 	zones := DEFAULT_ZONES_PER_POOL
@@ -127,13 +128,16 @@ func createLogicalPool(dcs []*topology.DeployConfig, logicalPool string) (Logica
 		role := dc.GetRole()
 		if (role == ROLE_CHUNKSERVER && kind == KIND_CURVEBS) ||
 			(role == ROLE_METASERVER && kind == KIND_CURVEFS) {
+			if dc.GetParentId() == dc.GetId() {
+				zone = nextZone()
+			}
 			server := Server{
 				Name:         fmt.Sprintf("%s_%s_%d", dc.GetHost(), dc.GetName(), dc.GetReplicaSequence()),
 				InternalIp:   dc.GetListenIp(),
 				InternalPort: dc.GetListenPort(),
 				ExternalIp:   dc.GetListenExternalIp(),
 				ExternalPort: dc.GetListenExternalPort(),
-				Zone:         nextZone(),
+				Zone:         zone,
 			}
 			if kind == KIND_CURVEBS {
 				server.PhysicalPool = physicalPool
