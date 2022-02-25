@@ -49,7 +49,7 @@ type (
 		progress *mpb.Progress
 		mainBar  *mpb.Bar
 		subBar   map[string]*mpb.Bar
-		sync.RWMutex
+		sync.Mutex
 	}
 )
 
@@ -140,8 +140,8 @@ func (ts *Tasks) addMainBar() {
 }
 
 func (ts *Tasks) addSubBar(t *task.Task) {
-	ts.RLock()
-	defer ts.RUnlock()
+	ts.Lock()
+	defer ts.Unlock()
 	if ts.subBar[t.Ptid()] != nil {
 		return
 	}
@@ -158,8 +158,8 @@ func (ts *Tasks) addSubBar(t *task.Task) {
 }
 
 func (ts *Tasks) getSubBar(t *task.Task) *mpb.Bar {
-	ts.RLock()
-	defer ts.RUnlock()
+	ts.Lock()
+	defer ts.Unlock()
 	return ts.subBar[t.Ptid()]
 }
 
@@ -170,6 +170,8 @@ func (ts *Tasks) initOption(option ExecOption) {
 }
 
 func (ts *Tasks) setMainBarStatus() {
+	ts.Lock()
+	defer ts.Unlock()
 	monitor := ts.monitor
 	id := ts.mainBar.ID()
 	for _, bar := range ts.subBar {
