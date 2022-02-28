@@ -198,7 +198,7 @@ func (curveadm *CurveAdm) WriteOut(format string, a ...interface{}) (int, error)
 
 func (curveadm *CurveAdm) NewPromptError(err error, prompt string) utils.PromptError {
 	if prompt == "" {
-		prompt = color.CyanString("See log file for deatil: %s", curveadm.LogPath())
+		prompt = color.CyanString("See log file for detail: %s", curveadm.LogPath())
 	}
 	return utils.PromptError{err, prompt}
 }
