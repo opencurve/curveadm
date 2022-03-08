@@ -41,6 +41,7 @@ type (
 		SSHPort        int      `mapstructure:"ssh_port"`
 		PrivateKeyFile string   `mapstructure:"private_key_file"`
 		Version        string   `mapstructure:"version"`
+		ContainerImage string   `mapstructure:"container_image"`
 		Hosts          []string `mapstructure:"host"`
 		Disks          []string `mapstructure:"disk"`
 	}
@@ -64,13 +65,7 @@ func ParseFormat(filename string) ([]*FormatConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	// version
-	version := LATEST_CURVBS_VERSION
-	if len(format.Version) > 0 {
-		version = format.Version
-	}
-	containerImage := fmt.Sprintf(FORMAT_CONTAINER_IMAGE, version)
+	containerImage := format.ContainerImage
 
 	fcs := []*FormatConfig{}
 	for _, host := range format.Hosts {
