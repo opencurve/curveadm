@@ -98,7 +98,7 @@ func runMount(curveadm *cli.CurveAdm, options mountOptions) error {
 	// mount file system
 	err = tasks.ExecTasks(tasks.MOUNT_FILESYSTEM, curveadm, cc)
 	if err != nil {
-		return curveadm.NewPromptError(err, "")
+		return curveadm.NewPromptError(nil, err.Error())
 	}
 
 	return nil

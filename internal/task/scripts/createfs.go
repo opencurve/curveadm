@@ -41,7 +41,10 @@ function createfs() {
 
 createfs "$@"
 
-if [ $? -eq 0 ]; then
+ret=$?
+if [ $ret -eq 0 ]; then
     $g_entrypoint "$@"
+    ret=$?
 fi
+exit $ret
 `
