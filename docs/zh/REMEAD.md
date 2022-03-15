@@ -12,10 +12,6 @@
   * [log_dir](#log_dir)
   * [data_dir](#data_dir)
   * [container_image](#container_image)
-  * [s3.ak](#s3ak)
-  * [s3.sk](#s3sk)
-  * [s3.endpoint](#s3endpoint)
-  * [s3.bucket_name](#s3bucket_name)
   * [variable](#variable)
   * [其他](#其他)
 
@@ -31,10 +27,6 @@ global:
   data_dir: /home/${user}/curvefs/data/${service_role}${service_sequence}
   log_dir: /home/${user}/curvefs/logs/${service_role}${service_sequence}
   container_image: opencurvedocker/curvefs:latest
-  s3.ak: minioadmin
-  s3.sk: minioadmin
-  s3.endpoint: http://127.0.0.1:9000
-  s3.bucket_name: curvefs
   variable:
     target: 10.0.1.1
 
@@ -179,50 +171,6 @@ container_image
 > 示例：opencurvedocker/curvefs:latest
 > 
 > 说明：服务镜像
-
-[返回目录](#目录)
-
-s3.ak
----
-
-> 默认值：
-> 
-> 示例：minioadmin
-> 
-> 说明：访问 `S3` 服务的 `Access Key`
-
-[返回目录](#目录)
-
-s3.sk
----
-
-> 默认值：
->
-> 示例：minioadmin
->
-> 说明：访问 `S3` 服务的 `Secret Key`
-
-[返回目录](#目录)
-
-s3.endpoint
----
-
-> 默认值：
->
-> 示例：http://127.0.0.1:9000
->
-> 说明：`S3` 服务地址
- 
-[返回目录](#目录)
-
-s3.bucket_name
----
-
-> 默认值：
->
-> 示例：curvefs-test
->
-> 说明：`S3` 服务中的桶名
 
 [返回目录](#目录)
 
