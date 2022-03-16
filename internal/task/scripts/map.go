@@ -38,6 +38,7 @@ if [ $g_create == "true" ]; then
     output=$(curve_ops_tool create -userName=$g_user -fileName=$g_volume -fileLength=$g_size)
     if [ $? -ne 0 ]; then
         if [ "$output" != "CreateFile fail with errCode: 101" ]; then
+            echo ${output}
             exit 1
         fi
     fi

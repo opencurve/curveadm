@@ -24,6 +24,9 @@ package bs
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/opencurve/curveadm/cli/cli"
 	client "github.com/opencurve/curveadm/internal/configure/client/bs"
@@ -66,6 +69,23 @@ type (
 	}
 )
 
+type (
+	waitMapDone struct {
+		ContainerId    *string
+		ExecWithSudo   bool
+		ExecInLocal    bool
+		ExecTimeoutSec int
+		ExecSudoAlias  string
+	}
+)
+
+var (
+	CONTAINER_ABNORMAL_STATUS = map[string]bool{
+		"dead":   true,
+		"exited": true,
+	}
+)
+
 func (s *step2CheckNEBDClient) Execute(ctx *context.Context) error {
 	if len(*s.containerId) > 0 {
 		return fmt.Errorf("volume mapped, please run 'curveadm unmap %s:%s' first",
@@ -81,6 +101,36 @@ func (s *step2CreateNBDDevice) Execute(ctx *context.Context) error {
 		ExecInLocal:   s.execInLocal,
 		ExecSudoAlias: s.execSudoAlias,
 	})
+	return err
+}
+
+func (s *waitMapDone) Execute(ctx *context.Context) error {
+	var output string
+	getStatusStep := &step.InspectContainer{
+		ContainerId:   *s.ContainerId,
+		Format:        "'{{.State.ExitCode}} {{.State.Status}}'",
+		Out:           &output,
+		ExecWithSudo:  s.ExecWithSudo,
+		ExecInLocal:   s.ExecInLocal,
+		ExecSudoAlias: s.ExecSudoAlias,
+	}
+	// check status
+	var err error
+	var status string
+	var exitCode int
+	for i := 0; i < s.ExecTimeoutSec; i++ {
+		time.Sleep(time.Second)
+		err = getStatusStep.Execute(ctx)
+		stringSlice := strings.Split(strings.TrimRight(output, "\n"), " ")
+		exitCode, _ = strconv.Atoi(stringSlice[0])
+		status = stringSlice[1]
+		if err != nil || CONTAINER_ABNORMAL_STATUS[status] {
+			break
+		}
+	}
+	if err == nil && exitCode != 0 {
+		return fmt.Errorf("please use `docker logs %s` for details", *s.ContainerId)
+	}
 	return err
 }
 
@@ -176,6 +226,13 @@ func NewMapTask(curveadm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task, er
 		ExecWithSudo:  true,
 		ExecInLocal:   false,
 		ExecSudoAlias: curveadm.SudoAlias(),
+	})
+	t.AddStep(&waitMapDone{
+		ContainerId:    &containerId,
+		ExecWithSudo:   false,
+		ExecInLocal:    true,
+		ExecTimeoutSec: 10,
+		ExecSudoAlias:  curveadm.SudoAlias(),
 	})
 
 	return t, nil
