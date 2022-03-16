@@ -64,6 +64,10 @@ tgtadm --lld iscsi \
    --op new \
    --tid ${g_tid} \
    --targetname ${g_targetname}
+if [ $? -ne 0 ]; then
+   echo "tgtadm target new failed"
+   exit 1
+fi
 
 tgtadm --lld iscsi \
     --mode logicalunit \
@@ -72,6 +76,10 @@ tgtadm --lld iscsi \
     --lun 1 \
     --bstype curve \
     --backing-store ${g_image}
+if [ $? -ne 0 ]; then
+   echo "tgtadm logicalunit new failed"
+   exit 1
+fi
 
 tgtadm --lld iscsi \
     --mode logicalunit \
@@ -79,10 +87,18 @@ tgtadm --lld iscsi \
     --tid ${g_tid} \
     --lun 1 \
     --params vendor_id=NetEase,product_id=CurveVolume,product_rev=2.0
+if [ $? -ne 0 ]; then
+   echo "tgtadm logicalunit update failed"
+   exit 1
+fi
 
 tgtadm --lld iscsi \
     --mode target \
     --op bind \
     --tid ${g_tid} \
     -I ALL
+if [ $? -ne 0 ]; then
+   echo "tgtadm target bind failed"
+   exit 1
+fi
 `

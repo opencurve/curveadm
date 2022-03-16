@@ -126,6 +126,7 @@ func runAdd(curveadm *cli.CurveAdm, options addOptions) error {
 	for _, step := range ADD_TARGET_STEPS {
 		err := tasks.ExecTasks(step, curveadm, cc)
 		if err != nil {
+			fmt.Println("use `docker logs curvebs-target-daemon` for detail")
 			return curveadm.NewPromptError(err, "")
 		}
 	}
