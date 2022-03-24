@@ -53,9 +53,9 @@ func Execute() {
 	}
 
 	if res != nil {
-		log.Error(strings.Join(os.Args[1:], " "), log.Field("result", "failed"))
+		log.Error(strings.Join(os.Args[1:], " "), log.Field("Cluster", curveadm.ClusterName()), log.Field("result", "failed"))
 		os.Exit(1)
 	} else {
-		log.Info(strings.Join(os.Args[1:], " "), log.Field("result", "success"))
+		log.Info(strings.Join(os.Args[1:], " "), log.Field("Cluster", curveadm.ClusterName()), log.Field("result", "success"))
 	}
 }
