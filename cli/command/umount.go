@@ -23,6 +23,8 @@
 package command
 
 import (
+	"strings"
+
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/task/task/fs"
 	"github.com/opencurve/curveadm/internal/task/tasks"
@@ -52,7 +54,8 @@ func NewUmountCommand(curveadm *cli.CurveAdm) *cobra.Command {
 }
 
 func runUmount(curveadm *cli.CurveAdm, options umountOptions) error {
-	curveadm.MemStorage().Set(fs.KEY_MOUNT_POINT, options.mountPoint)
+	mountPoint := strings.TrimSuffix(options.mountPoint, "/")
+	curveadm.MemStorage().Set(fs.KEY_MOUNT_POINT, mountPoint)
 	err := tasks.ExecTasks(tasks.UMOUNT_FILESYSTEM, curveadm, nil)
 	if err != nil {
 		return curveadm.NewPromptError(err, "")
