@@ -23,6 +23,7 @@
 package fs
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -39,11 +40,16 @@ import (
 
 const (
 	KEY_MOUNT_FSNAME = "MOUNT_FSNAME"
+	KEY_MOUNT_FSTYPE = "MOUNT_FSTYPE"
 	KEY_MOUNT_POINT  = "MOUNT_POINT"
 
 	FORMAT_MOUNT_OPTION = "type=bind,source=%s,target=%s,bind-propagation=rshared"
 
 	CLIENT_CONFIG_DELIMITER = "="
+
+	KEY_CURVEBS_CLUSTER = "curvebs.cluster"
+
+	CURVEBS_CONF_PATH = "/etc/curve/client.conf"
 )
 
 var (
@@ -52,7 +58,7 @@ var (
 		"-o default_permissions",
 		"-o allow_other",
 		"-o fsname=%s", // fsname
-		"-o fstype=s3",
+		"-o fstype=%s", // fstype, `s3` or `volume`
 		"-o user=curvefs",
 		"-o conf=%s", // config path
 		"%s",         // mount path
@@ -106,10 +112,10 @@ func (s *waitMountDone) Execute(ctx *context.Context) error {
 	return err
 }
 
-func getMountCommand(cc *client.ClientConfig, mountFSName string, mountPoint string) string {
+func getMountCommand(cc *client.ClientConfig, mountFSName string, mountFSType string, mountPoint string) string {
 	format := strings.Join(FORMAT_FUSE_ARGS, " ")
-	fuseArgs := fmt.Sprintf(format, mountFSName, cc.GetClientConfPath(), cc.GetClientMountPath(mountPoint))
-	return fmt.Sprintf("/client.sh %s --role=client --args='%s'", mountFSName, fuseArgs)
+	fuseArgs := fmt.Sprintf(format, mountFSName, mountFSType, cc.GetClientConfPath(), cc.GetClientMountPath(mountPoint))
+	return fmt.Sprintf("/client.sh %s %s --role=client --args='%s'", mountFSName, mountFSType, fuseArgs)
 }
 
 func getMountVolumes(cc *client.ClientConfig) []step.Volume {
@@ -162,6 +168,50 @@ func newMutate(cc *client.ClientConfig, delimiter string) step.Mutate {
 	}
 }
 
+func newCurveBSMutate(cc *client.ClientConfig, delimiter string) step.Mutate {
+	serviceConfig := cc.GetServiceConfig()
+
+	// we need `curvebs.cluster` if fstype is volume
+	if serviceConfig[KEY_CURVEBS_CLUSTER] == "" {
+		return func(in, key, value string) (out string, err error) {
+			err = errors.New("need `curvebs.cluster` if fstype is `volume`")
+			return
+		}
+	}
+
+	bsClientItems := map[string]string{
+		"mds.listen.addr": KEY_CURVEBS_CLUSTER,
+	}
+	bsClientFixedOptions := map[string]string{
+		"mds.registerToMDS":     "false",
+		"global.logging.enable": "false",
+	}
+	return func(in, key, value string) (out string, err error) {
+		if len(key) == 0 {
+			out = in
+			return
+		}
+
+		_, ok := bsClientFixedOptions[key]
+		if ok {
+			value = bsClientFixedOptions[key]
+		} else {
+			replaceKey := key
+			if bsClientItems[key] != "" {
+				replaceKey = bsClientItems[key]
+			}
+
+			v, ok := serviceConfig[replaceKey]
+			if ok {
+				value = v
+			}
+		}
+
+		out = fmt.Sprintf("%s%s%s", key, delimiter, value)
+		return
+	}
+}
+
 func newToolsMutate(cc *client.ClientConfig, delimiter string) step.Mutate {
 	clientConfig := cc.GetServiceConfig()
 	tools2client := map[string]string{
@@ -188,7 +238,8 @@ func newToolsMutate(cc *client.ClientConfig, delimiter string) step.Mutate {
 func NewMountFSTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task, error) {
 	mountPoint := curvradm.MemStorage().Get(KEY_MOUNT_POINT).(string)
 	mountFSName := curvradm.MemStorage().Get(KEY_MOUNT_FSNAME).(string)
-	subname := fmt.Sprintf("mountFSName=%s mountPoint=%s", mountFSName, mountPoint)
+	mountFSType := curvradm.MemStorage().Get(KEY_MOUNT_FSTYPE).(string)
+	subname := fmt.Sprintf("mountFSName=%s mountFSType=%s mountPoint=%s", mountFSName, mountFSType, mountPoint)
 	t := task.NewTask("Mount FileSystem", subname, nil)
 
 	// add step
@@ -205,7 +256,7 @@ func NewMountFSTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task
 	})
 	t.AddStep(&step.CreateContainer{
 		Image:             cc.GetContainerImage(),
-		Command:           getMountCommand(cc, mountFSName, mountPoint),
+		Command:           getMountCommand(cc, mountFSName, mountFSType, mountPoint),
 		Entrypoint:        "/bin/bash",
 		Envs:              []string{"LD_PRELOAD=/usr/local/lib/libjemalloc.so"},
 		Init:              true,
@@ -223,6 +274,21 @@ func NewMountFSTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task
 		ExecInLocal:       true,
 		ExecSudoAlias:     curvradm.SudoAlias(),
 	})
+
+	if mountFSType == "volume" {
+		t.AddStep(&step.SyncFile{ // sync volume client config
+			ContainerSrcId:    &containerId,
+			ContainerSrcPath:  fmt.Sprintf("%s/conf/curvebs-client.conf", root),
+			ContainerDestId:   &containerId,
+			ContainerDestPath: CURVEBS_CONF_PATH,
+			KVFieldSplit:      CLIENT_CONFIG_DELIMITER,
+			Mutate:            newCurveBSMutate(cc, CLIENT_CONFIG_DELIMITER),
+			ExecWithSudo:      false,
+			ExecInLocal:       true,
+			ExecSudoAlias:     curvradm.SudoAlias(),
+		})
+	}
+
 	t.AddStep(&step.SyncFile{ // sync service config
 		ContainerSrcId:    &containerId,
 		ContainerSrcPath:  fmt.Sprintf("%s/conf/client.conf", root),
