@@ -36,11 +36,13 @@ import (
 
 var (
 	mountExample = `Examples:
-  $ curveadm mount /s3_001 /path/to/mount -c client.yaml  # Mount CurveFS '/s3_001' to '/path/to/mount'`
+  $ curveadm mount /s3_001      /path/to/mount -c client.yaml [--fstype s3]    # Mount a s3 CurveFS '/s3_001' to '/path/to/mount'
+  $ curveadm mount /volume_001  /path/to/mount -c client.yaml --fstype volume  # Mount a volume CurveFS '/volume_001' to '/path/to/mount'`
 )
 
 type mountOptions struct {
 	mountFSName string
+	mountFSType string
 	mountPoint  string
 	filename    string
 }
@@ -63,6 +65,7 @@ func NewMountCommand(curveadm *cli.CurveAdm) *cobra.Command {
 
 	flags := cmd.Flags()
 	flags.StringVarP(&options.filename, "conf", "c", "client.yaml", "Specify client configuration file")
+	flags.StringVar(&options.mountFSType, "fstype", "s3", "Specify fs data backend")
 
 	return cmd
 }
@@ -75,6 +78,7 @@ func runMount(curveadm *cli.CurveAdm, options mountOptions) error {
 
 	// check mount point
 	mountFSName := options.mountFSName
+	mountFSType := options.mountFSType
 	mountPoint := strings.TrimSuffix(options.mountPoint, "/")
 	err = utils.CheckMountPoint(mountPoint)
 	if err != nil {
@@ -83,6 +87,7 @@ func runMount(curveadm *cli.CurveAdm, options mountOptions) error {
 
 	// check mount status
 	curveadm.MemStorage().Set(fs.KEY_MOUNT_FSNAME, mountFSName)
+	curveadm.MemStorage().Set(fs.KEY_MOUNT_FSTYPE, mountFSType)
 	curveadm.MemStorage().Set(fs.KEY_MOUNT_POINT, mountPoint)
 	err = tasks.ExecTasks(tasks.CHECK_MOUNT_STATUS, curveadm, cc)
 	if err != nil {
