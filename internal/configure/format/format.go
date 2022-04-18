@@ -65,7 +65,11 @@ func ParseFormat(filename string) ([]*FormatConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	containerImage := format.ContainerImage
+
+	containerImage := fmt.Sprintf(FORMAT_CONTAINER_IMAGE, LATEST_CURVBS_VERSION)
+	if len(format.ContainerImage) > 0 {
+		containerImage = format.ContainerImage
+	}
 
 	fcs := []*FormatConfig{}
 	for _, host := range format.Hosts {
