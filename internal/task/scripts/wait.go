@@ -33,7 +33,7 @@ while ((wait<20))
 do
     for addr in "$@"
     do
-        curl $addr -Iso /dev/null
+        curl --connect-timeout 3 --max-time 10 $addr -Iso /dev/null
         if [ $? == 0 ]; then
            exit 0
         fi
