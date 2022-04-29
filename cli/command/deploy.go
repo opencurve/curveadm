@@ -47,6 +47,7 @@ const (
 	START_METASEREVR
 	CREATE_PHYSICAL_POOL
 	CREATE_LOGICAL_POOL
+	BALANCE_LEADER
 )
 
 var (
@@ -60,6 +61,7 @@ var (
 		START_CHUNKSERVER,
 		CREATE_LOGICAL_POOL,
 		START_SNAPSHOTCLONE,
+		BALANCE_LEADER,
 	}
 
 	CURVEFS_STEPS = []int{
@@ -168,6 +170,9 @@ func execDeployTask(curveadm *cli.CurveAdm, deployConfigs []*topology.DeployConf
 			curveadm.MemStorage().Set(task.KEY_POOL_TYPE, task.TYPE_LOGICAL_POOL)
 			taskType = tasks.CREATE_POOL
 			dcs = filterDeployConfig(curveadm, dcs, topology.ROLE_MDS)[:1]
+		case BALANCE_LEADER:
+			taskType = tasks.BALANCE_LEADER
+			dcs = filterDeployConfig(curveadm, dcs, topology.ROLE_MDS)[:1]
 		}
 
 		if len(dcs) == 0 {
@@ -194,6 +199,7 @@ func execDeployTask(curveadm *cli.CurveAdm, deployConfigs []*topology.DeployConf
  *     4.2) start mds container
  *     4.4) start chunkserver(curvebs) / metaserver(curvefs)
  *   5) create logical pool
+ *   6) balance leader rapidly
  */
 func runDeploy(curveadm *cli.CurveAdm, options deployOptions) error {
 	dcs, err := topology.ParseTopology(curveadm.ClusterTopologyData())

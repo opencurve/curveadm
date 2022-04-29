@@ -74,6 +74,7 @@ const (
 	ADD_TARGET
 	DELETE_TARGET
 	LIST_TARGETS
+	BALANCE_LEADER
 	// fs
 	MOUNT_FILESYSTEM
 	UMOUNT_FILESYSTEM
@@ -198,6 +199,8 @@ func ExecTasks(taskType int, curveadm *cli.CurveAdm, configSlice interface{}) er
 			t, err = comm.NewCleanServiceTask(curveadm, dc)
 		case COLLECT_SERVICE:
 			t, err = comm.NewCollectServiceTask(curveadm, dc)
+		case BALANCE_LEADER:
+			t, err = bs.NewBalanceTask(curveadm, dc)
 		case SYNC_BINARY:
 			//t, err = comm.NewSyncBinaryTask(curveadm, dc)
 		case MOUNT_FILESYSTEM:
