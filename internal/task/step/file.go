@@ -62,6 +62,16 @@ type (
 		ExecSudoAlias     string
 	}
 
+	ExecScript struct {
+		Content       *string
+		Mode          string
+		Device        string
+		MountPoint    string
+		ExecWithSudo  bool
+		ExecInLocal   bool
+		ExecSudoAlias string
+	}
+
 	Mutate func(string, string, string) (string, error)
 
 	Filter struct {
@@ -126,6 +136,71 @@ func (s *ReadFile) Execute(ctx *context.Context) error {
 	data, err := utils.ReadFile(localPath)
 	*s.Content = data
 	return err
+}
+
+func (s *ExecScript) Execute(ctx *context.Context) error {
+	// create local file with content
+	localPath := utils.RandFilename(TEMP_DIR) + ".sh"
+	defer os.Remove(localPath)
+	err := utils.WriteFile(localPath, *s.Content)
+	if err != nil {
+		return err
+	}
+
+	// create remote file
+	remotePath := utils.RandFilename(TEMP_DIR) + ".sh"
+	if !s.ExecInLocal {
+		err = ctx.Module().File().Upload(localPath, remotePath)
+		if err != nil {
+			return err
+		}
+	} else {
+		cmd := ctx.Module().Shell().Rename(localPath, remotePath)
+		_, err := cmd.Execute(module.ExecOption{
+			ExecInLocal:   s.ExecInLocal,
+			ExecSudoAlias: s.ExecSudoAlias,
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	// change mode
+	if len(s.Mode) > 0 {
+		cmdChmod := ctx.Module().Shell().Chmod(s.Mode, remotePath)
+		_, err = cmdChmod.Execute(module.ExecOption{
+			ExecWithSudo:  s.ExecWithSudo,
+			ExecInLocal:   s.ExecInLocal,
+			ExecSudoAlias: s.ExecSudoAlias,
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	// run the script
+	cmdExec := ctx.Module().Shell().ExecScript(remotePath, "1", s.Device, "2", s.MountPoint)
+	_, err = cmdExec.Execute(module.ExecOption{
+		ExecWithSudo:  s.ExecWithSudo,
+		ExecInLocal:   s.ExecInLocal,
+		ExecSudoAlias: s.ExecSudoAlias,
+	})
+	if err != nil {
+		return err
+	}
+
+	// delete the script
+	cmdDel := ctx.Module().Shell().Remove(remotePath)
+	_, err = cmdDel.Execute(module.ExecOption{
+		ExecWithSudo:  s.ExecWithSudo,
+		ExecInLocal:   s.ExecInLocal,
+		ExecSudoAlias: s.ExecSudoAlias,
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *InstallFile) Execute(ctx *context.Context) error {

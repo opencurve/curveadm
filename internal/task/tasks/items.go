@@ -79,6 +79,7 @@ const (
 	UMOUNT_FILESYSTEM
 	CHECK_MOUNT_STATUS
 	FORMAT_CHUNKFILE_POOL
+	PERSIST_MOUNTPOINTS
 	GET_FORMAT_STATUS
 	UNKNOWN // unknown
 )
@@ -155,6 +156,8 @@ func ExecTasks(taskType int, curveadm *cli.CurveAdm, configSlice interface{}) er
 	// add task into tasks
 	pullImage := map[string]bool{}
 	ctype := configs.ctype
+
+PERSIST_MOUNTPOINTS_LABEL:
 	for i := 0; i < configs.length; i++ {
 		// config type
 		switch ctype {
@@ -237,6 +240,8 @@ func ExecTasks(taskType int, curveadm *cli.CurveAdm, configSlice interface{}) er
 		case LIST_TARGETS:
 			option.SilentSubBar = true
 			t, err = bs.NewListTargetsTask(curveadm, bcc)
+		case PERSIST_MOUNTPOINTS:
+			break PERSIST_MOUNTPOINTS_LABEL
 		default:
 			return fmt.Errorf("unknown task type %d", taskType)
 		}
@@ -249,6 +254,24 @@ func ExecTasks(taskType int, curveadm *cli.CurveAdm, configSlice interface{}) er
 			t.SetPtid(dc.GetParentId())
 		}
 		tasks.AddTask(t)
+	}
+
+	// add persist task at last
+	if taskType == PERSIST_MOUNTPOINTS {
+		// get same machine
+		hostFormats := map[string][]*format.FormatConfig{}
+		for _, fc := range configs.fcs {
+			hostFormats[fc.GetHost()] = append(hostFormats[fc.GetHost()], fc)
+		}
+
+		// add new tasks
+		for _, fcs := range hostFormats {
+			t, err = bs.NewPersistMountPointTask(curveadm, fcs)
+			if err != nil {
+				return err
+			}
+			tasks.AddTask(t)
+		}
 	}
 
 	return tasks.Execute(option)

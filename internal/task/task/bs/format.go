@@ -24,6 +24,7 @@ package bs
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/configure/format"
@@ -56,6 +57,35 @@ func (s *step2SkipFormat) Execute(ctx *context.Context) error {
 
 func device2ContainerName(device string) string {
 	return utils.MD5Sum(device)
+}
+
+func NewPersistMountPointTask(curveadm *cli.CurveAdm, fcs []*format.FormatConfig) (*task.Task, error) {
+	// create task
+	subname := fmt.Sprintf("host=%s", fcs[0].GetHost())
+	t := task.NewTask("Start Persist Mount Point", subname, fcs[0].GetSSHConfig())
+
+	// persist mount points with fstab file.
+	var devices string
+	var mountPoints string
+	for _, fc := range fcs {
+		// add device
+		device_arr := strings.Split(fc.GetDevice(), "/")
+		device_lastname := device_arr[len(device_arr)-1]
+		devices = devices + " " + device_lastname
+
+		// add mount point
+		mountPoints = mountPoints + " " + fc.GetMountPoint()
+	}
+	t.AddStep(&step.ExecScript{
+		Content:       &scripts.PERSIST_MOUNTPOINTS,
+		Device:        devices,
+		MountPoint:    mountPoints,
+		Mode:          "777",
+		ExecWithSudo:  true,
+		ExecInLocal:   false,
+		ExecSudoAlias: curveadm.SudoAlias(),
+	})
+	return t, nil
 }
 
 func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *format.FormatConfig) (*task.Task, error) {

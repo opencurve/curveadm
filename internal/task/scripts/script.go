@@ -23,13 +23,14 @@
 package scripts
 
 var (
-	SCRIPT_WAIT              string = WAIT
-	SCRIPT_COLLECT           string = COLLECT
-	SCRIPT_REPORT            string = REPORT
-	SCRIPT_FORMAT            string = FORMAT
-	SCRIPT_MAP               string = MAP
-	SCRIPT_TARGET            string = TARGET
-	SCRIPT_RECYCLE           string = RECYCLE
-	SCRIPT_CREATEFS          string = CREATEFS
-	SCRIPT_WAIT_CHUNKSERVERS string = WAIT_CHUNKSERVERS
+	SCRIPT_WAIT                string = WAIT
+	SCRIPT_COLLECT             string = COLLECT
+	SCRIPT_REPORT              string = REPORT
+	SCRIPT_FORMAT              string = FORMAT
+	SCRIPT_MAP                 string = MAP
+	SCRIPT_TARGET              string = TARGET
+	SCRIPT_RECYCLE             string = RECYCLE
+	SCRIPT_CREATEFS            string = CREATEFS
+	SCRIPT_WAIT_CHUNKSERVERS   string = WAIT_CHUNKSERVERS
+	SCRIPT_PERSIST_MOUNTPOINTS string = PERSIST_MOUNTPOINTS
 )

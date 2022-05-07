@@ -72,6 +72,11 @@ func runFormat(curveadm *cli.CurveAdm, options formatOptions) error {
 
 	if !options.showStatus {
 		err = tasks.ExecTasks(tasks.FORMAT_CHUNKFILE_POOL, curveadm, fcs)
+		if err != nil {
+			return curveadm.NewPromptError(err, "")
+		}
+		err = tasks.ExecTasks(tasks.PERSIST_MOUNTPOINTS, curveadm, fcs)
+
 	} else if err = tasks.ExecTasks(tasks.GET_FORMAT_STATUS, curveadm, fcs); err == nil {
 		statuses := []bs.FormatStatus{}
 		for _, v := range curveadm.MemStorage().Map {
