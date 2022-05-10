@@ -24,6 +24,8 @@ package common
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/configure/topology"
@@ -47,19 +49,24 @@ type (
 		containerId string
 		status      *string
 		memStorage  *utils.SafeMap
+		mds         *string
 	}
 
 	ServiceStatus struct {
-		Id          string
-		ParentId    string
-		Role        string
-		Host        string
-		Replica     string
-		ContainerId string
-		Status      string
-		LogDir      string
-		DataDir     string
-		SortedKey   string
+		Id               string
+		ParentId         string
+		Role             string
+		Host             string
+		ListenPort       string
+		ListenDummyPort  string
+		ListenProxyPort  string
+		ListenClientPort string
+		Replica          string
+		ContainerId      string
+		Status           string
+		LogDir           string
+		DataDir          string
+		SortedKey        string
 	}
 )
 
@@ -73,17 +80,30 @@ func (s *step2FormatStatus) Execute(ctx *context.Context) error {
 
 	id := s.serviceId
 	config := s.config
+
+	var role string = config.GetRole()
+	mds := strings.Split(*s.mds, ":")
+	if len(mds) == 2 &&
+		strings.TrimSpace(mds[0]) == strings.TrimSpace(config.GetHost()) &&
+		strings.TrimSpace(mds[1]) == strings.TrimSpace(strconv.Itoa(config.GetListenPort())) {
+		role = role + "*"
+	}
+
 	s.memStorage.Set(id, ServiceStatus{
-		Id:          id,
-		ParentId:    config.GetParentId(),
-		Role:        config.GetRole(),
-		Host:        config.GetHost(),
-		Replica:     fmt.Sprintf("1/%d", config.GetReplica()),
-		ContainerId: tui.TrimContainerId(s.containerId),
-		Status:      status,
-		LogDir:      config.GetLogDir(),
-		DataDir:     config.GetDataDir(),
-		SortedKey:   config.GetId(),
+		Id:               id,
+		ParentId:         config.GetParentId(),
+		Role:             role,
+		Host:             config.GetHost(),
+		ListenPort:       strconv.Itoa(config.GetListenPort()),
+		ListenDummyPort:  strconv.Itoa(config.GetListenDummyPort()),
+		ListenProxyPort:  strconv.Itoa(config.GetListenProxyPort()),
+		ListenClientPort: strconv.Itoa(config.GetListenClientPort()),
+		Replica:          fmt.Sprintf("1/%d", config.GetReplica()),
+		ContainerId:      tui.TrimContainerId(s.containerId),
+		Status:           status,
+		LogDir:           config.GetLogDir(),
+		DataDir:          config.GetDataDir(),
+		SortedKey:        config.GetId(),
 	})
 	return nil
 }
@@ -103,6 +123,17 @@ func NewGetServiceStatusTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) 
 
 	// add step
 	var status string
+	var out string
+	if dc.GetRole() == "mds" {
+		t.AddStep(&step.ContainerExec{
+			ContainerId:   &containerId,
+			Command:       fmt.Sprintf("curve_ops_tool mds-status | grep \"current MDS:\" | grep -o \"[0-9]*\\.[0-9]*\\.[0-9]*\\.[0-9]*:[0-9]*\""),
+			Out:           &out,
+			ExecWithSudo:  true,
+			ExecInLocal:   false,
+			ExecSudoAlias: curveadm.SudoAlias(),
+		})
+	}
 	t.AddStep(&step.ListContainers{
 		ShowAll:       true,
 		Format:        `"{{.Status}}"`,
@@ -118,6 +149,7 @@ func NewGetServiceStatusTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) 
 		containerId: containerId,
 		status:      &status,
 		memStorage:  curveadm.MemStorage(),
+		mds:         &out,
 	})
 
 	return t, nil

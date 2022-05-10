@@ -38,6 +38,7 @@ import (
 const (
 	ROLE_ETCD          = topology.ROLE_ETCD
 	ROLE_MDS           = topology.ROLE_MDS
+	ROLE_MAIN_MDS      = topology.ROLE_MAIN_MDS
 	ROLE_CHUNKSERVER   = topology.ROLE_CHUNKSERVER
 	ROLE_METASERVER    = topology.ROLE_METASERVER
 	ROLE_SNAPSHOTCLONE = topology.ROLE_SNAPSHOTCLONE
@@ -47,6 +48,10 @@ const (
 	ITEM_STATUS
 	ITEM_LOG_DIR
 	ITEM_DATA_DIR
+	ITEM_LISTEN_PORT
+	ITEM_LISTEN_DUMMY_PORT
+	ITEM_LISTEN_PROXY_PORT
+	ITEM_LISTEN_CLIENT_PORT
 
 	STATUS_CLEANED = task.STATUS_CLEANED
 	STATUS_LOSED   = task.STATUS_LOSED
@@ -61,6 +66,7 @@ const (
 var (
 	ROLE_SCORE = map[string]int{
 		ROLE_ETCD:          0,
+		ROLE_MAIN_MDS:      1,
 		ROLE_MDS:           1,
 		ROLE_CHUNKSERVER:   2,
 		ROLE_METASERVER:    2,
@@ -84,6 +90,12 @@ func sortStatues(statuses []task.ServiceStatus) {
 		if s1.Role == s2.Role {
 			return s1.SortedKey < s2.SortedKey
 		}
+		if s1.Role == "mds*" && s2.Role == "mds" {
+			return true
+		}
+		if s1.Role == "mds" && s2.Role == "mds*" {
+			return false
+		}
 		return ROLE_SCORE[s1.Role] < ROLE_SCORE[s2.Role]
 	})
 }
@@ -93,6 +105,21 @@ func id(items []string) string {
 		return items[0]
 	}
 	return "<replica>"
+}
+
+// format for merging ports
+//   (1) if all ports are same: xxx
+//   (2) if some ports are different: xxx...
+func port(items []string) string {
+	set := make(map[string]bool)
+	for _, item := range items {
+		_, ok := set[item]
+		if !ok && len(set) != 0 {
+			return fmt.Sprintf("%s...", item)
+		}
+		set[item] = true
+	}
+	return items[0]
 }
 
 func status(items []string) string {
@@ -137,6 +164,14 @@ func merge(statuses []task.ServiceStatus, item int) string {
 		switch item {
 		case ITEM_ID:
 			items = append(items, status.Id)
+		case ITEM_LISTEN_PORT:
+			items = append(items, status.ListenPort)
+		case ITEM_LISTEN_DUMMY_PORT:
+			items = append(items, status.ListenDummyPort)
+		case ITEM_LISTEN_PROXY_PORT:
+			items = append(items, status.ListenProxyPort)
+		case ITEM_LISTEN_CLIENT_PORT:
+			items = append(items, status.ListenClientPort)
 		case ITEM_CONTAINER_ID:
 			items = append(items, status.ContainerId)
 		case ITEM_STATUS:
@@ -152,6 +187,14 @@ func merge(statuses []task.ServiceStatus, item int) string {
 	switch item {
 	case ITEM_ID:
 		return id(items)
+	case ITEM_LISTEN_PORT:
+		return port(items)
+	case ITEM_LISTEN_DUMMY_PORT:
+		return port(items)
+	case ITEM_LISTEN_PROXY_PORT:
+		return port(items)
+	case ITEM_LISTEN_CLIENT_PORT:
+		return port(items)
 	case ITEM_CONTAINER_ID:
 		return id(items)
 	case ITEM_STATUS:
@@ -172,14 +215,18 @@ func mergeStatues(statuses []task.ServiceStatus) []task.ServiceStatus {
 		}
 		status := statuses[i]
 		ss = append(ss, task.ServiceStatus{
-			Id:          merge(statuses[i:j], ITEM_ID),
-			Role:        status.Role,
-			Host:        status.Host,
-			Replica:     fmt.Sprintf("%d/%s", j-i, strings.Split(status.Replica, "/")[1]),
-			ContainerId: merge(statuses[i:j], ITEM_CONTAINER_ID),
-			Status:      merge(statuses[i:j], ITEM_STATUS),
-			LogDir:      merge(statuses[i:j], ITEM_LOG_DIR),
-			DataDir:     merge(statuses[i:j], ITEM_DATA_DIR),
+			Id:               merge(statuses[i:j], ITEM_ID),
+			Role:             status.Role,
+			Host:             status.Host,
+			ListenPort:       merge(statuses[i:j], ITEM_LISTEN_PORT),
+			ListenDummyPort:  merge(statuses[i:j], ITEM_LISTEN_DUMMY_PORT),
+			ListenProxyPort:  merge(statuses[i:j], ITEM_LISTEN_PROXY_PORT),
+			ListenClientPort: merge(statuses[i:j], ITEM_LISTEN_CLIENT_PORT),
+			Replica:          fmt.Sprintf("%d/%s", j-i, strings.Split(status.Replica, "/")[1]),
+			ContainerId:      merge(statuses[i:j], ITEM_CONTAINER_ID),
+			Status:           merge(statuses[i:j], ITEM_STATUS),
+			LogDir:           merge(statuses[i:j], ITEM_LOG_DIR),
+			DataDir:          merge(statuses[i:j], ITEM_DATA_DIR),
 		})
 		i = j - 1
 	}
@@ -194,6 +241,10 @@ func FormatStatus(statuses []task.ServiceStatus, vebose, expand bool) string {
 		"Id",
 		"Role",
 		"Host",
+		"Listen Port",
+		"Listen Dummy Port",
+		"Listen Proxy Port",
+		"Listen Client Port",
 		"Replica",
 		"Container Id",
 		"Status",
@@ -214,6 +265,10 @@ func FormatStatus(statuses []task.ServiceStatus, vebose, expand bool) string {
 			status.Id,
 			status.Role,
 			status.Host,
+			status.ListenPort,
+			status.ListenDummyPort,
+			status.ListenProxyPort,
+			status.ListenClientPort,
 			status.Replica,
 			status.ContainerId,
 			tui.DecorateMessage{Message: status.Status, Decorate: statusDecorate},
