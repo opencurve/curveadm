@@ -249,6 +249,11 @@ func NewMountFSTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task
 	containerMountPath := cc.GetClientMountPath(mountPoint)
 	createfsScript := scripts.SCRIPT_CREATEFS
 	createfsScriptPath := "/client.sh"
+	env := ""
+	if cc.GetEnableJemalloc() == "true" {
+		env = "LD_PRELOAD=/usr/local/lib/libjemalloc.so"
+	}
+
 	t.AddStep(&step.PullImage{
 		Image:        cc.GetContainerImage(),
 		ExecWithSudo: false,
@@ -258,7 +263,7 @@ func NewMountFSTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task
 		Image:             cc.GetContainerImage(),
 		Command:           getMountCommand(cc, mountFSName, mountFSType, mountPoint),
 		Entrypoint:        "/bin/bash",
-		Envs:              []string{"LD_PRELOAD=/usr/local/lib/libjemalloc.so"},
+		Envs:              []string{env},
 		Init:              true,
 		Name:              mountPoint2ContainerName(mountPoint),
 		Mount:             fmt.Sprintf(FORMAT_MOUNT_OPTION, mountPoint, containerMountPath),

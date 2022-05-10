@@ -37,6 +37,7 @@ const (
 
 	LAYOUT_CURVEFS_ROOT_DIR = topology.LAYOUT_CURVEFS_ROOT_DIR
 	KEY_CONTAINER_IMAGE     = "container_image"
+	KEY_ENABLE_JEMALLOC     = "enable_jemalloc"
 	KEY_CONTAINER_PID       = "container_pid"
 	KEY_LOG_DIR             = "log_dir"
 	KEY_DATA_DIR            = "data_dir"
@@ -127,6 +128,10 @@ func (c *ClientConfig) GetServiceConfig() map[string]string {
 }
 
 // wrapper interface: config item
+func (c *ClientConfig) GetEnableJemalloc() string {
+	return c.GetConfig(KEY_ENABLE_JEMALLOC)
+}
+
 func (c *ClientConfig) GetContainerImage() string {
 	return c.GetConfig(KEY_CONTAINER_IMAGE)
 }
