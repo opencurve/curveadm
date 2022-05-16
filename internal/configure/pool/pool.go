@@ -131,12 +131,25 @@ func createLogicalPool(dcs []*topology.DeployConfig, logicalPool string) (Logica
 			if dc.GetParentId() == dc.GetId() {
 				zone = nextZone()
 			}
+
+			// NOTE: if we deploy chunkservers with replica feature
+			// and the value of replica greater than 1, we should
+			// set internal port and external port to 0 for let MDS
+			// attribute them as services on the same machine.
+			// see issue: https://github.com/opencurve/curve/issues/1441
+			internalPort := dc.GetListenPort()
+			externalPort := dc.GetListenExternalPort()
+			if dc.GetReplica() > 1 {
+				internalPort = 0
+				externalPort = 0
+			}
+
 			server := Server{
 				Name:         fmt.Sprintf("%s_%s_%d", dc.GetHost(), dc.GetName(), dc.GetReplicaSequence()),
 				InternalIp:   dc.GetListenIp(),
-				InternalPort: dc.GetListenPort(),
+				InternalPort: internalPort,
 				ExternalIp:   dc.GetListenExternalIp(),
-				ExternalPort: dc.GetListenExternalPort(),
+				ExternalPort: externalPort,
 				Zone:         zone,
 			}
 			if kind == KIND_CURVEBS {
