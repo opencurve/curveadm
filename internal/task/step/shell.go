@@ -91,6 +91,14 @@ type (
 		ExecInLocal   bool
 		ExecSudoAlias string
 	}
+
+	ShellCommand struct {
+		Command       string
+		Out           *string
+		ExecWithSudo  bool
+		ExecInLocal   bool
+		ExecSudoAlias string
+	}
 )
 
 func (s *CreateDirectory) Execute(ctx *context.Context) error {
@@ -203,6 +211,22 @@ func (s *ShowDiskFree) Execute(ctx *context.Context) error {
 	if len(s.Format) > 0 {
 		cmd.AddOption("--output=%s", s.Format)
 	}
+
+	out, err := cmd.Execute(module.ExecOption{
+		ExecWithSudo:  s.ExecWithSudo,
+		ExecInLocal:   s.ExecInLocal,
+		ExecSudoAlias: s.ExecSudoAlias,
+	})
+	if err != nil {
+		return err
+	}
+
+	*s.Out = strings.TrimSuffix(out, "\n")
+	return nil
+}
+
+func (s *ShellCommand) Execute(ctx *context.Context) error {
+	cmd := ctx.Module().Shell().Command(s.Command)
 
 	out, err := cmd.Execute(module.ExecOption{
 		ExecWithSudo:  s.ExecWithSudo,

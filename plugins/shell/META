@@ -1,0 +1,6 @@
+Name: shell
+Version: v0.0.1
+Released: 2022-05-17
+Description: Execute shell commands on targets
+Homepage: https://github.com/opencurve/curveadm/plugins/shell
+Copyright: Jingli Chen (Wine93), NetEase Inc.

@@ -25,10 +25,11 @@ package command
 import (
 	"fmt"
 
-	"github.com/opencurve/curveadm/cli/command/target"
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/cli/command/cluster"
 	"github.com/opencurve/curveadm/cli/command/config"
+	"github.com/opencurve/curveadm/cli/command/plugin"
+	"github.com/opencurve/curveadm/cli/command/target"
 	"github.com/opencurve/curveadm/internal/tools"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/cobra"
@@ -51,6 +52,7 @@ func addSubCommands(cmd *cobra.Command, curveadm *cli.CurveAdm) {
 		cluster.NewClusterCommand(curveadm), // curveadm cluster ...
 		config.NewConfigCommand(curveadm),   // curveadm config ...
 		target.NewTargetCommand(curveadm),   // curveadm target ...
+		plugin.NewPluginCommand(curveadm),   // curveadm plugin ...
 
 		NewDeployCommand(curveadm),  // curveadm deploy
 		NewStartCommand(curveadm),   // curveadm start

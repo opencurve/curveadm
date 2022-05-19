@@ -102,6 +102,11 @@ func Str2Bool(s string) (bool, bool) { // value, ok
 	return v, err == nil
 }
 
+func IsTrueStr(s string) bool {
+	v, yes := Str2Bool(s)
+	return yes && v == true
+}
+
 func Min(nums ...int) int {
 	ret := nums[0]
 	for _, num := range nums {

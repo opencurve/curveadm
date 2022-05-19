@@ -14,6 +14,9 @@ g_latest_version=${g_latest_version//[$'\t\r\n ']}
 g_upgrade="$CURVEADM_UPGRADE"
 g_version="${CURVEADM_VERSION:=$g_latest_version}"
 g_download_url="${g_root_url}/curveadm-${g_version}.tar.gz"
+g_plugin="$CURVEADM_PLUGIN"
+g_plugin_dir="$g_curveadm_home/plugins/$g_plugin"
+g_plugin_url="https://curveadm.nos-eastchina1.126.net/plugins/${g_plugin}-$(uname -m).tar.gz"
 
 ############################  BASIC FUNCTIONS
 msg() {
@@ -40,8 +43,9 @@ program_must_exist() {
 
 ############################ FUNCTIONS
 setup() {
-    mkdir -p $g_curveadm_home/{bin,data,logs,temp}
+    mkdir -p $g_curveadm_home/{bin,data,plugins,logs,temp}
 
+    # generate config file
     local confpath="$g_curveadm_home/curveadm.cfg"
     if [ ! -f $confpath ]; then
         cat << __EOF__ > $confpath
@@ -52,6 +56,19 @@ sudo_alias = "sudo"
 [ssh_connection]
 retries = 3
 timeout = 10
+__EOF__
+    fi
+
+    # generate inventory file
+    local inventory_path="$g_curveadm_home/server.yaml"
+    if [ ! -f $inventory_path ]; then
+      cat << __EOF__ > $inventory_path
+servers:
+  - name: localhost
+    ssh_user: root
+    ssh_host: 127.0.0.1
+    ssh_port: 22
+    ssh_private_key: ~/.ssh/id_rsa
 __EOF__
     fi
 }
@@ -70,6 +87,24 @@ install_binray() {
         chmod 755 "$g_bin_dir/curveadm"
     else
         die "Download curveadm failed\n"
+    fi
+}
+
+install_plugin() {
+    local ret=1
+    mkdir -p $g_plugin_dir
+    local tempfile="/tmp/curveadm-plugin-$g_plugin-$(date +%s%6N).tar.gz"
+    curl $g_plugin_url -sLo $tempfile
+    if [ $? -eq 0 ]; then
+        tar -zxvf $tempfile -C $g_plugin_dir --strip-components=1 1>/dev/null
+        ret=$?
+    fi
+
+    rm  $tempfile
+    if [ $ret -eq 0 ]; then
+        success "Plugin '$g_plugin' installed\n"
+    else
+        die "Download plugin '$g_plugin' failed\n"
     fi
 }
 
@@ -108,12 +143,15 @@ install() {
 }
 
 upgrade() {
+    setup
     install_binray
     print_upgrade_success
 }
 
 main() {
-    if [ $g_upgrade == "true" ]; then
+    if [ ! -z $g_plugin ]; then
+        install_plugin
+    elif [ $g_upgrade == "true" ]; then
         upgrade
     else
         install

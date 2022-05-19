@@ -31,6 +31,7 @@ import (
 	"github.com/fatih/color"
 	configure "github.com/opencurve/curveadm/internal/configure/curveadm"
 	"github.com/opencurve/curveadm/internal/configure/topology"
+	"github.com/opencurve/curveadm/internal/plugin"
 	"github.com/opencurve/curveadm/internal/storage"
 	"github.com/opencurve/curveadm/internal/utils"
 	"github.com/opencurve/curveadm/pkg/log"
@@ -38,19 +39,22 @@ import (
 
 type CurveAdm struct {
 	// project layout
-	rootDir string
-	dataDir string
-	logDir  string
-	tempDir string
-	logpath string
-	config  *configure.CurveAdmConfig
+	rootDir       string
+	dataDir       string
+	pluginDir     string
+	logDir        string
+	tempDir       string
+	inventoryPath string
+	logpath       string
+	config        *configure.CurveAdmConfig
 
 	// data pipeline
-	in         io.Reader
-	out        io.Writer
-	err        io.Writer
-	storage    *storage.Storage
-	memStorage *utils.SafeMap
+	in            io.Reader
+	out           io.Writer
+	err           io.Writer
+	storage       *storage.Storage
+	memStorage    *utils.SafeMap
+	pluginManager *plugin.PluginManager
 
 	clusterId           int    // current cluster id
 	clusterUUId         string // current cluster uuid
@@ -61,8 +65,10 @@ type CurveAdm struct {
 /*
  * $HOME/.curveadm
  *   - curveadm.cfg
+ *   - server.yaml
  *   - /bin/curveadm
  *   - /data/curveadm.db
+ *   - /plugins/{shell,file,polarfs}
  *   - /logs/2006-01-02_15-04-05.log
  *   - /temp/
  */
@@ -74,10 +80,12 @@ func NewCurveAdm() (*CurveAdm, error) {
 
 	rootDir := fmt.Sprintf("%s/.curveadm", home)
 	curveadm := &CurveAdm{
-		rootDir: rootDir,
-		dataDir: rootDir + "/data",
-		logDir:  rootDir + "/logs",
-		tempDir: rootDir + "/temp",
+		rootDir:       rootDir,
+		dataDir:       rootDir + "/data",
+		pluginDir:     rootDir + "/plugins",
+		logDir:        rootDir + "/logs",
+		tempDir:       rootDir + "/temp",
+		inventoryPath: rootDir + "/server.yaml",
 	}
 
 	err = curveadm.init()
@@ -86,7 +94,7 @@ func NewCurveAdm() (*CurveAdm, error) {
 
 func (curveadm *CurveAdm) init() error {
 	// create directory
-	dirs := []string{curveadm.rootDir, curveadm.dataDir, curveadm.logDir, curveadm.tempDir}
+	dirs := []string{curveadm.rootDir, curveadm.dataDir, curveadm.pluginDir, curveadm.logDir, curveadm.tempDir}
 	for _, dir := range dirs {
 		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 			return err
@@ -137,6 +145,7 @@ func (curveadm *CurveAdm) init() error {
 	curveadm.err = os.Stderr
 	curveadm.storage = s
 	curveadm.memStorage = utils.NewSafeMap()
+	curveadm.pluginManager = plugin.NewPluginManager(curveadm.pluginDir)
 	curveadm.clusterId = cluster.Id
 	curveadm.clusterUUId = cluster.UUId
 	curveadm.clusterName = cluster.Name
@@ -145,21 +154,24 @@ func (curveadm *CurveAdm) init() error {
 	return nil
 }
 
-func (curveadm *CurveAdm) RootDir() string                   { return curveadm.rootDir }
-func (curveadm *CurveAdm) DataDir() string                   { return curveadm.dataDir }
-func (curveadm *CurveAdm) LogDir() string                    { return curveadm.logDir }
-func (curveadm *CurveAdm) TempDir() string                   { return curveadm.tempDir }
-func (curveadm *CurveAdm) LogPath() string                   { return curveadm.logpath }
-func (curveadm *CurveAdm) Config() *configure.CurveAdmConfig { return curveadm.config }
-func (curveadm *CurveAdm) In() io.Reader                     { return curveadm.in }
-func (curveadm *CurveAdm) Out() io.Writer                    { return curveadm.out }
-func (curveadm *CurveAdm) Err() io.Writer                    { return curveadm.err }
-func (curveadm *CurveAdm) Storage() *storage.Storage         { return curveadm.storage }
-func (curveadm *CurveAdm) MemStorage() *utils.SafeMap        { return curveadm.memStorage }
-func (curveadm *CurveAdm) ClusterId() int                    { return curveadm.clusterId }
-func (curveadm *CurveAdm) ClusterUUId() string               { return curveadm.clusterUUId }
-func (curveadm *CurveAdm) ClusterName() string               { return curveadm.clusterName }
-func (curveadm *CurveAdm) ClusterTopologyData() string       { return curveadm.clusterTopologyData }
+func (curveadm *CurveAdm) RootDir() string                      { return curveadm.rootDir }
+func (curveadm *CurveAdm) DataDir() string                      { return curveadm.dataDir }
+func (curveadm *CurveAdm) PluginDir() string                    { return curveadm.pluginDir }
+func (curveadm *CurveAdm) LogDir() string                       { return curveadm.logDir }
+func (curveadm *CurveAdm) TempDir() string                      { return curveadm.tempDir }
+func (curveadm *CurveAdm) InventoryPath() string                { return curveadm.inventoryPath }
+func (curveadm *CurveAdm) LogPath() string                      { return curveadm.logpath }
+func (curveadm *CurveAdm) Config() *configure.CurveAdmConfig    { return curveadm.config }
+func (curveadm *CurveAdm) In() io.Reader                        { return curveadm.in }
+func (curveadm *CurveAdm) Out() io.Writer                       { return curveadm.out }
+func (curveadm *CurveAdm) Err() io.Writer                       { return curveadm.err }
+func (curveadm *CurveAdm) Storage() *storage.Storage            { return curveadm.storage }
+func (curveadm *CurveAdm) MemStorage() *utils.SafeMap           { return curveadm.memStorage }
+func (curveadm *CurveAdm) PluginManager() *plugin.PluginManager { return curveadm.pluginManager }
+func (curveadm *CurveAdm) ClusterId() int                       { return curveadm.clusterId }
+func (curveadm *CurveAdm) ClusterUUId() string                  { return curveadm.clusterUUId }
+func (curveadm *CurveAdm) ClusterName() string                  { return curveadm.clusterName }
+func (curveadm *CurveAdm) ClusterTopologyData() string          { return curveadm.clusterTopologyData }
 
 func (curveadm *CurveAdm) ParseTopology() ([]*topology.DeployConfig, error) {
 	return topology.ParseTopology(curveadm.clusterTopologyData)

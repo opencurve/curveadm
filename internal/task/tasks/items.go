@@ -29,11 +29,13 @@ import (
 	bs_client "github.com/opencurve/curveadm/internal/configure/client/bs"
 	fs_client "github.com/opencurve/curveadm/internal/configure/client/fs"
 	"github.com/opencurve/curveadm/internal/configure/format"
+	"github.com/opencurve/curveadm/internal/configure/plugin"
 	"github.com/opencurve/curveadm/internal/configure/topology"
 	"github.com/opencurve/curveadm/internal/task/task"
 	"github.com/opencurve/curveadm/internal/task/task/bs"
 	comm "github.com/opencurve/curveadm/internal/task/task/common"
 	"github.com/opencurve/curveadm/internal/task/task/fs"
+	plg "github.com/opencurve/curveadm/internal/task/task/plugin"
 )
 
 const (
@@ -41,6 +43,7 @@ const (
 	TYPE_CONFIG_BS_CLIENT
 	TYPE_CONFIG_FS_CLIENT
 	TYPE_CONFIG_FORMAT
+	TYPE_CONFIG_PLUGIN
 	TYPE_CONFIG_NULL
 )
 
@@ -51,6 +54,7 @@ type configs struct {
 	bccs   []*bs_client.ClientConfig
 	fccs   []*fs_client.ClientConfig
 	fcs    []*format.FormatConfig
+	pcs    []*plugin.PluginConfig
 }
 
 const (
@@ -81,6 +85,8 @@ const (
 	CHECK_MOUNT_STATUS
 	FORMAT_CHUNKFILE_POOL
 	GET_FORMAT_STATUS
+	// plugin
+	RUN_PLUGIN
 	UNKNOWN // unknown
 )
 
@@ -90,6 +96,7 @@ func newConfigs(configSlice interface{}) (*configs, error) {
 		bccs: []*bs_client.ClientConfig{},
 		fccs: []*fs_client.ClientConfig{},
 		fcs:  []*format.FormatConfig{},
+		pcs:  []*plugin.PluginConfig{},
 	}
 	switch configSlice.(type) {
 	case []*topology.DeployConfig:
@@ -108,6 +115,10 @@ func newConfigs(configSlice interface{}) (*configs, error) {
 		configs.ctype = TYPE_CONFIG_FORMAT
 		configs.fcs = configSlice.([]*format.FormatConfig)
 		configs.length = len(configs.fcs)
+	case []*plugin.PluginConfig:
+		configs.ctype = TYPE_CONFIG_PLUGIN
+		configs.pcs = configSlice.([]*plugin.PluginConfig)
+		configs.length = len(configs.pcs)
 	case *topology.DeployConfig:
 		configs.ctype = TYPE_CONFIG_DEPLOY
 		configs.dcs = append(configs.dcs, configSlice.(*topology.DeployConfig))
@@ -139,6 +150,7 @@ func ExecTasks(taskType int, curveadm *cli.CurveAdm, configSlice interface{}) er
 	var bcc *bs_client.ClientConfig
 	var fcc *fs_client.ClientConfig
 	var fc *format.FormatConfig
+	var pc *plugin.PluginConfig
 
 	configs, err := newConfigs(configSlice)
 	if err != nil {
@@ -167,6 +179,8 @@ func ExecTasks(taskType int, curveadm *cli.CurveAdm, configSlice interface{}) er
 			fcc = configs.fccs[i]
 		case TYPE_CONFIG_FORMAT:
 			fc = configs.fcs[i]
+		case TYPE_CONFIG_PLUGIN:
+			pc = configs.pcs[i]
 		case TYPE_CONFIG_NULL: // do nothing
 		}
 
@@ -240,6 +254,8 @@ func ExecTasks(taskType int, curveadm *cli.CurveAdm, configSlice interface{}) er
 		case LIST_TARGETS:
 			option.SilentSubBar = true
 			t, err = bs.NewListTargetsTask(curveadm, bcc)
+		case RUN_PLUGIN:
+			t, err = plg.NewRunPluginTask(curveadm, pc)
 		default:
 			return fmt.Errorf("unknown task type %d", taskType)
 		}

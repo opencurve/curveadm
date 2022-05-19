@@ -127,6 +127,13 @@ func TrimContainerId(containerId string) string {
 	return containerId[:12]
 }
 
+func TrimPluginDescription(decscription string) string {
+	if len(decscription) > 50 {
+		return decscription[:47] + "..."
+	}
+	return decscription
+}
+
 func prompt(prompt string) string {
 	if prompt != "" {
 		prompt += " "

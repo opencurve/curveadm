@@ -26,7 +26,6 @@ import (
 	"fmt"
 
 	"github.com/opencurve/curveadm/internal/configure/topology"
-
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/task/context"
 	"github.com/opencurve/curveadm/internal/task/step"

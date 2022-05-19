@@ -37,7 +37,7 @@ type Variable struct {
 	Name        string
 	Description string
 	Value       string
-	resolved    bool
+	Resolved    bool
 }
 
 type Variables struct {
@@ -65,7 +65,7 @@ func (vars *Variables) Get(name string) (string, error) {
 	v, ok := vars.m[name]
 	if !ok {
 		return "", fmt.Errorf("variable '%s' not found", name)
-	} else if v.resolved == false {
+	} else if v.Resolved == false {
 		return "", fmt.Errorf("variable '%s' unresolved", name)
 	}
 
@@ -77,13 +77,13 @@ func (vars *Variables) resolve(name string, marked map[string]bool) (string, err
 	v, ok := vars.m[name]
 	if !ok {
 		return "", fmt.Errorf("variable '%s' not defined", name)
-	} else if v.resolved {
+	} else if v.Resolved {
 		return v.Value, nil
 	}
 
 	matches := vars.r.FindAllStringSubmatch(v.Value, -1)
 	if len(matches) == 0 { // no variable
-		v.resolved = true
+		v.Resolved = true
 		return v.Value, nil
 	}
 
@@ -99,7 +99,7 @@ func (vars *Variables) resolve(name string, marked map[string]bool) (string, err
 	v.Value = vars.r.ReplaceAllStringFunc(v.Value, func(name string) string {
 		return vars.m[name[2:len(name)-1]].Value
 	})
-	v.resolved = true
+	v.Resolved = true
 	return v.Value, nil
 }
 

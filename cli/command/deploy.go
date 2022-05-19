@@ -197,7 +197,8 @@ func execDeployTask(curveadm *cli.CurveAdm, deployConfigs []*topology.DeployConf
  *   4) start container
  *     4.1) start etcd container
  *     4.2) start mds container
- *     4.4) start chunkserver(curvebs) / metaserver(curvefs)
+ *     4.3) start chunkserver(curvebs) / metaserver(curvefs) container
+ *     4.4) start snapshotserver(curvebs) container
  *   5) create logical pool
  *   6) balance leader rapidly
  */
