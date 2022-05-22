@@ -38,6 +38,7 @@ type Cluster struct {
 	Description string
 	CreateTime  time.Time
 	Topology    string
+	Pool        string
 	Current     bool
 }
 
@@ -85,7 +86,7 @@ func (s *Storage) compatible() error {
 	}
 
 	err = func() error {
-		rows, err := tx.Query(CHECK_UUID_COLUMN)
+		rows, err := tx.Query(CHECK_POOl_COLUMN)
 		if err != nil {
 			return err
 		}
@@ -158,7 +159,7 @@ func (s *Storage) getClusters(query string, args ...interface{}) ([]Cluster, err
 	for rows.Next() {
 		cluster := Cluster{}
 		err = rows.Scan(&cluster.Id, &cluster.UUId, &cluster.Name, &cluster.Description,
-			&cluster.Topology, &cluster.CreateTime, &cluster.Current)
+			&cluster.Topology, &cluster.Pool, &cluster.CreateTime, &cluster.Current)
 		if err != nil {
 			return nil, err
 		}
@@ -190,6 +191,10 @@ func (s *Storage) GetCurrentCluster() (Cluster, error) {
 
 func (s *Storage) SetClusterTopology(id int, topology string) error {
 	return s.execSQL(SET_CLUSTER_TOPOLOGY, topology, id)
+}
+
+func (s *Storage) SetClusterPool(id int, pool string) error {
+	return s.execSQL(SET_CLUSTER_POOL, pool, id)
 }
 
 // service

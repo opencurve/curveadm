@@ -53,6 +53,13 @@ FYI:
   > and only you have the secret key.
 `
 
+	PROMPT_SCALE_OUT_NOTICE = `
+NOTICE: We noticed that you have modified the configuration 
+of some services while scale out. If you want make these 
+configurations effect, you should reload the corresponding 
+services after the scale out success.
+`
+
 	DEFAULT_CONFIRM_PROMPT = "Do you want to continue?"
 )
 
@@ -101,5 +108,13 @@ func PromptCleanService(role, host string, items []string) string {
 
 func PromptCollectService() string {
 	prompt := NewPrompt(color.YellowString(PROMPT_COLLECT_SERVICE) + DEFAULT_CONFIRM_PROMPT)
+	return prompt.Build()
+}
+
+func PromptScaleOut(warning bool) string {
+	prompt := NewPrompt(DEFAULT_CONFIRM_PROMPT)
+	if warning {
+		prompt = NewPrompt(color.YellowString(PROMPT_SCALE_OUT_NOTICE) + DEFAULT_CONFIRM_PROMPT)
+	}
 	return prompt.Build()
 }

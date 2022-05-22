@@ -23,8 +23,8 @@
 package pool
 
 import (
-	"encoding/json"
 	"fmt"
+	"sort"
 
 	"github.com/opencurve/curveadm/internal/configure/topology"
 )
@@ -67,6 +67,7 @@ type (
 		Servers      []Server      `json:"servers"`
 		LogicalPools []LogicalPool `json:"logicalpools,omitempty"` // curvebs
 		Pools        []LogicalPool `json:"pools,omitempty"`        // curvefs
+		NPools       int           `json:"npools"`
 	}
 )
 
@@ -116,6 +117,22 @@ func genNextZone(zones int) func() string {
 	}
 }
 
+func sortDeployConfigs(dcs []*topology.DeployConfig) {
+	sort.Slice(dcs, func(i, j int) bool {
+		dc1, dc2 := dcs[i], dcs[j]
+		if dc1.GetRole() == dc2.GetRole() {
+			if dc1.GetHost() == dc2.GetHost() {
+				if dc1.GetHostSequence() == dc2.GetHostSequence() {
+					return dc1.GetReplicaSequence() < dc2.GetReplicaSequence()
+				}
+				return dc1.GetHostSequence() < dc2.GetHostSequence()
+			}
+			return dc1.GetHost() < dc2.GetHost()
+		}
+		return dc1.GetRole() < dc2.GetRole()
+	})
+}
+
 func createLogicalPool(dcs []*topology.DeployConfig, logicalPool string) (LogicalPool, []Server) {
 	var zone string
 	copysets := 0
@@ -124,6 +141,7 @@ func createLogicalPool(dcs []*topology.DeployConfig, logicalPool string) (Logica
 	nextZone := genNextZone(zones)
 	physicalPool := logicalPool
 	kind := dcs[0].GetKind()
+	sortDeployConfigs(dcs)
 	for _, dc := range dcs {
 		role := dc.GetRole()
 		if (role == ROLE_CHUNKSERVER && kind == KIND_CURVEBS) ||
@@ -184,23 +202,41 @@ func createLogicalPool(dcs []*topology.DeployConfig, logicalPool string) (Logica
 	return lpool, servers
 }
 
-func GenerateClusterPool(data string) (string, error) {
-	dcs, err := topology.ParseTopology(data)
-	if err != nil {
-		return "", err
-	}
-
-	lpool, servers := createLogicalPool(dcs, "defaultPool")
-	topo := CurveClusterTopo{Servers: servers}
+func generateClusterPool(dcs []*topology.DeployConfig, poolName string) CurveClusterTopo {
+	lpool, servers := createLogicalPool(dcs, poolName)
+	topo := CurveClusterTopo{Servers: servers, NPools: 1}
 	if dcs[0].GetKind() == KIND_CURVEBS {
 		topo.LogicalPools = []LogicalPool{lpool}
 	} else {
 		topo.Pools = []LogicalPool{lpool}
 	}
+	return topo
+}
 
-	bytes, err := json.Marshal(&topo)
-	if err != nil {
-		return "", err
+func ScaleOutClusterPool(old *CurveClusterTopo, dcs []*topology.DeployConfig) {
+	npools := old.NPools
+	topo := generateClusterPool(dcs, fmt.Sprintf("pool%d", npools+1))
+	if dcs[0].GetKind() == KIND_CURVEBS {
+		for _, pool := range topo.LogicalPools {
+			old.LogicalPools = append(old.LogicalPools, pool)
+		}
+	} else {
+		for _, pool := range topo.Pools {
+			old.Pools = append(old.Pools, pool)
+		}
 	}
-	return string(bytes), nil
+	for _, server := range topo.Servers {
+		old.Servers = append(old.Servers, server)
+	}
+	old.NPools = old.NPools + 1
+}
+
+func GenerateDefaultClusterPool(data string) (topo CurveClusterTopo, err error) {
+	var dcs []*topology.DeployConfig
+	dcs, err = topology.ParseTopology(data)
+	if err != nil {
+		return
+	}
+	topo = generateClusterPool(dcs, "pool1")
+	return
 }

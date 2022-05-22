@@ -151,7 +151,7 @@ upgrade() {
 main() {
     if [ ! -z $g_plugin ]; then
         install_plugin
-    elif [ $g_upgrade == "true" ]; then
+    elif [ "$g_upgrade" == "true" ]; then
         upgrade
     else
         install

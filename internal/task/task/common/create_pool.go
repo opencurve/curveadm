@@ -23,12 +23,15 @@
 package common
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/configure/pool"
 	"github.com/opencurve/curveadm/internal/configure/topology"
+	"github.com/opencurve/curveadm/internal/storage"
+	"github.com/opencurve/curveadm/internal/task/context"
 	"github.com/opencurve/curveadm/internal/task/scripts"
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
@@ -36,19 +39,52 @@ import (
 	"github.com/opencurve/curveadm/internal/utils"
 )
 
+type step2SetClusterPool struct {
+	clusterId   int
+	clusterPool string
+	storage     *storage.Storage
+}
+
+func (s *step2SetClusterPool) Execute(ctx *context.Context) error {
+	return s.storage.SetClusterPool(s.clusterId, s.clusterPool)
+}
+
 const (
 	KEY_POOL_TYPE = "POOL_TYPE"
+
+	KEY_SCALE_OUT = "SCALE_OUT"
 
 	TYPE_LOGICAL_POOL  = "logicalpool"
 	TYPE_PHYSICAL_POOL = "physicalpool"
 )
 
-func prepare(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (clusterPool, clusterMDSAddrs string, err error) {
-	clusterPool, err = pool.GenerateClusterPool(curveadm.ClusterTopologyData())
+func prepare(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (clusterPoolJson, clusterMDSAddrs string, err error) {
+	var clusterPool pool.CurveClusterTopo
+	data := curveadm.ClusterPoolData()
+	if len(data) == 0 {
+		clusterPool, err = pool.GenerateDefaultClusterPool(curveadm.ClusterTopologyData())
+		if err != nil {
+			return
+		}
+	} else {
+		err = json.Unmarshal([]byte(data), &clusterPool)
+		if err != nil {
+			return
+		}
+	}
+
+	dcs4scale := curveadm.MemStorage().Get(KEY_SCALE_OUT)
+	if dcs4scale != nil {
+		pool.ScaleOutClusterPool(&clusterPool, dcs4scale.([]*topology.DeployConfig))
+	}
+
+	bytes, err := json.Marshal(clusterPool)
 	if err != nil {
 		return
 	}
+	clusterPoolJson = string(bytes)
 
+	// cluster MDS address
 	clusterMDSAddrs, err = dc.GetVariables().Get("cluster_mds_addr")
 	clusterMDSAddrs = strings.Replace(clusterMDSAddrs, ",", " ", -1)
 	return
@@ -87,7 +123,7 @@ func NewCreateTopologyTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*
 	poolJSONPath := fmt.Sprintf("%s/topology.json", layout.ToolsConfDir)
 	waitScript := scripts.SCRIPT_WAIT
 	waitScriptPath := fmt.Sprintf("%s/wait.sh", layout.ToolsBinDir)
-	clusterPool, clusterMDSAddrs, err := prepare(curveadm, dc)
+	clusterPoolJson, clusterMDSAddrs, err := prepare(curveadm, dc)
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +131,7 @@ func NewCreateTopologyTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*
 	t.AddStep(&step.InstallFile{ // install curvebs/curvefs topology
 		ContainerId:       &containerId,
 		ContainerDestPath: poolJSONPath,
-		Content:           &clusterPool,
+		Content:           &clusterPoolJson,
 		ExecWithSudo:      true,
 		ExecInLocal:       false,
 		ExecSudoAlias:     curveadm.SudoAlias(),
@@ -140,6 +176,11 @@ func NewCreateTopologyTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*
 		ExecWithSudo:  true,
 		ExecInLocal:   false,
 		ExecSudoAlias: curveadm.SudoAlias(),
+	})
+	t.AddStep(&step2SetClusterPool{
+		clusterId:   curveadm.ClusterId(),
+		clusterPool: clusterPoolJson,
+		storage:     curveadm.Storage(),
 	})
 
 	return t, nil

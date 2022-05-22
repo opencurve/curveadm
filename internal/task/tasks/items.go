@@ -70,6 +70,7 @@ const (
 	CLEAN_SERVICE
 	SYNC_BINARY
 	COLLECT_SERVICE
+	BACKUP_ETCD_DATA
 	// bs
 	START_NEBD_SERVICE
 	START_TARGET_DAEMON
@@ -205,6 +206,8 @@ func ExecTasks(taskType int, curveadm *cli.CurveAdm, configSlice interface{}) er
 			t, err = comm.NewRestartServiceTask(curveadm, dc)
 		case CREATE_POOL:
 			t, err = comm.NewCreateTopologyTask(curveadm, dc)
+		case BALANCE_LEADER:
+			t, err = bs.NewBalanceTask(curveadm, dc)
 		case GET_SERVICE_STATUS:
 			option.SilentSubBar = true
 			option.SkipError = true
@@ -213,10 +216,8 @@ func ExecTasks(taskType int, curveadm *cli.CurveAdm, configSlice interface{}) er
 			t, err = comm.NewCleanServiceTask(curveadm, dc)
 		case COLLECT_SERVICE:
 			t, err = comm.NewCollectServiceTask(curveadm, dc)
-		case BALANCE_LEADER:
-			t, err = bs.NewBalanceTask(curveadm, dc)
-		case SYNC_BINARY:
-			//t, err = comm.NewSyncBinaryTask(curveadm, dc)
+		case BACKUP_ETCD_DATA:
+			t, err = comm.NewBackupEtcdDataTask(curveadm, dc)
 		case MOUNT_FILESYSTEM:
 			option.SilentSubBar = true
 			t, err = fs.NewMountFSTask(curveadm, fcc)

@@ -54,22 +54,23 @@ func addSubCommands(cmd *cobra.Command, curveadm *cli.CurveAdm) {
 		target.NewTargetCommand(curveadm),   // curveadm target ...
 		plugin.NewPluginCommand(curveadm),   // curveadm plugin ...
 
-		NewDeployCommand(curveadm),  // curveadm deploy
-		NewStartCommand(curveadm),   // curveadm start
-		NewStopCommand(curveadm),    // curveadm stop
-		NewRestartCommand(curveadm), // curveadm restart
-		NewReloadCommand(curveadm),  // curveadm reload
-		NewStatusCommand(curveadm),  // curveadm status
-		NewCleanCommand(curveadm),   // curveadm clean
-		NewUpgradeCommand(curveadm), // curveadm upgrade
-		NewEnterCommand(curveadm),   // curveadm enter
-		NewMountCommand(curveadm),   // curveadm mount
-		NewUmountCommand(curveadm),  // curveadm umount
-		NewCheckCommand(curveadm),   // curveadm check
-		NewSupportCommand(curveadm), // curveadm support
-		NewFormatCommand(curveadm),  // curveadm format
-		NewMapCommand(curveadm),     // curveadm map
-		NewUnmapCommand(curveadm),   // curveadm unmap
+		NewDeployCommand(curveadm),   // curveadm deploy
+		NewStartCommand(curveadm),    // curveadm start
+		NewStopCommand(curveadm),     // curveadm stop
+		NewRestartCommand(curveadm),  // curveadm restart
+		NewReloadCommand(curveadm),   // curveadm reload
+		NewStatusCommand(curveadm),   // curveadm status
+		NewCleanCommand(curveadm),    // curveadm clean
+		NewUpgradeCommand(curveadm),  // curveadm upgrade
+		NewScaleOutCommand(curveadm), // curveadm scale-out
+		NewEnterCommand(curveadm),    // curveadm enter
+		NewMountCommand(curveadm),    // curveadm mount
+		NewUmountCommand(curveadm),   // curveadm umount
+		NewCheckCommand(curveadm),    // curveadm check
+		NewSupportCommand(curveadm),  // curveadm support
+		NewFormatCommand(curveadm),   // curveadm format
+		NewMapCommand(curveadm),      // curveadm map
+		NewUnmapCommand(curveadm),    // curveadm unmap
 
 		NewCompletionCommand(), // curveadm completion
 	)

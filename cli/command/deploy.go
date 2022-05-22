@@ -27,51 +27,35 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/opencurve/curveadm/cli/cli"
+	comm "github.com/opencurve/curveadm/internal/common"
 	"github.com/opencurve/curveadm/internal/configure/topology"
 	"github.com/opencurve/curveadm/internal/errors"
-	task "github.com/opencurve/curveadm/internal/task/task/common"
-	"github.com/opencurve/curveadm/internal/task/tasks"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/cobra"
 )
 
-const (
-	// task type
-	PULL_IMAGE = iota
-	CREATE_CONTAINER
-	SYNC_CONFIG
-	START_ETCD
-	START_MDS
-	START_CHUNKSERVER
-	START_SNAPSHOTCLONE
-	START_METASEREVR
-	CREATE_PHYSICAL_POOL
-	CREATE_LOGICAL_POOL
-	BALANCE_LEADER
-)
-
 var (
-	CURVEBS_STEPS = []int{
-		PULL_IMAGE,
-		CREATE_CONTAINER,
-		SYNC_CONFIG,
-		START_ETCD,
-		START_MDS,
-		CREATE_PHYSICAL_POOL,
-		START_CHUNKSERVER,
-		CREATE_LOGICAL_POOL,
-		START_SNAPSHOTCLONE,
-		BALANCE_LEADER,
+	CURVEBS_DEPLOY_STEPS = []int{
+		comm.PULL_IMAGE,
+		comm.CREATE_CONTAINER,
+		comm.SYNC_CONFIG,
+		comm.START_ETCD,
+		comm.START_MDS,
+		comm.CREATE_PHYSICAL_POOL,
+		comm.START_CHUNKSERVER,
+		comm.CREATE_LOGICAL_POOL,
+		comm.START_SNAPSHOTCLONE,
+		comm.BALANCE_LEADER,
 	}
 
-	CURVEFS_STEPS = []int{
-		PULL_IMAGE,
-		CREATE_CONTAINER,
-		SYNC_CONFIG,
-		START_ETCD,
-		START_MDS,
-		START_METASEREVR,
-		CREATE_LOGICAL_POOL,
+	CURVEFS_DEPLOY_STEPS = []int{
+		comm.PULL_IMAGE,
+		comm.CREATE_CONTAINER,
+		comm.SYNC_CONFIG,
+		comm.START_ETCD,
+		comm.START_MDS,
+		comm.START_METASEREVR,
+		comm.CREATE_LOGICAL_POOL,
 	}
 )
 
@@ -93,9 +77,39 @@ func NewDeployCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	return cmd
 }
 
-func filterDeployConfig(curveadm *cli.CurveAdm, dcs []*topology.DeployConfig, role string) []*topology.DeployConfig {
-	options := topology.FilterOption{Id: "*", Role: role, Host: "*"}
-	return curveadm.FilterDeployConfig(dcs, options)
+func steps2deploy(curveadm *cli.CurveAdm, dcs []*topology.DeployConfig) []comm.Step {
+	kind := dcs[0].GetKind()
+	steps := CURVEFS_DEPLOY_STEPS
+	if kind == topology.KIND_CURVEBS {
+		steps = CURVEBS_DEPLOY_STEPS
+	}
+
+	ss := []comm.Step{}
+	for _, step := range steps {
+		s := comm.Step{Type: step}
+		switch step {
+		case comm.START_ETCD:
+			s.DeployConfigs = comm.FilterDeployConfig(curveadm, dcs, topology.ROLE_ETCD)
+		case comm.START_MDS:
+			s.DeployConfigs = comm.FilterDeployConfig(curveadm, dcs, topology.ROLE_MDS)
+		case comm.START_CHUNKSERVER:
+			s.DeployConfigs = comm.FilterDeployConfig(curveadm, dcs, topology.ROLE_CHUNKSERVER)
+		case comm.START_SNAPSHOTCLONE:
+			s.DeployConfigs = comm.FilterDeployConfig(curveadm, dcs, topology.ROLE_SNAPSHOTCLONE)
+		case comm.START_METASEREVR:
+			s.DeployConfigs = comm.FilterDeployConfig(curveadm, dcs, topology.ROLE_METASERVER)
+		case comm.CREATE_PHYSICAL_POOL:
+			s.DeployConfigs = comm.FilterDeployConfig(curveadm, dcs, topology.ROLE_MDS)[:1]
+		case comm.CREATE_LOGICAL_POOL:
+			s.DeployConfigs = comm.FilterDeployConfig(curveadm, dcs, topology.ROLE_MDS)[:1]
+		case comm.BALANCE_LEADER:
+			s.DeployConfigs = comm.FilterDeployConfig(curveadm, dcs, topology.ROLE_MDS)[:1]
+		default:
+			s.DeployConfigs = dcs
+		}
+		ss = append(ss, s)
+	}
+	return ss
 }
 
 func displayTitle(curveadm *cli.CurveAdm, dcs []*topology.DeployConfig) {
@@ -136,59 +150,6 @@ func displayTitle(curveadm *cli.CurveAdm, dcs []*topology.DeployConfig) {
 	curveadm.WriteOut("\n")
 }
 
-func execDeployTask(curveadm *cli.CurveAdm, deployConfigs []*topology.DeployConfig, steps []int) error {
-	for _, step := range steps {
-		taskType := tasks.UNKNOWN
-		dcs := deployConfigs
-		switch step {
-		case PULL_IMAGE:
-			taskType = tasks.PULL_IMAGE
-		case CREATE_CONTAINER:
-			taskType = tasks.CREATE_CONTAINER
-		case SYNC_CONFIG:
-			taskType = tasks.SYNC_CONFIG
-		case START_ETCD:
-			taskType = tasks.START_SERVICE
-			dcs = filterDeployConfig(curveadm, dcs, topology.ROLE_ETCD)
-		case START_MDS:
-			taskType = tasks.START_SERVICE
-			dcs = filterDeployConfig(curveadm, dcs, topology.ROLE_MDS)
-		case START_CHUNKSERVER:
-			taskType = tasks.START_SERVICE
-			dcs = filterDeployConfig(curveadm, dcs, topology.ROLE_CHUNKSERVER)
-		case START_SNAPSHOTCLONE:
-			taskType = tasks.START_SERVICE
-			dcs = filterDeployConfig(curveadm, dcs, topology.ROLE_SNAPSHOTCLONE)
-		case START_METASEREVR:
-			taskType = tasks.START_SERVICE
-			dcs = filterDeployConfig(curveadm, dcs, topology.ROLE_METASERVER)
-		case CREATE_PHYSICAL_POOL:
-			curveadm.MemStorage().Set(task.KEY_POOL_TYPE, task.TYPE_PHYSICAL_POOL)
-			taskType = tasks.CREATE_POOL
-			dcs = filterDeployConfig(curveadm, dcs, topology.ROLE_MDS)[:1]
-		case CREATE_LOGICAL_POOL:
-			curveadm.MemStorage().Set(task.KEY_POOL_TYPE, task.TYPE_LOGICAL_POOL)
-			taskType = tasks.CREATE_POOL
-			dcs = filterDeployConfig(curveadm, dcs, topology.ROLE_MDS)[:1]
-		case BALANCE_LEADER:
-			taskType = tasks.BALANCE_LEADER
-			dcs = filterDeployConfig(curveadm, dcs, topology.ROLE_MDS)[:1]
-		}
-
-		if len(dcs) == 0 {
-			return errors.ERR_CONFIGURE_NO_SERVICE
-		}
-
-		err := tasks.ExecTasks(taskType, curveadm, dcs)
-		if err != nil {
-			return err
-		}
-
-		curveadm.WriteOut("\n")
-	}
-	return nil
-}
-
 /*
  * Deploy Steps:
  *   1) pull image
@@ -197,6 +158,7 @@ func execDeployTask(curveadm *cli.CurveAdm, deployConfigs []*topology.DeployConf
  *   4) start container
  *     4.1) start etcd container
  *     4.2) start mds container
+ *     4.3) create physical pool(curvebs)
  *     4.3) start chunkserver(curvebs) / metaserver(curvefs) container
  *     4.4) start snapshotserver(curvebs) container
  *   5) create logical pool
@@ -214,13 +176,8 @@ func runDeploy(curveadm *cli.CurveAdm, options deployOptions) error {
 	displayTitle(curveadm, dcs)
 
 	// exec deploy task one by one
-	kind := dcs[0].GetKind()
-	steps := CURVEFS_STEPS
-	if kind == topology.KIND_CURVEBS {
-		steps = CURVEBS_STEPS
-	}
-
-	err = execDeployTask(curveadm, dcs, steps)
+	steps := steps2deploy(curveadm, dcs)
+	err = comm.ExecDeploy(curveadm, steps)
 	if err == nil {
 		curveadm.WriteOut(color.GreenString("Cluster '%s' successfully deployed ^_^.\n"), curveadm.ClusterName())
 	} else if err != nil {

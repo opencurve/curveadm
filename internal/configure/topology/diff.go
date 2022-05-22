@@ -55,7 +55,7 @@ func same(dc1, dc2 *DeployConfig) (bool, error) {
 	return hash1 == hash2, nil
 }
 
-// return ids which belong ids1, but not blong ids2
+// return ids which belong to ids1, but not belong to ids2
 func difference(ids1, ids2 map[string]*DeployConfig) map[string]*DeployConfig {
 	ids := map[string]*DeployConfig{}
 	for k, v := range ids1 {

@@ -60,6 +60,7 @@ type CurveAdm struct {
 	clusterUUId         string // current cluster uuid
 	clusterName         string // current cluster name
 	clusterTopologyData string // cluster topology
+	clusterPoolData     string // cluster pool
 }
 
 /*
@@ -150,6 +151,7 @@ func (curveadm *CurveAdm) init() error {
 	curveadm.clusterUUId = cluster.UUId
 	curveadm.clusterName = cluster.Name
 	curveadm.clusterTopologyData = cluster.Topology
+	curveadm.clusterPoolData = cluster.Pool
 
 	return nil
 }
@@ -172,6 +174,7 @@ func (curveadm *CurveAdm) ClusterId() int                       { return curvead
 func (curveadm *CurveAdm) ClusterUUId() string                  { return curveadm.clusterUUId }
 func (curveadm *CurveAdm) ClusterName() string                  { return curveadm.clusterName }
 func (curveadm *CurveAdm) ClusterTopologyData() string          { return curveadm.clusterTopologyData }
+func (curveadm *CurveAdm) ClusterPoolData() string              { return curveadm.clusterPoolData }
 
 func (curveadm *CurveAdm) ParseTopology() ([]*topology.DeployConfig, error) {
 	return topology.ParseTopology(curveadm.clusterTopologyData)

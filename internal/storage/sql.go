@@ -45,22 +45,23 @@ var (
 			name TEXT NOT NULL UNIQUE,
 			description TEXT,
 			topology TEXT NULL,
+			pool TEXT NULL,
 			create_time DATE NOT NULL,
 			current INTEGER DEFAULT 0
 		)
 	`
 
-	CHECK_UUID_COLUMN = `
+	CHECK_POOl_COLUMN = `
 		SELECT COUNT(*) AS total
 		FROM pragma_table_info('clusters')
-		WHERE name='uuid'
+		WHERE name='pool'
 	`
 
 	RENAME_CLUSTERS_TABLE = `ALTER TABLE clusters RENAME TO clusters_old`
 
 	INSERT_CLUSTERS_FROM_OLD_TABLE = `
-		INSERT INTO clusters(id, uuid, name, description, topology, create_time, current)
-		SELECT id, hex(randomblob(16)) uuid, name, description, topology, create_time, current
+		INSERT INTO clusters(id, uuid, name, description, topology, pool, create_time, current)
+		SELECT id, hex(randomblob(16)) uuid, name, description, topology, "", create_time, current
 		FROM clusters_old
 	`
 
@@ -76,8 +77,8 @@ var (
 	`
 
 	// cluster
-	INSERT_CLUSTER = `INSERT INTO clusters(uuid, name, description, topology, create_time)
-                                  VALUES(hex(randomblob(16)), ?, ?, ?, datetime('now','localtime'))`
+	INSERT_CLUSTER = `INSERT INTO clusters(uuid, name, description, topology, pool, create_time)
+                                  VALUES(hex(randomblob(16)), ?, ?, ?, "", datetime('now','localtime'))`
 
 	DELETE_CLUSTER = `DELETE from clusters WHERE name = ?`
 
@@ -94,6 +95,8 @@ var (
 	`
 
 	SET_CLUSTER_TOPOLOGY = `UPDATE clusters SET topology = ? WHERE id = ?`
+
+	SET_CLUSTER_POOL = `UPDATE clusters SET pool = ? WHERE id = ?`
 
 	// container
 	INSERT_SERVICE = `INSERT INTO containers(id, cluster_id, container_id) VALUES(?, ?, ?)`
