@@ -42,6 +42,11 @@ const (
 )
 
 type (
+	MigrateServer struct {
+		From *topology.DeployConfig
+		To   *topology.DeployConfig
+	}
+
 	LogicalPool struct {
 		Name         string `json:"name"`
 		Replicas     int    `json:"replicasnum"`
@@ -133,6 +138,10 @@ func sortDeployConfigs(dcs []*topology.DeployConfig) {
 	})
 }
 
+func formatName(dc *topology.DeployConfig) string {
+	return fmt.Sprintf("%s_%s_%d", dc.GetHost(), dc.GetName(), dc.GetReplicaSequence())
+}
+
 func createLogicalPool(dcs []*topology.DeployConfig, logicalPool string) (LogicalPool, []Server) {
 	var zone string
 	copysets := 0
@@ -163,7 +172,7 @@ func createLogicalPool(dcs []*topology.DeployConfig, logicalPool string) (Logica
 			}
 
 			server := Server{
-				Name:         fmt.Sprintf("%s_%s_%d", dc.GetHost(), dc.GetName(), dc.GetReplicaSequence()),
+				Name:         formatName(dc),
 				InternalIp:   dc.GetListenIp(),
 				InternalPort: internalPort,
 				ExternalIp:   dc.GetListenExternalIp(),
@@ -229,6 +238,24 @@ func ScaleOutClusterPool(old *CurveClusterTopo, dcs []*topology.DeployConfig) {
 		old.Servers = append(old.Servers, server)
 	}
 	old.NPools = old.NPools + 1
+}
+
+func MigrateClusterServer(old *CurveClusterTopo, migrates []*MigrateServer) {
+	m := map[string]*topology.DeployConfig{}
+	for i, server := range old.Servers {
+		dc, ok := m[server.Name]
+		if !ok {
+			continue
+		}
+		server.Name = formatName(dc)
+		server.InternalIp = dc.GetListenIp()
+		server.ExternalIp = dc.GetListenExternalIp()
+		if server.InternalPort != 0 && server.ExternalPort != 0 {
+			server.InternalPort = dc.GetListenPort()
+			server.ExternalPort = dc.GetListenExternalPort()
+		}
+		old.Servers[i] = server
+	}
 }
 
 func GenerateDefaultClusterPool(data string) (topo CurveClusterTopo, err error) {

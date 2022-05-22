@@ -50,16 +50,18 @@ func (s *step2SetClusterPool) Execute(ctx *context.Context) error {
 }
 
 const (
-	KEY_POOL_TYPE = "POOL_TYPE"
-
-	KEY_SCALE_OUT = "SCALE_OUT"
+	KEY_POOL_TYPE       = "POOL_TYPE"
+	KEY_SCALE_OUT       = "SCALE_OUT"
+	KEY_MIGRATE_SERVERS = "MIGRATE_SERVERS"
 
 	TYPE_LOGICAL_POOL  = "logicalpool"
 	TYPE_PHYSICAL_POOL = "physicalpool"
 )
 
 func prepare(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (clusterPoolJson, clusterMDSAddrs string, err error) {
+	var bytes []byte
 	var clusterPool pool.CurveClusterTopo
+	// origin cluster pool
 	data := curveadm.ClusterPoolData()
 	if len(data) == 0 {
 		clusterPool, err = pool.GenerateDefaultClusterPool(curveadm.ClusterTopologyData())
@@ -73,12 +75,18 @@ func prepare(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (clusterPoolJson
 		}
 	}
 
+	// scale out
 	dcs4scale := curveadm.MemStorage().Get(KEY_SCALE_OUT)
 	if dcs4scale != nil {
 		pool.ScaleOutClusterPool(&clusterPool, dcs4scale.([]*topology.DeployConfig))
 	}
 
-	bytes, err := json.Marshal(clusterPool)
+	migrates := curveadm.MemStorage().Get(KEY_MIGRATE_SERVERS)
+	if migrates != nil {
+		pool.MigrateClusterServer(&clusterPool, migrates.([]*pool.MigrateServer))
+	}
+
+	bytes, err = json.Marshal(clusterPool)
 	if err != nil {
 		return
 	}

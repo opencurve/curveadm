@@ -51,6 +51,8 @@ const (
 	CREATE_LOGICAL_POOL
 	BALANCE_LEADER
 	BACKUP_ETCD_DATA
+	STOP_SERVICE
+	CLEAN_SERVICE_CONTAINER
 )
 
 var (
@@ -94,6 +96,11 @@ func ExecDeploy(curveadm *cli.CurveAdm, steps []Step) error {
 			taskType = tasks.BALANCE_LEADER
 		case BACKUP_ETCD_DATA:
 			taskType = tasks.BACKUP_ETCD_DATA
+		case STOP_SERVICE:
+			taskType = tasks.STOP_SERVICE
+		case CLEAN_SERVICE_CONTAINER:
+			curveadm.MemStorage().Set(task.KEY_CLEAN_ITEMS, []string{ task.ITEM_CONTAINER })
+			taskType = tasks.CLEAN_SERVICE
 		}
 
 		if len(dcs) == 0 {
