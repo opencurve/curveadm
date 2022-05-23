@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/fatih/color"
@@ -49,13 +50,16 @@ type CurveAdm struct {
 	config        *configure.CurveAdmConfig
 
 	// data pipeline
-	in            io.Reader
-	out           io.Writer
-	err           io.Writer
-	storage       *storage.Storage
-	memStorage    *utils.SafeMap
+	in         io.Reader
+	out        io.Writer
+	err        io.Writer
+	storage    *storage.Storage
+	memStorage *utils.SafeMap
+
+	// plugin manager
 	pluginManager *plugin.PluginManager
 
+	// cluster properties
 	clusterId           int    // current cluster id
 	clusterUUId         string // current cluster uuid
 	clusterName         string // current cluster name
@@ -95,7 +99,13 @@ func NewCurveAdm() (*CurveAdm, error) {
 
 func (curveadm *CurveAdm) init() error {
 	// create directory
-	dirs := []string{curveadm.rootDir, curveadm.dataDir, curveadm.pluginDir, curveadm.logDir, curveadm.tempDir}
+	dirs := []string{
+		curveadm.rootDir,
+		curveadm.dataDir,
+		curveadm.pluginDir,
+		curveadm.logDir,
+		curveadm.tempDir,
+	}
 	for _, dir := range dirs {
 		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 			return err
@@ -211,9 +221,31 @@ func (curveadm *CurveAdm) WriteOut(format string, a ...interface{}) (int, error)
 	return curveadm.out.Write([]byte(output))
 }
 
+func (curveadm *CurveAdm) WriteOutln(format string, a ...interface{}) (int, error) {
+	output := fmt.Sprintf(format, a...)
+	output = output + "\n"
+	return curveadm.out.Write([]byte(output))
+}
+
 func (curveadm *CurveAdm) NewPromptError(err error, prompt string) utils.PromptError {
 	if prompt == "" {
 		prompt = color.CyanString("See log file for detail: %s", curveadm.LogPath())
 	}
 	return utils.PromptError{err, prompt}
+}
+
+func (curveadm *CurveAdm) Audit(now time.Time, args []string, execErr *error) {
+	if len(args) > 1 && args[0] == "audit" {
+		return
+	}
+
+	succ := true
+	if *execErr != nil {
+		succ = false
+	}
+	command := fmt.Sprintf("curveadm %s", strings.Join(args, " "))
+	err := curveadm.Storage().InsertAuditLog(now, command, succ)
+	if err != nil {
+		log.Error("InsertAuditLog", log.Field("error", err))
+	}
 }

@@ -38,6 +38,7 @@
 package storage
 
 var (
+	// tables (clusters/containers/audit)
 	CREATE_CLUSTERS_TABLE = `
 		CREATE TABLE IF NOT EXISTS clusters (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -76,6 +77,15 @@ var (
 		)
 	`
 
+	CREATE_AUDIT_TABLE = `
+        CREATE TABLE IF NOT EXISTS audit (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+            execute_time DATE NOT NULL,
+			command TEXT NOT NULL,
+			success INTEGER DEFAULT 0
+		)
+    `
+
 	// cluster
 	INSERT_CLUSTER = `INSERT INTO clusters(uuid, name, description, topology, pool, create_time)
                                   VALUES(hex(randomblob(16)), ?, ?, ?, "", datetime('now','localtime'))`
@@ -106,4 +116,9 @@ var (
 	SELECT_SERVICE_IN_CLUSTER = `SELECT * FROM containers WHERE cluster_id = ?`
 
 	SET_CONTAINER_ID = `UPDATE containers SET container_id = ? WHERE id = ?`
+
+	// audit
+	INSERT_AUDIT_LOG = `INSERT INTO audit(execute_time, command, success) VALUES(?, ?, ?)`
+
+	SELECT_AUDIT_LOG = `SELECT * FROM audit`
 )

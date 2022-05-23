@@ -16,33 +16,44 @@
 
 /*
  * Project: CurveAdm
- * Created Date: 2021-10-15
+ * Created Date: 2022-05-23
  * Author: Jingli Chen (Wine93)
  */
 
-package cli
+package command
 
 import (
-	"fmt"
-	"os"
-	"time"
-
 	"github.com/opencurve/curveadm/cli/cli"
-	"github.com/opencurve/curveadm/cli/command"
+	"github.com/opencurve/curveadm/internal/tui"
+	cliutil "github.com/opencurve/curveadm/internal/utils"
+	"github.com/spf13/cobra"
 )
 
-func Execute() {
-	curveadm, err := cli.NewCurveAdm()
-	if err != nil {
-		fmt.Printf("New curveadm failed: %s", err)
-		os.Exit(1)
+type auditOptions struct{}
+
+func NewAuditCommand(curveadm *cli.CurveAdm) *cobra.Command {
+	var options auditOptions
+
+	cmd := &cobra.Command{
+		Use:   "audit",
+		Short: "Audit",
+		Args:  cliutil.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runAudit(curveadm, options)
+		},
+		DisableFlagsInUseLine: true,
 	}
 
-	now := time.Now()
-	defer curveadm.Audit(now, os.Args[1:], &err)
-	cmd := command.NewCurveAdmCommand(curveadm)
-	err = cmd.Execute()
+	return cmd
+}
+
+func runAudit(curveadm *cli.CurveAdm, options auditOptions) error {
+	auditLogs, err := curveadm.Storage().GetAuditLogs()
 	if err != nil {
-		os.Exit(1)
+		return err
 	}
+
+	output := tui.FormatAuditLogs(auditLogs)
+	curveadm.WriteOut(output)
+	return nil
 }

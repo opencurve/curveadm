@@ -65,13 +65,14 @@ func addSubCommands(cmd *cobra.Command, curveadm *cli.CurveAdm) {
 		NewScaleOutCommand(curveadm), // curveadm scale-out
 		NewMigrateCommand(curveadm),  // curveadm migrate
 		NewEnterCommand(curveadm),    // curveadm enter
-		NewMountCommand(curveadm),   // curveadm mount
-		NewUmountCommand(curveadm),  // curveadm umount
-		NewCheckCommand(curveadm),   // curveadm check
-		NewSupportCommand(curveadm), // curveadm support
-		NewFormatCommand(curveadm),  // curveadm format
-		NewMapCommand(curveadm),     // curveadm map
-		NewUnmapCommand(curveadm),   // curveadm unmap
+		NewMountCommand(curveadm),    // curveadm mount
+		NewUmountCommand(curveadm),   // curveadm umount
+		NewCheckCommand(curveadm),    // curveadm check
+		NewSupportCommand(curveadm),  // curveadm support
+		NewFormatCommand(curveadm),   // curveadm format
+		NewMapCommand(curveadm),      // curveadm map
+		NewUnmapCommand(curveadm),    // curveadm unmap
+		NewAuditCommand(curveadm),    // curveadm audit
 
 		NewCompletionCommand(), // curveadm completion
 	)

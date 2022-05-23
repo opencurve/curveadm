@@ -48,6 +48,13 @@ type Service struct {
 	ContainerId string
 }
 
+type AuditLog struct {
+	Id          int
+	Command     string
+	ExecuteTime time.Time
+	Success     bool
+}
+
 type Storage struct {
 	db    *sql.DB
 	mutex *sync.Mutex
@@ -71,6 +78,8 @@ func (s *Storage) init() error {
 	if err := s.execSQL(CREATE_CLUSTERS_TABLE); err != nil {
 		return err
 	} else if err := s.execSQL(CREATE_CONTAINERS_TABLE); err != nil {
+		return err
+	} else if err := s.execSQL(CREATE_AUDIT_TABLE); err != nil {
 		return err
 	} else if err := s.compatible(); err != nil {
 		return err
@@ -239,4 +248,35 @@ func (s *Storage) GetContainerId(serviceId string) (string, error) {
 
 func (s *Storage) SetContainId(serviceId, containerId string) error {
 	return s.execSQL(SET_CONTAINER_ID, containerId, serviceId)
+}
+
+// audit
+func (s *Storage) InsertAuditLog(time time.Time, command string, success bool) error {
+	return s.execSQL(INSERT_AUDIT_LOG, time, command, success)
+}
+
+func (s *Storage) getAuditLogs(query string, args ...interface{}) ([]AuditLog, error) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+	auditLogs := []AuditLog{}
+	var auditLog AuditLog
+	for rows.Next() {
+		err = rows.Scan(&auditLog.Id, &auditLog.ExecuteTime, &auditLog.Command, &auditLog.Success)
+		if err != nil {
+			return nil, err
+		}
+		auditLogs = append(auditLogs, auditLog)
+	}
+
+	return auditLogs, nil
+}
+
+func (s *Storage) GetAuditLogs() ([]AuditLog, error) {
+	return s.getAuditLogs(SELECT_AUDIT_LOG)
 }
