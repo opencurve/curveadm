@@ -23,12 +23,17 @@
 package config
 
 import (
+	"encoding/json"
+
 	"github.com/opencurve/curveadm/cli/cli"
+	"github.com/opencurve/curveadm/internal/configure/pool"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/cobra"
 )
 
-type showOptions struct{}
+type showOptions struct {
+	showPool bool
+}
 
 func NewShowCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	var options showOptions
@@ -43,11 +48,30 @@ func NewShowCommand(curveadm *cli.CurveAdm) *cobra.Command {
 		DisableFlagsInUseLine: true,
 	}
 
+	flags := cmd.Flags()
+	flags.BoolVarP(&options.showPool, "pool", "p", false, "Show cluster pool information")
+
 	return cmd
 }
 
 func runShow(curveadm *cli.CurveAdm, options showOptions) error {
-	data := curveadm.ClusterTopologyData()
-	curveadm.WriteOut("%s", data)
+	if !options.showPool {
+		curveadm.WriteOut("%s", curveadm.ClusterTopologyData())
+		return nil
+	}
+
+	// show cluster pool information
+	pool := pool.CurveClusterTopo{}
+	err := json.Unmarshal([]byte(curveadm.ClusterPoolData()), &pool)
+	if err != nil {
+		return err
+	}
+
+	bytes, err := json.MarshalIndent(pool, "", "    ")
+	if err != nil {
+		return err
+	}
+
+	curveadm.WriteOut("%s\n", string(bytes))
 	return nil
 }

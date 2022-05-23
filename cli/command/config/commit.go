@@ -23,11 +23,13 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/opencurve/curveadm/cli/cli"
+	comm "github.com/opencurve/curveadm/internal/common"
 	"github.com/opencurve/curveadm/internal/configure/topology"
-	"github.com/opencurve/curveadm/internal/tui/common"
+	tui "github.com/opencurve/curveadm/internal/tui/common"
 	"github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/cobra"
 )
@@ -64,16 +66,11 @@ func NewCommitCommand(curveadm *cli.CurveAdm) *cobra.Command {
 }
 
 func validateTopology(oldData, newData string) error {
-	if oldData == "" {
-		return nil
-	} else if dcs, err := topology.ParseTopology(oldData); err != nil {
-		return err
-	} else if len(dcs) == 0 {
-		return nil
-	}
-
-	diffs, err := topology.DiffTopology(oldData, newData)
-	if err != nil {
+	// validate config difference
+	diffs, err := comm.DiffTopology(oldData, newData)
+	if err != nil &&
+		!errors.Is(err, comm.ERR_EMPTY_TOPOLOGY) &&
+		!errors.Is(err, comm.ERR_NO_SERVICE) {
 		return err
 	}
 
@@ -85,11 +82,11 @@ func validateTopology(oldData, newData string) error {
 			return fmt.Errorf("you can't add service in config setting")
 		}
 	}
-
 	return nil
 }
 
 func runCommit(curveadm *cli.CurveAdm, options commitOptions) error {
+	// validate topology difference
 	oldData := curveadm.ClusterTopologyData()
 	newData, err := utils.ReadFile(options.filename)
 	if err != nil {
@@ -98,17 +95,24 @@ func runCommit(curveadm *cli.CurveAdm, options commitOptions) error {
 
 	if !options.slient {
 		diff := utils.Diff(oldData, newData)
-		curveadm.WriteOut("%s\n", diff)
+		curveadm.WriteOutln("%s", diff)
 	}
 
-	if err := validateTopology(oldData, newData); err != nil {
+	err = validateTopology(oldData, newData)
+	if err != nil {
 		return err
-	} else if pass := common.ConfirmYes("Do you want to continue?"); !pass {
+	}
+
+	// commit cluster topology
+	pass := tui.ConfirmYes("Do you want to continue?")
+	if !pass {
+		curveadm.WriteOutln(tui.PromptCancelOpetation("Commit"))
 		return nil
-	} else if err := curveadm.Storage().SetClusterTopology(curveadm.ClusterId(), newData); err != nil {
-		return err
 	}
 
-	curveadm.WriteOut("Cluster '%s' topology updated\n", curveadm.ClusterName())
-	return nil
+	err = curveadm.Storage().SetClusterTopology(curveadm.ClusterId(), newData)
+	if err == nil {
+		curveadm.WriteOut("Cluster '%s' topology updated\n", curveadm.ClusterName())
+	}
+	return err
 }

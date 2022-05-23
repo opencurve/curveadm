@@ -60,6 +60,8 @@ configurations effect, you should reload the corresponding
 services after the scale out success.
 `
 
+	PROMPT_CANCEL_OPERATION = `[x] {{.operation}} canceled`
+
 	DEFAULT_CONFIRM_PROMPT = "Do you want to continue?"
 )
 
@@ -116,5 +118,11 @@ func PromptScaleOut(warning bool) string {
 	if warning {
 		prompt = NewPrompt(color.YellowString(PROMPT_SCALE_OUT_NOTICE) + DEFAULT_CONFIRM_PROMPT)
 	}
+	return prompt.Build()
+}
+
+func PromptCancelOpetation(operation string) string {
+	prompt := NewPrompt(color.RedString(PROMPT_CANCEL_OPERATION))
+	prompt.data["operation"] = operation
 	return prompt.Build()
 }
