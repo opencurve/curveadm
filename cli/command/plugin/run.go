@@ -58,7 +58,7 @@ func NewRunCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	flags := cmd.Flags()
 	flags.StringVarP(&options.hosts, "hosts", "", "", "Specify the targets")
 	flags.StringVarP(&options.inventory, "inventory", "i", "", "Specify the path of inventory file")
-	flags.StringSliceVarP(&options.args, "arg", "a", []string{}, "Specify plugin run options")
+	flags.StringArrayVarP(&options.args, "arg", "a", []string{}, "Specify plugin run options")
 
 	return cmd
 }
@@ -97,9 +97,12 @@ func displayOutput(curveadm *cli.CurveAdm, targets []config.Target) {
 	memStorage := curveadm.MemStorage()
 	for _, target := range targets {
 		title := fmt.Sprintf("%s (%s):", target.Name, target.Host)
-		curveadm.WriteOut("\n")
-		curveadm.WriteOut("%s\n", color.BlueString(title))
-		curveadm.WriteOut("%s\n", memStorage.Get(target.Host).(string))
+		curveadm.WriteOutln("")
+		if output := memStorage.Get(target.Host); output != nil {
+			curveadm.WriteOutln("%s\n%s", color.BlueString(title), output.(string))
+		} else {
+			curveadm.WriteOutln("%s %s", color.BlueString(title), color.GreenString("OK"))
+		}
 	}
 }
 

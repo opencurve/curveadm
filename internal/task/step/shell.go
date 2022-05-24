@@ -237,6 +237,8 @@ func (s *ShellCommand) Execute(ctx *context.Context) error {
 		return err
 	}
 
-	*s.Out = strings.TrimSuffix(out, "\n")
+	if s.Out != nil {
+		*s.Out = strings.TrimSuffix(out, "\n")
+	}
 	return nil
 }

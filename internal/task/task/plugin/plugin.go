@@ -43,7 +43,9 @@ type (
 
 func (s *step2StoreVariables) Execute(ctx *context.Context) error {
 	// TODO(@Wine93): implement post_task which can output by variable
-	s.memStorage.Set(s.host, s.variables["output"].Value)
+	if variable, ok := s.variables["output"]; ok {
+		s.memStorage.Set(s.host, variable.Value)
+	}
 	return nil
 }
 

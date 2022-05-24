@@ -4,7 +4,7 @@ options:
     default: 127.0.0.1
   - key: pfs_package_url
     bind_variable: pfs_package_url
-    default: https://curveadm.nos-eastchina1.126.net/pfs_package.tar.gz
+    default: https://curveadm.nos-eastchina1.126.net/plugins/package/pfs_package.tar.gz
   - key: package_save_dir
     bind_variable: package_save_dir
     default: /tmp
@@ -13,7 +13,7 @@ task:
   - name: Download PFS package tarball
     module: shell
     options:
-      command: curl -ks ${pfs_package_url} -o ${package_save_dir}
+      command: curl -ks ${pfs_package_url} -o ${package_save_dir}/pfs_package.tar.gz
 
   - name: Decompress PFS package tarball
     module: shell
@@ -25,17 +25,27 @@ task:
     options:
       command: sudo dpkg -i ${package_save_dir}/pfs/curvebs_pfsd.deb
 
-   - name: Create Curve library and config directory
-     module: shell
-     options:
-      command: sudo mkdir -p /usr/lib/curve /etc/curve
+  - name: Create Curve library and config directory
+    module: shell
+    options:
+      command: sudo mkdir -p /usr/lib/curve /etc/curve/conf
 
-   - name: Decompress Curve library
-     module: shell
-     options:
+  - name: Decompress Curve library
+    module: shell
+    options:
       command: sudo tar -zxvf ${package_save_dir}/pfs/curvelib.tar.gz -C /usr/lib/curve --strip-components=1
 
-   - name: Copy client config
-     module: shell
-     options:
-       command: sudo sed 's/__MDS_LISTEN_ADDRS__/${mds_listen_addr}/g' ${package_save_dir}/pfs/client.conf > /etc/curve/client.conf
+  - name: echo
+    module: shell
+    options:
+      command: echo ${mds_listen_addr} > /tmp/123000
+
+  - name: Modify client config file
+    module: shell
+    options:
+      command: sudo sed -i 's/__MDS_LISTEN_ADDRS__/${mds_listen_addr}/g' ${package_save_dir}/pfs/client.conf
+
+  - name: Copy client config file to destination directory
+    module: shell
+    options:
+      command: sudo cp -r ${package_save_dir}/pfs/client.conf /etc/curve/conf/client.conf

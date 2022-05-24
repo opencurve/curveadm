@@ -1,6 +1,6 @@
 Name: polarfs
-Version: v0.0.1
-Released: 2022-05-22
-Description: Install PolarFS on targets
-Homepage: https://github.com/opencurve/curveadm/plugins/polarfs
+Version: v0.0.2
+Released: 2022-05-24
+Description: Install PolarFS on targets (Debian only)
+Homepage: https://github.com/opencurve/curveadm/tree/master/plugins/polarfs
 Copyright: Jingli Chen (Wine93), NetEase Inc.

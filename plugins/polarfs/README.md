@@ -2,6 +2,8 @@
 
 This plugin can help you install [PolarFS](PolarFS) to multiple host machines.
 
+NOTE: now we only support deploy in debian system.
+
 ## Usage
 
 * Install PolarFS on targets
