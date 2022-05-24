@@ -235,7 +235,7 @@ func (curveadm *CurveAdm) NewPromptError(err error, prompt string) utils.PromptE
 }
 
 func (curveadm *CurveAdm) Audit(now time.Time, args []string, execErr *error) {
-	if len(args) > 1 && args[0] == "audit" {
+	if len(args) > 0 && args[0] == "audit" {
 		return
 	}
 

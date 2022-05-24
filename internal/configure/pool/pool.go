@@ -122,17 +122,15 @@ func genNextZone(zones int) func() string {
 	}
 }
 
+// we should sort the "dcs" for generate correct zone number
 func sortDeployConfigs(dcs []*topology.DeployConfig) {
 	sort.Slice(dcs, func(i, j int) bool {
 		dc1, dc2 := dcs[i], dcs[j]
 		if dc1.GetRole() == dc2.GetRole() {
-			if dc1.GetHost() == dc2.GetHost() {
-				if dc1.GetHostSequence() == dc2.GetHostSequence() {
-					return dc1.GetReplicaSequence() < dc2.GetReplicaSequence()
-				}
-				return dc1.GetHostSequence() < dc2.GetHostSequence()
+			if dc1.GetHostSequence() == dc2.GetHostSequence() {
+				return dc1.GetReplicaSequence() < dc2.GetReplicaSequence()
 			}
-			return dc1.GetHost() < dc2.GetHost()
+			return dc1.GetHostSequence() < dc2.GetHostSequence()
 		}
 		return dc1.GetRole() < dc2.GetRole()
 	})
@@ -241,15 +239,20 @@ func ScaleOutClusterPool(old *CurveClusterTopo, dcs []*topology.DeployConfig) {
 }
 
 func MigrateClusterServer(old *CurveClusterTopo, migrates []*MigrateServer) {
-	m := map[string]*topology.DeployConfig{}
+	m := map[string]*topology.DeployConfig{} // key: from.Name, value: to.DeployConfig
+	for _, migrate := range migrates {
+		m[formatName(migrate.From)] = migrate.To
+	}
+
 	for i, server := range old.Servers {
 		dc, ok := m[server.Name]
 		if !ok {
 			continue
 		}
-		server.Name = formatName(dc)
+
 		server.InternalIp = dc.GetListenIp()
 		server.ExternalIp = dc.GetListenExternalIp()
+		server.Name = formatName(dc)
 		if server.InternalPort != 0 && server.ExternalPort != 0 {
 			server.InternalPort = dc.GetListenPort()
 			server.ExternalPort = dc.GetListenExternalPort()

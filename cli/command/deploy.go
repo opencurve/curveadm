@@ -77,42 +77,42 @@ func NewDeployCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	return cmd
 }
 
-func steps2deploy(curveadm *cli.CurveAdm, dcs []*topology.DeployConfig) []comm.Step {
+func genDeploySteps(curveadm *cli.CurveAdm, dcs []*topology.DeployConfig) []comm.DeployStep {
 	kind := dcs[0].GetKind()
 	steps := CURVEFS_DEPLOY_STEPS
 	if kind == topology.KIND_CURVEBS {
 		steps = CURVEBS_DEPLOY_STEPS
 	}
 
-	ss := []comm.Step{}
+	dss := []comm.DeployStep{}
 	for _, step := range steps {
-		s := comm.Step{Type: step}
+		ds := comm.DeployStep{Type: step}
 		switch step {
 		case comm.START_ETCD:
-			s.DeployConfigs = comm.FilterDeployConfig(curveadm, dcs, topology.ROLE_ETCD)
+			ds.DeployConfigs = comm.FilterDeployConfig(curveadm, dcs, topology.ROLE_ETCD)
 		case comm.START_MDS:
-			s.DeployConfigs = comm.FilterDeployConfig(curveadm, dcs, topology.ROLE_MDS)
+			ds.DeployConfigs = comm.FilterDeployConfig(curveadm, dcs, topology.ROLE_MDS)
 		case comm.START_CHUNKSERVER:
-			s.DeployConfigs = comm.FilterDeployConfig(curveadm, dcs, topology.ROLE_CHUNKSERVER)
+			ds.DeployConfigs = comm.FilterDeployConfig(curveadm, dcs, topology.ROLE_CHUNKSERVER)
 		case comm.START_SNAPSHOTCLONE:
-			s.DeployConfigs = comm.FilterDeployConfig(curveadm, dcs, topology.ROLE_SNAPSHOTCLONE)
+			ds.DeployConfigs = comm.FilterDeployConfig(curveadm, dcs, topology.ROLE_SNAPSHOTCLONE)
 		case comm.START_METASEREVR:
-			s.DeployConfigs = comm.FilterDeployConfig(curveadm, dcs, topology.ROLE_METASERVER)
+			ds.DeployConfigs = comm.FilterDeployConfig(curveadm, dcs, topology.ROLE_METASERVER)
 		case comm.CREATE_PHYSICAL_POOL:
-			s.DeployConfigs = comm.FilterDeployConfig(curveadm, dcs, topology.ROLE_MDS)[:1]
+			ds.DeployConfigs = comm.FilterDeployConfig(curveadm, dcs, topology.ROLE_MDS)[:1]
 		case comm.CREATE_LOGICAL_POOL:
-			s.DeployConfigs = comm.FilterDeployConfig(curveadm, dcs, topology.ROLE_MDS)[:1]
+			ds.DeployConfigs = comm.FilterDeployConfig(curveadm, dcs, topology.ROLE_MDS)[:1]
 		case comm.BALANCE_LEADER:
-			s.DeployConfigs = comm.FilterDeployConfig(curveadm, dcs, topology.ROLE_MDS)[:1]
+			ds.DeployConfigs = comm.FilterDeployConfig(curveadm, dcs, topology.ROLE_MDS)[:1]
 		default:
-			s.DeployConfigs = dcs
+			ds.DeployConfigs = dcs
 		}
-		ss = append(ss, s)
+		dss = append(dss, ds)
 	}
-	return ss
+	return dss
 }
 
-func displayTitle(curveadm *cli.CurveAdm, dcs []*topology.DeployConfig) {
+func displayDeployTitle(curveadm *cli.CurveAdm, dcs []*topology.DeployConfig) {
 	netcd := 0
 	nmds := 0
 	nchunkserevr := 0
@@ -173,10 +173,10 @@ func runDeploy(curveadm *cli.CurveAdm, options deployOptions) error {
 	}
 
 	// display title
-	displayTitle(curveadm, dcs)
+	displayDeployTitle(curveadm, dcs)
 
 	// exec deploy task one by one
-	steps := steps2deploy(curveadm, dcs)
+	steps := genDeploySteps(curveadm, dcs)
 	err = comm.ExecDeploy(curveadm, steps)
 	if err == nil {
 		curveadm.WriteOut(color.GreenString("Cluster '%s' successfully deployed ^_^.\n"), curveadm.ClusterName())

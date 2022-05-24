@@ -54,6 +54,14 @@ var (
 		comm.START_MDS,
 	}
 
+	// snapshotclone (curvebs)
+	SCALE_OUT_SNAPSHOTCLONE_STEPS = []int{
+		comm.PULL_IMAGE,
+		comm.CREATE_CONTAINER,
+		comm.SYNC_CONFIG,
+		comm.START_SNAPSHOTCLONE,
+	}
+
 	// chunkserevr (curvebs)
 	SCALE_OUT_CHUNKSERVER_STEPS = []int{
 		comm.BACKUP_ETCD_DATA,
@@ -97,51 +105,41 @@ func NewScaleOutCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	return cmd
 }
 
-func checkDiff4ScaleOut(diffs []topology.TopologyDiff, err4diff error) (dcs []*topology.DeployConfig, err error, warning bool) {
-	if errors.Is(err4diff, comm.ERR_EMPTY_TOPOLOGY) {
-		err = fmt.Errorf("cluster topology is empty")
-		return
-	} else if errors.Is(err4diff, comm.ERR_NO_SERVICE) {
-		err = fmt.Errorf("you can't scale out empty cluster")
-		return
+func checkScaleOutTopology(oldData, newData string) (error, bool) {
+	diffs, err := comm.DiffTopology(oldData, newData)
+	if errors.Is(err, comm.ERR_EMPTY_TOPOLOGY) {
+		return fmt.Errorf("cluster topology is empty"), false
+	} else if errors.Is(err, comm.ERR_NO_SERVICE) {
+		return fmt.Errorf("you can't scale out empty cluster"), false
+	} else if err != nil {
+		return err, false
 	}
 
-	for _, diff := range diffs {
-		diffType := diff.DiffType
-		if diffType == topology.DIFF_ADD {
-			dcs = append(dcs, diff.DeployConfig)
-		} else if diffType == topology.DIFF_DELETE {
-			err = fmt.Errorf("you can't delete service in scale-out")
-			return
-		} else if diffType == topology.DIFF_CHANGE {
-			warning = true
-		}
+	dcs4add, dcs4del, dcs4change := comm.ParseDiff(diffs)
+	if len(dcs4del) != 0 {
+		return fmt.Errorf("you can't delete service in scale-out"), false
+	} else if len(dcs4add) == 0 {
+		return fmt.Errorf("no new services for scale out"), false
+	} else if !comm.IsSameRole(dcs4add) {
+		return fmt.Errorf("you can only scale out same role services every time"), false
 	}
-
-	if len(dcs) == 0 {
-		err = fmt.Errorf("No new services for scale out")
-		return
-	}
-
-	role := dcs[0].GetRole()
-	for _, dc := range dcs {
-		if dc.GetRole() != role {
-			err = fmt.Errorf("You can only scale out same role services every time")
-			return
-		}
-	}
-
-	return
+	return nil, len(dcs4change) != 0
 }
 
-func steps2scale(curveadm *cli.CurveAdm, dcs, dcs2scale []*topology.DeployConfig) ([]comm.Step, error) {
+func genScaleOutSteps(curveadm *cli.CurveAdm, oldData, newData string) ([]comm.DeployStep, error) {
+	diffs, _ := comm.DiffTopology(oldData, newData) // ignore error
+	dcs4add, _, _ := comm.ParseDiff(diffs)
+	dcs, _ := topology.ParseTopology(curveadm.ClusterTopologyData())
+
 	var steps []int
-	role := dcs2scale[0].GetRole()
+	role := dcs4add[0].GetRole()
 	switch role {
 	case topology.ROLE_ETCD:
 		steps = SCALE_OUT_ETCD_STEPS
 	case topology.ROLE_MDS:
 		steps = SCALE_OUT_MDS_STEPS
+	case topology.ROLE_SNAPSHOTCLONE:
+		steps = SCALE_OUT_SNAPSHOTCLONE_STEPS
 	case topology.ROLE_CHUNKSERVER:
 		steps = SCALE_OUT_CHUNKSERVER_STEPS
 	case topology.ROLE_METASERVER:
@@ -150,62 +148,60 @@ func steps2scale(curveadm *cli.CurveAdm, dcs, dcs2scale []*topology.DeployConfig
 		return nil, fmt.Errorf("unknown role '%s'", role)
 	}
 
-	ss := []comm.Step{}
+	dss := []comm.DeployStep{}
 	for _, step := range steps {
-		s := comm.Step{Type: step}
+		ds := comm.DeployStep{Type: step}
 		switch step {
 		case comm.BACKUP_ETCD_DATA:
-			s.DeployConfigs = comm.FilterDeployConfig(curveadm, dcs, topology.ROLE_ETCD)
+			ds.DeployConfigs = comm.FilterDeployConfig(curveadm, dcs, topology.ROLE_ETCD)
 		case comm.CREATE_PHYSICAL_POOL:
-			curveadm.MemStorage().Set(task.KEY_SCALE_OUT, dcs2scale)
-			s.DeployConfigs = comm.FilterDeployConfig(curveadm, dcs, topology.ROLE_MDS)[:1]
+			curveadm.MemStorage().Set(task.KEY_SCALE_OUT_CLUSTER, dcs4add)
+			ds.DeployConfigs = comm.FilterDeployConfig(curveadm, dcs, topology.ROLE_MDS)[:1]
 		case comm.CREATE_LOGICAL_POOL:
-			curveadm.MemStorage().Set(task.KEY_SCALE_OUT, dcs2scale)
-			s.DeployConfigs = comm.FilterDeployConfig(curveadm, dcs, topology.ROLE_MDS)[:1]
+			curveadm.MemStorage().Set(task.KEY_SCALE_OUT_CLUSTER, dcs4add)
+			ds.DeployConfigs = comm.FilterDeployConfig(curveadm, dcs, topology.ROLE_MDS)[:1]
 		default:
-			s.DeployConfigs = dcs2scale
+			ds.DeployConfigs = dcs4add
 		}
-		ss = append(ss, s)
+		dss = append(dss, ds)
 	}
-	return ss, nil
+	return dss, nil
+}
+
+func displayScaleOutTitle(curveadm *cli.CurveAdm) {
+	dcs := curveadm.MemStorage().Get(task.KEY_SCALE_OUT_CLUSTER).([]*topology.DeployConfig)
+	role := dcs[0].GetRole()
+	curveadm.WriteOutln("NOTICE: cluster '%s' is about to scale out:", curveadm.ClusterName())
+	curveadm.WriteOutln("  - Scale-out services: %s*%d", role, len(dcs))
 }
 
 func runScaleOut(curveadm *cli.CurveAdm, options scaleOutOptions) error {
+	// 1. show topology difference
 	oldData := curveadm.ClusterTopologyData()
 	newData, err := utils.ReadFile(options.filename)
 	if err != nil {
 		return err
 	}
+	curveadm.WriteOutln(utils.Diff(oldData, newData))
 
-	curveadm.Out().Write([]byte(utils.Diff(oldData, newData)))
-
-	diffs, err := comm.DiffTopology(oldData, newData)
+	// 2. validate topology difference
+	err, warning := checkScaleOutTopology(oldData, newData)
 	if err != nil {
 		return err
 	}
 
-	dcs2scale, err, warning := checkDiff4ScaleOut(diffs, err)
+	// 3. generate scale-out deploy steps
+	steps, err := genScaleOutSteps(curveadm, oldData, newData)
 	if err != nil {
 		return err
 	}
 
-	dcs, err := topology.ParseTopology(oldData)
-	if err != nil {
-		return err
-	}
-
-	steps, err := steps2scale(curveadm, dcs, dcs2scale)
-	if err != nil {
-		return err
-	}
-
+	// 4. execute scale-out steps one by one
+	displayScaleOutTitle(curveadm)
 	if pass := tui.ConfirmYes(tui.PromptScaleOut(warning)); !pass {
-		curveadm.WriteOut("scale-out canceled")
+		curveadm.WriteOutln(tui.PromptCancelOpetation("scale-out"))
 		return nil
-	}
-
-	err = comm.ExecDeploy(curveadm, steps)
-	if err != nil {
+	} else if err := comm.ExecDeploy(curveadm, steps); err != nil {
 		return curveadm.NewPromptError(err, "")
 	} else if err := curveadm.Storage().SetClusterTopology(curveadm.ClusterId(), newData); err != nil {
 		return err

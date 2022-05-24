@@ -53,9 +53,9 @@ FYI:
   > and only you have the secret key.
 `
 
-	PROMPT_SCALE_OUT_NOTICE = `
-NOTICE: We noticed that you have modified the configuration 
-of some services while scale out. If you want make these 
+	PROMPT_TOPOLOGY_CHANGE_NOTICE = `
+NOTICE: We noticed that you have modified the configuration of 
+some services while {{.operation}}. If you want make these 
 configurations effect, you should reload the corresponding 
 services after the scale out success.
 `
@@ -116,8 +116,18 @@ func PromptCollectService() string {
 func PromptScaleOut(warning bool) string {
 	prompt := NewPrompt(DEFAULT_CONFIRM_PROMPT)
 	if warning {
-		prompt = NewPrompt(color.YellowString(PROMPT_SCALE_OUT_NOTICE) + DEFAULT_CONFIRM_PROMPT)
+		prompt = NewPrompt(color.YellowString(PROMPT_TOPOLOGY_CHANGE_NOTICE) + DEFAULT_CONFIRM_PROMPT)
 	}
+	prompt.data["operation"] = "scale out cluster"
+	return prompt.Build()
+}
+
+func PromptMigrate(warning bool) string {
+	prompt := NewPrompt(DEFAULT_CONFIRM_PROMPT)
+	if warning {
+		prompt = NewPrompt(color.YellowString(PROMPT_TOPOLOGY_CHANGE_NOTICE) + DEFAULT_CONFIRM_PROMPT)
+	}
+	prompt.data["operation"] = "migrate services"
 	return prompt.Build()
 }
 

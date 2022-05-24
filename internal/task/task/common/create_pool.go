@@ -50,42 +50,44 @@ func (s *step2SetClusterPool) Execute(ctx *context.Context) error {
 }
 
 const (
-	KEY_POOL_TYPE       = "POOL_TYPE"
-	KEY_SCALE_OUT       = "SCALE_OUT"
-	KEY_MIGRATE_SERVERS = "MIGRATE_SERVERS"
+	KEY_POOL_TYPE         = "POOL_TYPE"
+	KEY_SCALE_OUT_CLUSTER = "SCALE_OUT_CLUSTER"
+	KEY_MIGRATE_SERVERS   = "MIGRATE_SERVERS"
 
 	TYPE_LOGICAL_POOL  = "logicalpool"
 	TYPE_PHYSICAL_POOL = "physicalpool"
 )
 
-func prepare(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (clusterPoolJson, clusterMDSAddrs string, err error) {
-	var bytes []byte
-	var clusterPool pool.CurveClusterTopo
-	// origin cluster pool
+func getClusterPool(curveadm *cli.CurveAdm) (pool.CurveClusterTopo, error) {
 	data := curveadm.ClusterPoolData()
 	if len(data) == 0 {
-		clusterPool, err = pool.GenerateDefaultClusterPool(curveadm.ClusterTopologyData())
-		if err != nil {
-			return
-		}
-	} else {
-		err = json.Unmarshal([]byte(data), &clusterPool)
-		if err != nil {
-			return
-		}
+		return pool.GenerateDefaultClusterPool(curveadm.ClusterTopologyData())
 	}
 
-	// scale out
-	dcs4scale := curveadm.MemStorage().Get(KEY_SCALE_OUT)
-	if dcs4scale != nil {
-		pool.ScaleOutClusterPool(&clusterPool, dcs4scale.([]*topology.DeployConfig))
+	clusterPool := pool.CurveClusterTopo{}
+	err := json.Unmarshal([]byte(data), &clusterPool)
+	return clusterPool, err
+}
+
+func prepare(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (clusterPoolJson, clusterMDSAddrs string, err error) {
+	// 1. get origin cluster pool
+	var clusterPool pool.CurveClusterTopo
+	clusterPool, err = getClusterPool(curveadm)
+	if err != nil {
+		return
 	}
 
-	migrates := curveadm.MemStorage().Get(KEY_MIGRATE_SERVERS)
-	if migrates != nil {
-		pool.MigrateClusterServer(&clusterPool, migrates.([]*pool.MigrateServer))
+	// 2. scale out cluster or migrate servers
+	if curveadm.MemStorage().Get(KEY_SCALE_OUT_CLUSTER) != nil { // scale out cluster
+		dcs := curveadm.MemStorage().Get(KEY_SCALE_OUT_CLUSTER).([]*topology.DeployConfig)
+		pool.ScaleOutClusterPool(&clusterPool, dcs)
+	} else if curveadm.MemStorage().Get(KEY_MIGRATE_SERVERS) != nil { // migrate servers
+		migrates := curveadm.MemStorage().Get(KEY_MIGRATE_SERVERS).([]*pool.MigrateServer)
+		pool.MigrateClusterServer(&clusterPool, migrates)
 	}
 
+	// 3. encode cluster pool to json string
+	var bytes []byte
 	bytes, err = json.Marshal(clusterPool)
 	if err != nil {
 		return

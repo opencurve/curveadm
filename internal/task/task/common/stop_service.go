@@ -27,10 +27,22 @@ import (
 
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/configure/topology"
+	"github.com/opencurve/curveadm/internal/task/context"
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
 	tui "github.com/opencurve/curveadm/internal/tui/common"
 )
+
+type step2CheckConatinerId struct {
+	containerId string
+}
+
+func (s *step2CheckConatinerId) Execute(ctx *context.Context) error {
+	if s.containerId == "-" { // container has removed
+		return task.ERR_SKIP_TASK
+	}
+	return nil
+}
 
 func NewStopServiceTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task.Task, error) {
 	serviceId := curveadm.GetServiceId(dc.GetId())
@@ -44,6 +56,9 @@ func NewStopServiceTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*tas
 	subname := fmt.Sprintf("host=%s role=%s containerId=%s",
 		dc.GetHost(), dc.GetRole(), tui.TrimContainerId(containerId))
 	t := task.NewTask("Stop Service", subname, dc.GetSSHConfig())
+	t.AddStep(&step2CheckConatinerId{
+		containerId: containerId,
+	})
 	t.AddStep(&step.StopContainer{
 		ContainerId:   containerId,
 		ExecWithSudo:  true,
