@@ -250,7 +250,9 @@ func NewMountFSTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task
 	createfsScript := scripts.SCRIPT_CREATEFS
 	createfsScriptPath := "/client.sh"
 	env := ""
-	if cc.GetEnableJemalloc() == "true" {
+	if cc.GetEnableJemalloc() == "true" && cc.GetPerfJemalloc() == "true" {
+		env = "MALLOC_CONF=prof:true,lg_prof_interval:26,prof_prefix:/curvefs/client/logs/jeprof.out --env LD_PRELOAD=/usr/local/lib/libjemalloc.so"
+	} else if cc.GetEnableJemalloc() == "true" {
 		env = "LD_PRELOAD=/usr/local/lib/libjemalloc.so"
 	}
 
