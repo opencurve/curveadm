@@ -31,10 +31,6 @@ global:
   data_dir: /home/${user}/curvefs/data/${service_role}${service_sequence}
   log_dir: /home/${user}/curvefs/logs/${service_role}${service_sequence}
   container_image: opencurvedocker/curvefs:latest
-  s3.ak: minioadmin
-  s3.sk: minioadmin
-  s3.endpoint: http://127.0.0.1:9000
-  s3.bucket_name: curvefs
   variable:
     target: 10.0.1.1
 
