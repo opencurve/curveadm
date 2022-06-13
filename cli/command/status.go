@@ -23,6 +23,11 @@
 package command
 
 import (
+	"io/ioutil"
+	"net/http"
+	"strconv"
+	"strings"
+
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/configure/topology"
 	task "github.com/opencurve/curveadm/internal/task/task/common"
@@ -63,13 +68,55 @@ func NewStatusCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	return cmd
 }
 
-func getClusterMdsAddr(dcs []*topology.DeployConfig) string {
-	if len(dcs) == 0 {
-		return "-"
-	} else if value, err := dcs[0].GetVariables().Get("cluster_mds_addr"); err == nil {
-		return value
+func isLeader(addr string, kind string) bool {
+	url := "http://" + addr
+	if kind == topology.KIND_CURVEBS {
+		url = url + "/vars/mds_status?console=1"
+	} else {
+		url = url + "/vars/curvefs_mds_status?console=1"
 	}
-	return "-"
+	resp, err := http.Get(url)
+	if err != nil {
+		return false
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return false
+	}
+	if resp.StatusCode == 200 {
+		if strings.Contains(string(body), "leader") {
+			return true
+		}
+	}
+	return false
+}
+
+func getClusterMdsAddr(dcs []*topology.DeployConfig) string {
+	mdsList := []string{}
+	for _, dc := range dcs {
+		role := dc.GetRole()
+		if role != "mds" {
+			continue
+		}
+		kind := dc.GetKind()
+		ip := dc.GetListenIp()
+		port := dc.GetListenPort()
+		dummyPort := dc.GetListenDummyPort()
+		dummyAddr := string(ip) + ":" + strconv.Itoa(dummyPort)
+		leader := isLeader(dummyAddr, kind)
+
+		if leader {
+			mdsList = append(mdsList, string(ip)+":"+strconv.Itoa(port)+"(leader)")
+		} else {
+			mdsList = append(mdsList, string(ip)+":"+strconv.Itoa(port))
+		}
+	}
+	if len(mdsList) > 0 {
+		return strings.Join(mdsList, ",")
+	} else {
+		return "-"
+	}
 }
 
 func runStatus(curveadm *cli.CurveAdm, options statusOptions) error {
