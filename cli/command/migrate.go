@@ -167,6 +167,7 @@ func genMigrateSteps(curveadm *cli.CurveAdm, oldData, newData string) ([]comm.De
 	for i := 0; i < len(dcs4del); i++ {
 		migrates = append(migrates, &pool.MigrateServer{dcs4del[i], dcs4add[i]})
 	}
+	curveadm.MemStorage().Set(task.KEY_MIGRATE_SERVERS, migrates)
 
 	var steps []int
 	role := dcs4del[0].GetRole()
@@ -196,11 +197,9 @@ func genMigrateSteps(curveadm *cli.CurveAdm, oldData, newData string) ([]comm.De
 		case comm.BACKUP_ETCD_DATA:
 			ds.DeployConfigs = comm.FilterDeployConfig(curveadm, dcs, topology.ROLE_ETCD)
 		case comm.CREATE_PHYSICAL_POOL:
-			curveadm.MemStorage().Set(task.KEY_MIGRATE_SERVERS, migrates)
 			ds.DeployConfigs = comm.FilterDeployConfig(curveadm, dcs, topology.ROLE_MDS)
 			ds.DeployConfigs = selectActiveMDS(ds.DeployConfigs, dcs4del, dcs4add)[:1]
 		case comm.CREATE_LOGICAL_POOL:
-			curveadm.MemStorage().Set(task.KEY_MIGRATE_SERVERS, migrates)
 			ds.DeployConfigs = comm.FilterDeployConfig(curveadm, dcs, topology.ROLE_MDS)
 			ds.DeployConfigs = selectActiveMDS(ds.DeployConfigs, dcs4del, dcs4add)[:1]
 		default: // PULL_IMAGE, CREATE_CONATINER, SYNC_CONFIG, START_{ETCD,MDS,SNAPSHOTCLONE,CHUNKSERVER,METASERVER}
