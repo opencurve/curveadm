@@ -62,7 +62,7 @@ var (
 
 	INSERT_CLUSTERS_FROM_OLD_TABLE = `
 		INSERT INTO clusters(id, uuid, name, description, topology, pool, create_time, current)
-		SELECT id, hex(randomblob(16)) uuid, name, description, topology, "", create_time, current
+		SELECT id, uuid, name, description, topology, "", create_time, current
 		FROM clusters_old
 	`
 
