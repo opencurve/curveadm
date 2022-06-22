@@ -54,8 +54,8 @@ var (
 		comm.SYNC_CONFIG,
 		comm.START_ETCD,
 		comm.START_MDS,
-		comm.START_METASEREVR,
 		comm.CREATE_LOGICAL_POOL,
+		comm.START_METASEREVR,
 	}
 )
 
