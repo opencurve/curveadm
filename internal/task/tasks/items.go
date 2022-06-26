@@ -29,12 +29,14 @@ import (
 	bs_client "github.com/opencurve/curveadm/internal/configure/client/bs"
 	fs_client "github.com/opencurve/curveadm/internal/configure/client/fs"
 	"github.com/opencurve/curveadm/internal/configure/format"
+	"github.com/opencurve/curveadm/internal/configure/playground"
 	"github.com/opencurve/curveadm/internal/configure/plugin"
 	"github.com/opencurve/curveadm/internal/configure/topology"
 	"github.com/opencurve/curveadm/internal/task/task"
 	"github.com/opencurve/curveadm/internal/task/task/bs"
 	comm "github.com/opencurve/curveadm/internal/task/task/common"
 	"github.com/opencurve/curveadm/internal/task/task/fs"
+	pg "github.com/opencurve/curveadm/internal/task/task/playground"
 	plg "github.com/opencurve/curveadm/internal/task/task/plugin"
 )
 
@@ -44,6 +46,7 @@ const (
 	TYPE_CONFIG_FS_CLIENT
 	TYPE_CONFIG_FORMAT
 	TYPE_CONFIG_PLUGIN
+	TYPE_CONFIG_PLAYGROUND
 	TYPE_CONFIG_NULL
 )
 
@@ -55,6 +58,7 @@ type configs struct {
 	fccs   []*fs_client.ClientConfig
 	fcs    []*format.FormatConfig
 	pcs    []*plugin.PluginConfig
+	pgcs   []*playground.PlaygroundConfig
 }
 
 const (
@@ -88,6 +92,9 @@ const (
 	GET_FORMAT_STATUS
 	// plugin
 	RUN_PLUGIN
+	// playground
+	RUN_PLAYGROUND
+	REMOVE_PLAYGROUND
 	UNKNOWN // unknown
 )
 
@@ -136,6 +143,10 @@ func newConfigs(configSlice interface{}) (*configs, error) {
 		configs.ctype = TYPE_CONFIG_FORMAT
 		configs.fcs = append(configs.fcs, configSlice.(*format.FormatConfig))
 		configs.length = 1
+	case *playground.PlaygroundConfig:
+		configs.ctype = TYPE_CONFIG_PLAYGROUND
+		configs.pgcs = append(configs.pgcs, configSlice.(*playground.PlaygroundConfig))
+		configs.length = 1
 	case nil:
 		configs.ctype = TYPE_CONFIG_NULL
 		configs.length = 1
@@ -152,6 +163,7 @@ func ExecTasks(taskType int, curveadm *cli.CurveAdm, configSlice interface{}) er
 	var fcc *fs_client.ClientConfig
 	var fc *format.FormatConfig
 	var pc *plugin.PluginConfig
+	var pgc *playground.PlaygroundConfig
 
 	configs, err := newConfigs(configSlice)
 	if err != nil {
@@ -182,6 +194,8 @@ func ExecTasks(taskType int, curveadm *cli.CurveAdm, configSlice interface{}) er
 			fc = configs.fcs[i]
 		case TYPE_CONFIG_PLUGIN:
 			pc = configs.pcs[i]
+		case TYPE_CONFIG_PLAYGROUND:
+			pgc = configs.pgcs[i]
 		case TYPE_CONFIG_NULL: // do nothing
 		}
 
@@ -257,6 +271,12 @@ func ExecTasks(taskType int, curveadm *cli.CurveAdm, configSlice interface{}) er
 			t, err = bs.NewListTargetsTask(curveadm, bcc)
 		case RUN_PLUGIN:
 			t, err = plg.NewRunPluginTask(curveadm, pc)
+		case RUN_PLAYGROUND:
+			option.SilentSubBar = true
+			t, err = pg.NewRunPlaygroundTask(curveadm, pgc)
+		case REMOVE_PLAYGROUND:
+			option.SilentSubBar = true
+			t, err = pg.NewRemovePlaygroundTask(curveadm, pgc)
 		default:
 			return fmt.Errorf("unknown task type %d", taskType)
 		}

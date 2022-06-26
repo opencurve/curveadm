@@ -66,8 +66,8 @@ func (s *step2UnmapImage) Execute(ctx *context.Context) error {
 	return err
 }
 
-func NewUnmapTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task, error) {
-	option := curvradm.MemStorage().Get(KEY_MAP_OPTION).(MapOption)
+func NewUnmapTask(curveadm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task, error) {
+	option := curveadm.MemStorage().Get(KEY_MAP_OPTION).(MapOption)
 	user, volume := option.User, option.Volume
 	subname := fmt.Sprintf("hostname=%s volume=%s", cc.GetHost(), volume)
 	t := task.NewTask("Unmap Volume", subname, cc.GetSSHConfig())
@@ -83,25 +83,25 @@ func NewUnmapTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task, 
 		Out:           &output,
 		ExecWithSudo:  true,
 		ExecInLocal:   false,
-		ExecSudoAlias: curvradm.SudoAlias(),
+		ExecSudoAlias: curveadm.SudoAlias(),
 	})
 	t.AddStep(&step2UnmapImage{
 		output:        &output,
 		user:          user,
 		volume:        volume,
-		execSudoAlias: curvradm.SudoAlias(),
+		execSudoAlias: curveadm.SudoAlias(),
 	})
 	t.AddStep(&step.StopContainer{
 		ContainerId:   containerName,
 		ExecWithSudo:  true,
 		ExecInLocal:   false,
-		ExecSudoAlias: curvradm.SudoAlias(),
+		ExecSudoAlias: curveadm.SudoAlias(),
 	})
 	t.AddStep(&step.RemoveContainer{
 		ContainerId:   containerName,
 		ExecWithSudo:  true,
 		ExecInLocal:   false,
-		ExecSudoAlias: curvradm.SudoAlias(),
+		ExecSudoAlias: curveadm.SudoAlias(),
 	})
 
 	return t, nil

@@ -235,10 +235,10 @@ func newToolsMutate(cc *client.ClientConfig, delimiter string) step.Mutate {
 	}
 }
 
-func NewMountFSTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task, error) {
-	mountPoint := curvradm.MemStorage().Get(KEY_MOUNT_POINT).(string)
-	mountFSName := curvradm.MemStorage().Get(KEY_MOUNT_FSNAME).(string)
-	mountFSType := curvradm.MemStorage().Get(KEY_MOUNT_FSTYPE).(string)
+func NewMountFSTask(curveadm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task, error) {
+	mountPoint := curveadm.MemStorage().Get(KEY_MOUNT_POINT).(string)
+	mountFSName := curveadm.MemStorage().Get(KEY_MOUNT_FSNAME).(string)
+	mountFSType := curveadm.MemStorage().Get(KEY_MOUNT_FSTYPE).(string)
 	subname := fmt.Sprintf("mountFSName=%s mountFSType=%s mountPoint=%s", mountFSName, mountFSType, mountPoint)
 	t := task.NewTask("Mount FileSystem", subname, nil)
 
@@ -272,7 +272,7 @@ func NewMountFSTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task
 		Out:               &containerId,
 		ExecWithSudo:      false,
 		ExecInLocal:       true,
-		ExecSudoAlias:     curvradm.SudoAlias(),
+		ExecSudoAlias:     curveadm.SudoAlias(),
 	})
 
 	if mountFSType == "volume" {
@@ -285,7 +285,7 @@ func NewMountFSTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task
 			Mutate:            newCurveBSMutate(cc, CLIENT_CONFIG_DELIMITER),
 			ExecWithSudo:      false,
 			ExecInLocal:       true,
-			ExecSudoAlias:     curvradm.SudoAlias(),
+			ExecSudoAlias:     curveadm.SudoAlias(),
 		})
 	}
 
@@ -298,18 +298,18 @@ func NewMountFSTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task
 		Mutate:            newMutate(cc, CLIENT_CONFIG_DELIMITER),
 		ExecWithSudo:      false,
 		ExecInLocal:       true,
-		ExecSudoAlias:     curvradm.SudoAlias(),
+		ExecSudoAlias:     curveadm.SudoAlias(),
 	})
 	t.AddStep(&step.SyncFile{ // sync tools config
 		ContainerSrcId:    &containerId,
 		ContainerSrcPath:  fmt.Sprintf("%s/conf/tools.conf", root),
 		ContainerDestId:   &containerId,
-		ContainerDestPath: topology.GetProjectLayout(topology.KIND_CURVEFS).ToolsConfSystemPath,
+		ContainerDestPath: topology.GetCurveFSProjectLayout().ToolsConfSystemPath,
 		KVFieldSplit:      CLIENT_CONFIG_DELIMITER,
 		Mutate:            newToolsMutate(cc, CLIENT_CONFIG_DELIMITER),
 		ExecWithSudo:      false,
 		ExecInLocal:       true,
-		ExecSudoAlias:     curvradm.SudoAlias(),
+		ExecSudoAlias:     curveadm.SudoAlias(),
 	})
 	t.AddStep(&step.InstallFile{ // install client.sh shell
 		ContainerId:       &containerId,
@@ -317,20 +317,20 @@ func NewMountFSTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task
 		Content:           &createfsScript,
 		ExecWithSudo:      false,
 		ExecInLocal:       true,
-		ExecSudoAlias:     curvradm.SudoAlias(),
+		ExecSudoAlias:     curveadm.SudoAlias(),
 	})
 	t.AddStep(&step.StartContainer{
 		ContainerId:   &containerId,
 		ExecWithSudo:  false,
 		ExecInLocal:   true,
-		ExecSudoAlias: curvradm.SudoAlias(),
+		ExecSudoAlias: curveadm.SudoAlias(),
 	})
 	t.AddStep(&waitMountDone{
 		ContainerId:    &containerId,
 		ExecWithSudo:   false,
 		ExecInLocal:    true,
 		ExecTimeoutSec: 10,
-		ExecSudoAlias:  curvradm.SudoAlias(),
+		ExecSudoAlias:  curveadm.SudoAlias(),
 	})
 
 	return t, nil

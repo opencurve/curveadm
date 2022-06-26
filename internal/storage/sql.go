@@ -52,22 +52,6 @@ var (
 		)
 	`
 
-	CHECK_POOl_COLUMN = `
-		SELECT COUNT(*) AS total
-		FROM pragma_table_info('clusters')
-		WHERE name='pool'
-	`
-
-	RENAME_CLUSTERS_TABLE = `ALTER TABLE clusters RENAME TO clusters_old`
-
-	INSERT_CLUSTERS_FROM_OLD_TABLE = `
-		INSERT INTO clusters(id, uuid, name, description, topology, pool, create_time, current)
-		SELECT id, uuid, name, description, topology, "", create_time, current
-		FROM clusters_old
-	`
-
-	DROP_OLD_CLUSTERS_TABLE = `DROP TABLE clusters_old`
-
 	// id: clusterId_role_host_(sequence/name)
 	CREATE_CONTAINERS_TABLE = `
 		CREATE TABLE IF NOT EXISTS containers (
@@ -86,6 +70,32 @@ var (
 		)
     `
 
+	CREATE_PLAYGROUND_TABLE = `
+       CREATE TABLE IF NOT EXISTS playgrounds (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL UNIQUE,
+			create_time DATE NOT NULL,
+			mount_point TEXT NOT NULL,
+            status TEXT NOT NULL
+		)
+    `
+
+	CHECK_POOl_COLUMN = `
+		SELECT COUNT(*) AS total
+		FROM pragma_table_info('clusters')
+		WHERE name='pool'
+	`
+
+	RENAME_CLUSTERS_TABLE = `ALTER TABLE clusters RENAME TO clusters_old`
+
+	INSERT_CLUSTERS_FROM_OLD_TABLE = `
+		INSERT INTO clusters(id, uuid, name, description, topology, pool, create_time, current)
+		SELECT id, uuid, name, description, topology, "", create_time, current
+		FROM clusters_old
+	`
+
+	DROP_OLD_CLUSTERS_TABLE = `DROP TABLE clusters_old`
+
 	// cluster
 	INSERT_CLUSTER = `INSERT INTO clusters(uuid, name, description, topology, pool, create_time)
                                   VALUES(hex(randomblob(16)), ?, ?, ?, "", datetime('now','localtime'))`
@@ -98,8 +108,8 @@ var (
 
 	CHECKOUT_CLUSTER = `
 		UPDATE clusters
-		SET current = CASE name 
-    		WHEN ? THEN 1 
+		SET current = CASE name
+    		WHEN ? THEN 1
 			ELSE 0
 		END
 	`
@@ -121,4 +131,14 @@ var (
 	INSERT_AUDIT_LOG = `INSERT INTO audit(execute_time, command, success) VALUES(?, ?, ?)`
 
 	SELECT_AUDIT_LOG = `SELECT * FROM audit`
+
+	// playground
+	INSERT_PLAYGROUND = `INSERT INTO playgrounds(name, create_time, mount_point, status)
+                                     VALUES(?, datetime('now','localtime'), ?, ?)`
+
+	SET_PLAYGROUND_STATUS = `UPDATE playgrounds SET status = ? WHERE name = ?`
+
+	SELECT_PLAYGROUND = `SELECT * FROM playgrounds WHERE name LIKE ?`
+
+	DELETE_PLAYGROUND = `DELETE from playgrounds WHERE name = ?`
 )

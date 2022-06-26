@@ -89,8 +89,8 @@ func mountPoint2ContainerName(mountPoint string) string {
 	return utils.MD5Sum(mountPoint)
 }
 
-func NewGetMountStatusTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task, error) {
-	mountPoint := curvradm.MemStorage().Get(KEY_MOUNT_POINT).(string)
+func NewGetMountStatusTask(curveadm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task, error) {
+	mountPoint := curveadm.MemStorage().Get(KEY_MOUNT_POINT).(string)
 	subname := fmt.Sprintf("mountPoint=%s", mountPoint)
 	t := task.NewTask("Check Mount Point", subname, nil)
 
@@ -104,12 +104,12 @@ func NewGetMountStatusTask(curvradm *cli.CurveAdm, cc *client.ClientConfig) (*ta
 		Out:           &output,
 		ExecWithSudo:  false,
 		ExecInLocal:   true,
-		ExecSudoAlias: curvradm.SudoAlias(),
+		ExecSudoAlias: curveadm.SudoAlias(),
 	})
 	t.AddStep(&step2FormatMountStatus{
 		output:     &output,
 		mountPoint: mountPoint,
-		memStorage: curvradm.MemStorage(),
+		memStorage: curveadm.MemStorage(),
 	})
 
 	return t, nil

@@ -53,6 +53,7 @@ type (
 		LinuxCapabilities []string
 		Mount             string
 		Name              string
+		Network           string
 		Pid               string
 		Privileged        bool
 		Remove            bool // automatically remove the container when it exits
@@ -186,6 +187,11 @@ func (s *CreateContainer) Execute(ctx *context.Context) error {
 	if len(s.Name) > 0 {
 		cli.AddOption("--name %s", s.Name)
 	}
+	if len(s.Network) > 0 {
+		cli.AddOption("--network %s", s.Network)
+	} else {
+		cli.AddOption("--network host")
+	}
 	if len(s.Pid) > 0 {
 		cli.AddOption("--pid %s", s.Pid)
 	}
@@ -207,7 +213,6 @@ func (s *CreateContainer) Execute(ctx *context.Context) error {
 	for _, volume := range s.Volumes {
 		cli.AddOption("--volume %s:%s", volume.HostPath, volume.ContainerPath)
 	}
-	cli.AddOption("--network host")
 
 	out, err := cli.Execute(module.ExecOption{
 		ExecWithSudo:  s.ExecWithSudo,

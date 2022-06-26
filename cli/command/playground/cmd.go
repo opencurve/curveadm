@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2021 NetEase Inc.
+ *  Copyright (c) 2022 NetEase Inc.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -16,29 +16,30 @@
 
 /*
  * Project: CurveAdm
- * Created Date: 2021-10-15
+ * Created Date: 2022-06-23
  * Author: Jingli Chen (Wine93)
  */
 
-package common
+package playground
 
 import (
-	"fmt"
-
 	"github.com/opencurve/curveadm/cli/cli"
-	"github.com/opencurve/curveadm/internal/configure/topology"
-	"github.com/opencurve/curveadm/internal/task/step"
-	"github.com/opencurve/curveadm/internal/task/task"
+	cliutil "github.com/opencurve/curveadm/internal/utils"
+	"github.com/spf13/cobra"
 )
 
-func NewPullImageTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task.Task, error) {
-	subname := fmt.Sprintf("host=%s image=%s", dc.GetHost(), dc.GetContainerImage())
-	t := task.NewTask("Pull Image", subname, dc.GetSSHConfig())
-	t.AddStep(&step.PullImage{
-		Image:         dc.GetContainerImage(),
-		ExecWithSudo:  true,
-		ExecInLocal:   false,
-		ExecSudoAlias: curveadm.SudoAlias(),
-	})
-	return t, nil
+func NewPlaygroundCommand(curveadm *cli.CurveAdm) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "playground",
+		Short: "Manage playground",
+		Args:  cliutil.NoArgs,
+		RunE:  cliutil.ShowHelp(curveadm.Err()),
+	}
+
+	cmd.AddCommand(
+		NewRunCommand(curveadm),
+		NewRemoveCommand(curveadm),
+		NewListCommand(curveadm),
+	)
+	return cmd
 }

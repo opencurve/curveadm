@@ -55,6 +55,14 @@ type AuditLog struct {
 	Success     bool
 }
 
+type Playground struct {
+	Id         int
+	Name       string
+	CreateTime time.Time
+	MountPoint string
+	Status     string
+}
+
 type Storage struct {
 	db    *sql.DB
 	mutex *sync.Mutex
@@ -80,6 +88,8 @@ func (s *Storage) init() error {
 	} else if err := s.execSQL(CREATE_CONTAINERS_TABLE); err != nil {
 		return err
 	} else if err := s.execSQL(CREATE_AUDIT_TABLE); err != nil {
+		return err
+	} else if err := s.execSQL(CREATE_PLAYGROUND_TABLE); err != nil {
 		return err
 	} else if err := s.compatible(); err != nil {
 		return err
@@ -279,4 +289,48 @@ func (s *Storage) getAuditLogs(query string, args ...interface{}) ([]AuditLog, e
 
 func (s *Storage) GetAuditLogs() ([]AuditLog, error) {
 	return s.getAuditLogs(SELECT_AUDIT_LOG)
+}
+
+// playground
+func (s *Storage) InsertPlayground(name, mountPoint, status string) error {
+	return s.execSQL(INSERT_PLAYGROUND, name, mountPoint, status)
+}
+
+func (s *Storage) SetPlaygroundStatus(name, status string) error {
+	return s.execSQL(SET_PLAYGROUND_STATUS, status, name)
+}
+
+func (s *Storage) DeletePlayground(name string) error {
+	return s.execSQL(DELETE_PLAYGROUND, name)
+}
+
+func (s *Storage) getPlaygrounds(query string, args ...interface{}) ([]Playground, error) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+	playgrounds := []Playground{}
+	var playground Playground
+	for rows.Next() {
+		err = rows.Scan(
+			&playground.Id,
+			&playground.Name,
+			&playground.CreateTime,
+			&playground.MountPoint,
+			&playground.Status)
+		if err != nil {
+			return nil, err
+		}
+		playgrounds = append(playgrounds, playground)
+	}
+
+	return playgrounds, nil
+}
+
+func (s *Storage) GetPlaygrounds(name string) ([]Playground, error) {
+	return s.getPlaygrounds(SELECT_PLAYGROUND, name)
 }

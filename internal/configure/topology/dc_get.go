@@ -143,7 +143,9 @@ func (dc *DeployConfig) GetListenProxyPort() int     { return dc.getInt(CONFIG_L
 func (dc *DeployConfig) GetListenExternalIp() string { return dc.getString(CONFIG_LISTEN_EXTERNAL_IP) }
 func (dc *DeployConfig) GetCopysets() int            { return dc.getInt(CONFIG_COPYSETS) }
 
-func (dc *DeployConfig) GetEnableExternalServer() bool { return dc.getBool(CONFIG_ENABLE_EXTERNAL_SERVER) }
+func (dc *DeployConfig) GetEnableExternalServer() bool {
+	return dc.getBool(CONFIG_ENABLE_EXTERNAL_SERVER)
+}
 
 func (dc *DeployConfig) GetListenExternalPort() int {
 	if dc.GetEnableExternalServer() {
@@ -293,11 +295,15 @@ func (dc *DeployConfig) GetProjectLayout() Layout {
 	}
 }
 
-func GetProjectLayout(kind string) Layout {
-	dc := DeployConfig{kind: kind}
+func GetProjectLayout(kind, role string) Layout {
+	dc := DeployConfig{kind: kind, role:role}
 	return dc.GetProjectLayout()
 }
 
 func GetCurveBSProjectLayout() Layout {
 	return DefaultCurveBSDeployConfig.GetProjectLayout()
+}
+
+func GetCurveFSProjectLayout() Layout {
+	return DefaultCurveFSDeployConfig.GetProjectLayout()
 }
