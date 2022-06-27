@@ -24,10 +24,12 @@ package playground
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/configure/playground"
 	"github.com/opencurve/curveadm/internal/configure/topology"
+	"github.com/opencurve/curveadm/internal/task/context"
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
 )
@@ -35,6 +37,13 @@ import (
 const (
 	FORMAT_MOUNT_OPTION = "type=bind,source=%s,target=%s,bind-propagation=rshared"
 )
+
+type step2WaitDone struct{}
+
+func (s *step2WaitDone) Execute(ctx *context.Context) error {
+	time.Sleep(10 * time.Second)
+	return nil
+}
 
 func getAttchMount(kind, mountPoint string) string {
 	var mount string
@@ -50,7 +59,11 @@ func getMountVolumes(kind string) []step.Volume {
 	if kind == topology.KIND_CURVEFS {
 		return volumes
 	}
-	return volumes
+
+	return []step.Volume{
+		{HostPath: "/dev", ContainerPath: "/dev"},
+		{HostPath: "/lib/modules", ContainerPath: "/lib/modules"},
+	}
 }
 
 func NewRunPlaygroundTask(curveadm *cli.CurveAdm, pc *playground.PlaygroundConfig) (*task.Task, error) {
@@ -72,7 +85,6 @@ func NewRunPlaygroundTask(curveadm *cli.CurveAdm, pc *playground.PlaygroundConfi
 	t.AddStep(&step.CreateContainer{
 		Image:             containerImage,
 		Envs:              []string{"LD_PRELOAD=/usr/local/lib/libjemalloc.so"},
-		Init:              true,
 		Name:              name, // playground-curvebs-1656035415
 		Network:           "bridge",
 		Mount:             getAttchMount(kind, mountPoint),
@@ -93,6 +105,7 @@ func NewRunPlaygroundTask(curveadm *cli.CurveAdm, pc *playground.PlaygroundConfi
 		ExecInLocal:   true,
 		ExecSudoAlias: curveadm.SudoAlias(),
 	})
+	t.AddStep(&step2WaitDone{})
 
 	return t, nil
 }
