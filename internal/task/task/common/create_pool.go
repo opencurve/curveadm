@@ -58,7 +58,7 @@ const (
 	TYPE_PHYSICAL_POOL = "physicalpool"
 )
 
-func getClusterPool(curveadm *cli.CurveAdm) (pool.CurveClusterTopo, error) {
+func getClusterPool(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (pool.CurveClusterTopo, error) {
 	data := curveadm.ClusterPoolData()
 	if len(data) == 0 {
 		return pool.GenerateDefaultClusterPool(curveadm.ClusterTopologyData())
@@ -80,13 +80,19 @@ func getClusterPool(curveadm *cli.CurveAdm) (pool.CurveClusterTopo, error) {
 		oldPool.Servers[i].InternalPort = server.InternalPort
 		oldPool.Servers[i].ExternalPort = server.ExternalPort
 	}
+
+	if dc.GetKind() == topology.KIND_CURVEBS {
+		for i, pool := range pool.LogicalPools {
+			oldPool.LogicalPools[i].Copysets = pool.Copysets
+		}
+	}
 	return oldPool, err
 }
 
 func prepare(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (clusterPoolJson, clusterMDSAddrs string, err error) {
 	// 1. get origin cluster pool
 	var clusterPool pool.CurveClusterTopo
-	clusterPool, err = getClusterPool(curveadm)
+	clusterPool, err = getClusterPool(curveadm, dc)
 	if err != nil {
 		return
 	}
