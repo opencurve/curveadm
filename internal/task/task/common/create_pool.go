@@ -64,9 +64,23 @@ func getClusterPool(curveadm *cli.CurveAdm) (pool.CurveClusterTopo, error) {
 		return pool.GenerateDefaultClusterPool(curveadm.ClusterTopologyData())
 	}
 
-	clusterPool := pool.CurveClusterTopo{}
-	err := json.Unmarshal([]byte(data), &clusterPool)
-	return clusterPool, err
+	oldPool := pool.CurveClusterTopo{}
+	err := json.Unmarshal([]byte(data), &oldPool)
+	if err != nil {
+		return oldPool, err
+	}
+
+	pool, err := pool.GenerateDefaultClusterPool(curveadm.ClusterTopologyData())
+	if err != nil {
+		return pool, err
+	}
+
+	// NOTE: curveadm gurantee oldPool and pool has same servers
+	for i, server := range pool.Servers {
+		oldPool.Servers[i].InternalPort = server.InternalPort
+		oldPool.Servers[i].ExternalPort = server.ExternalPort
+	}
+	return oldPool, err
 }
 
 func prepare(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (clusterPoolJson, clusterMDSAddrs string, err error) {
