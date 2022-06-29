@@ -32,17 +32,36 @@ import (
 	"github.com/opencurve/curveadm/internal/task/context"
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
+	"github.com/opencurve/curveadm/pkg/module"
 )
 
 const (
 	FORMAT_MOUNT_OPTION = "type=bind,source=%s,target=%s,bind-propagation=rshared"
 )
 
-type step2WaitDone struct{}
+type (
+	step2WaitDone struct{}
+
+	step2CreateNBDDevice struct {
+		execWithSudo  bool
+		execInLocal   bool
+		execSudoAlias string
+	}
+)
 
 func (s *step2WaitDone) Execute(ctx *context.Context) error {
 	time.Sleep(10 * time.Second)
 	return nil
+}
+
+func (s *step2CreateNBDDevice) Execute(ctx *context.Context) error {
+	cmd := ctx.Module().Shell().ModProbe("nbd", "nbds_max=64")
+	_, err := cmd.Execute(module.ExecOption{
+		ExecWithSudo:  s.execWithSudo,
+		ExecInLocal:   s.execInLocal,
+		ExecSudoAlias: s.execSudoAlias,
+	})
+	return err
 }
 
 func getAttchMount(kind, mountPoint string) string {
@@ -76,6 +95,11 @@ func NewRunPlaygroundTask(curveadm *cli.CurveAdm, pc *playground.PlaygroundConfi
 	subname := fmt.Sprintf("kind=%s name=%s image=%s", kind, name, containerImage)
 	t := task.NewTask("Run Playground", subname, nil)
 
+	t.AddStep(&step2CreateNBDDevice{
+		execWithSudo:  true,
+		execInLocal:   true,
+		execSudoAlias: curveadm.SudoAlias(),
+	})
 	t.AddStep(&step.PullImage{
 		Image:         containerImage,
 		ExecWithSudo:  true,

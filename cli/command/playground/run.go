@@ -24,6 +24,7 @@ package playground
 
 import (
 	"fmt"
+	"path/filepath"
 	"time"
 
 	"github.com/fatih/color"
@@ -66,6 +67,8 @@ func checkOptions(options runOptions) error {
 		return fmt.Errorf("you must specify mountpoint for CurveFS")
 	} else if kind == KIND_CURVEFS && !utils.PathExist(mountPoint) {
 		return fmt.Errorf("mountpoint '%s' not exist", mountPoint)
+	} else if kind == KIND_CURVEFS && !filepath.IsAbs(mountPoint) {
+		return fmt.Errorf("mountpoint '%s' must be an absolute path", mountPoint)
 	}
 	return nil
 }
@@ -88,7 +91,7 @@ func NewRunCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	}
 
 	flags := cmd.Flags()
-	flags.StringVarP(&options.kind, "kind", "k", "curvefs", "Specify the type of playground")
+	flags.StringVarP(&options.kind, "kind", "k", "curvefs", "Specify the type of playground (curvebs/curvefs)")
 	flags.StringVarP(&options.mountPoint, "mountpoint", "m", "", "Specify the mountpoint for CurveFS playground")
 	flags.StringVarP(&options.containerImage, "container_image", "c", "", "Specify the playground container image")
 
