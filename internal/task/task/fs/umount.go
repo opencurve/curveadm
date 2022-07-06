@@ -65,36 +65,42 @@ func NewUmountFSTask(curveadm *cli.CurveAdm, cc *client.ClientConfig) (*task.Tas
 	// add step
 	var output string
 	containerName := mountPoint2ContainerName(mountPoint)
+	command := fmt.Sprintf("umount %s", cc.GetClientMountPath(mountPoint))
 	t.AddStep(&step2CheckMountPoint{
 		mountPoint: mountPoint,
 	})
-	t.AddStep(&step.UmountFilesystem{
-		Directorys:     []string{mountPoint},
-		IgnoreUmounted: true,
-		ExecWithSudo:   false,
-		ExecInLocal:    true,
+	t.AddStep(&step.ContainerExec{
+		ContainerId:   &containerName,
+		Command:       command,
+		Out:           &output,
+		ExecWithSudo:  false,
+		ExecInLocal:   true,
+		ExecSudoAlias: curveadm.SudoAlias(),
 	})
 	t.AddStep(&step.ListContainers{
-		ShowAll:      true,
-		Format:       "'{{.Status}}'",
-		Quiet:        true,
-		Filter:       fmt.Sprintf("name=%s", containerName),
-		Out:          &output,
-		ExecWithSudo: false,
-		ExecInLocal:  true,
+		ShowAll:       true,
+		Format:        "'{{.Status}}'",
+		Quiet:         true,
+		Filter:        fmt.Sprintf("name=%s", containerName),
+		Out:           &output,
+		ExecWithSudo:  false,
+		ExecInLocal:   true,
+		ExecSudoAlias: curveadm.SudoAlias(),
 	})
 	t.AddStep(&step2CheckMountStatus{
 		output: &output,
 	})
 	t.AddStep(&step.WaitContainer{
-		ContainerId:  containerName,
-		ExecWithSudo: false,
-		ExecInLocal:  true,
+		ContainerId:   containerName,
+		ExecWithSudo:  false,
+		ExecInLocal:   true,
+		ExecSudoAlias: curveadm.SudoAlias(),
 	})
 	t.AddStep(&step.RemoveContainer{
-		ContainerId:  containerName,
-		ExecWithSudo: false,
-		ExecInLocal:  true,
+		ContainerId:   containerName,
+		ExecWithSudo:  false,
+		ExecInLocal:   true,
+		ExecSudoAlias: curveadm.SudoAlias(),
 	})
 	return t, nil
 }
