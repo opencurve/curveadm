@@ -229,9 +229,9 @@ func NewMapTask(curveadm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task, er
 	})
 	t.AddStep(&waitMapDone{
 		ContainerId:    &containerId,
-		ExecWithSudo:   false,
-		ExecInLocal:    true,
-		ExecTimeoutSec: 10,
+		ExecWithSudo:   true,
+		ExecInLocal:    false,
+		ExecTimeoutSec: 30,
 		ExecSudoAlias:  curveadm.SudoAlias(),
 	})
 
