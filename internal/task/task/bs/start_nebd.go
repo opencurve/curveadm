@@ -97,6 +97,8 @@ func NewStartNEBDServiceTask(curveadm *cli.CurveAdm, cc *client.ClientConfig) (*
 
 	// add step
 	var containerId string
+	hostname := fmt.Sprintf("curvebs-nebd-%s", cc.GetHost())
+	hostEntry := fmt.Sprintf("%s:%s", hostname, cc.GetHost())
 	t.AddStep(&step.ListContainers{
 		ShowAll:       true,
 		Format:        "'{{.ID}}'",
@@ -124,7 +126,9 @@ func NewStartNEBDServiceTask(curveadm *cli.CurveAdm, cc *client.ClientConfig) (*
 	})
 	t.AddStep(&step.CreateContainer{
 		Image:         cc.GetContainerImage(),
+		AddHost:       []string{hostEntry},
 		Envs:          []string{"LD_PRELOAD=/usr/local/lib/libjemalloc.so"},
+		Hostname:      hostname,
 		Command:       fmt.Sprintf("--role nebd"),
 		Name:          DEFAULT_NEBD_CONTAINER_NAME,
 		Privileged:    true,
@@ -153,6 +157,5 @@ func NewStartNEBDServiceTask(curveadm *cli.CurveAdm, cc *client.ClientConfig) (*
 		ExecInLocal:   false,
 		ExecSudoAlias: curveadm.SudoAlias(),
 	})
-
 	return t, nil
 }
