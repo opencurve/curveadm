@@ -50,6 +50,15 @@ type (
 		ExecSudoAlias string
 	}
 
+	CopyFile struct {
+		Source        string
+		Dest          string
+		NoClobber     bool // do not overwrite an existing file
+		ExecWithSudo  bool
+		ExecInLocal   bool
+		ExecSudoAlias string
+	}
+
 	CreateFilesystem struct {
 		Device        string
 		ExecWithSudo  bool
@@ -92,7 +101,26 @@ type (
 		ExecSudoAlias string
 	}
 
-	ShellCommand struct {
+	ListBlockDevice struct {
+		Device        []string
+		Format        string
+		NoHeadings    bool
+		Out           *string
+		ExecWithSudo  bool
+		ExecInLocal   bool
+		ExecSudoAlias string
+	}
+
+	Sed struct {
+		Files         []string
+		Expression    *string
+		InPlace       bool
+		ExecWithSudo  bool
+		ExecInLocal   bool
+		ExecSudoAlias string
+	}
+
+	Command struct {
 		Command       string
 		Out           *string
 		ExecWithSudo  bool
@@ -142,6 +170,20 @@ func (s *RemoveFile) Execute(ctx *context.Context) error {
 		}
 	}
 	return nil
+}
+
+func (s *CopyFile) Execute(ctx *context.Context) error {
+	cmd := ctx.Module().Shell().Copy(s.Source, s.Dest)
+	if s.NoClobber {
+		cmd.AddOption("--no-clobber")
+	}
+
+	_, err := cmd.Execute(module.ExecOption{
+		ExecWithSudo:  s.ExecWithSudo,
+		ExecInLocal:   s.ExecInLocal,
+		ExecSudoAlias: s.ExecSudoAlias,
+	})
+	return err
 }
 
 func (s *CreateFilesystem) Execute(ctx *context.Context) error {
@@ -225,7 +267,46 @@ func (s *ShowDiskFree) Execute(ctx *context.Context) error {
 	return nil
 }
 
-func (s *ShellCommand) Execute(ctx *context.Context) error {
+func (s *ListBlockDevice) Execute(ctx *context.Context) error {
+	cmd := ctx.Module().Shell().LsBlk(s.Device...)
+	if len(s.Format) > 0 {
+		cmd.AddOption("--output=%s", s.Format)
+	}
+	if s.NoHeadings {
+		cmd.AddOption("--noheadings")
+	}
+
+	out, err := cmd.Execute(module.ExecOption{
+		ExecWithSudo:  s.ExecWithSudo,
+		ExecInLocal:   s.ExecInLocal,
+		ExecSudoAlias: s.ExecSudoAlias,
+	})
+	if err != nil {
+		return err
+	}
+
+	*s.Out = strings.TrimSuffix(out, "\n")
+	return nil
+}
+
+func (s *Sed) Execute(ctx *context.Context) error {
+	cmd := ctx.Module().Shell().Sed(s.Files...)
+	if s.InPlace {
+		cmd.AddOption("--in-place")
+	}
+	if len(*s.Expression) > 0 {
+		cmd.AddOption("--expression='%s'", *s.Expression)
+	}
+
+	_, err := cmd.Execute(module.ExecOption{
+		ExecWithSudo:  s.ExecWithSudo,
+		ExecInLocal:   s.ExecInLocal,
+		ExecSudoAlias: s.ExecSudoAlias,
+	})
+	return err
+}
+
+func (s *Command) Execute(ctx *context.Context) error {
 	cmd := ctx.Module().Shell().Command(s.Command)
 
 	out, err := cmd.Execute(module.ExecOption{

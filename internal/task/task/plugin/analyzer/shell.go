@@ -31,12 +31,12 @@ import (
 )
 
 type ShellAnalyzer struct {
-	step *step.ShellCommand
+	step *step.Command
 }
 
 func NewShellAnalyzer() *ShellAnalyzer {
 	return &ShellAnalyzer{
-		step: &step.ShellCommand{},
+		step: &step.Command{},
 	}
 }
 

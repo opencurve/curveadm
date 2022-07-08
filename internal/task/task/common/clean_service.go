@@ -90,7 +90,7 @@ func (s *step2RecycleChunk) Execute(ctx *context.Context) error {
 	source := fmt.Sprintf("'%s %s'", copysetsDir, recyclerDir)
 	dest := fmt.Sprintf("%s/%s", dataDir, LAYOUT_CURVEBS_CHUNKFILE_POOL_DIR)
 	chunk_size := strconv.Itoa(bs.DEFAULT_CHUNKFILE_SIZE + bs.DEFAULT_CHUNKFILE_HEADER_SIZE)
-	cmd := ctx.Module().Shell().ExecScript(s.recycleScriptPath, source, dest, chunk_size)
+	cmd := ctx.Module().Shell().BashScript(s.recycleScriptPath, source, dest, chunk_size)
 	_, err := cmd.Execute(module.ExecOption{
 		ExecWithSudo:  s.execWithSudo,
 		ExecInLocal:   s.execInLocal,
