@@ -25,8 +25,8 @@ package common
 import (
 	"fmt"
 
-	"github.com/opencurve/curveadm/internal/configure/topology"
 	"github.com/opencurve/curveadm/cli/cli"
+	"github.com/opencurve/curveadm/internal/configure/topology"
 	"github.com/opencurve/curveadm/internal/task/context"
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
@@ -48,7 +48,11 @@ type step2PostStart struct {
 func (s *step2PostStart) Execute(ctx *context.Context) error {
 	command := fmt.Sprintf(CMD_ADD_CONTABLE, CURVE_CRONTAB_FILE)
 	cli := ctx.Module().DockerCli().ContainerExec(s.ContainerId, command)
-	_, err := cli.Execute(module.ExecOption{ExecWithSudo: s.ExecWithSudo, ExecInLocal: s.ExecInLocal})
+	_, err := cli.Execute(module.ExecOption{
+		ExecWithSudo:  s.ExecWithSudo,
+		ExecInLocal:   s.ExecInLocal,
+		ExecSudoAlias: s.ExecSudoAlias,
+	})
 	return err
 }
 
