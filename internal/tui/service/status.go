@@ -45,6 +45,7 @@ const (
 	ITEM_ID = iota
 	ITEM_CONTAINER_ID
 	ITEM_STATUS
+	ITEM_PORT
 	ITEM_LOG_DIR
 	ITEM_DATA_DIR
 
@@ -178,6 +179,7 @@ func mergeStatues(statuses []task.ServiceStatus) []task.ServiceStatus {
 			Replica:     fmt.Sprintf("%d/%s", j-i, strings.Split(status.Replica, "/")[1]),
 			ContainerId: merge(statuses[i:j], ITEM_CONTAINER_ID),
 			Status:      merge(statuses[i:j], ITEM_STATUS),
+			Port:        status.Port,
 			LogDir:      merge(statuses[i:j], ITEM_LOG_DIR),
 			DataDir:     merge(statuses[i:j], ITEM_DATA_DIR),
 		})
@@ -197,6 +199,7 @@ func FormatStatus(statuses []task.ServiceStatus, vebose, expand bool) string {
 		"Replica",
 		"Container Id",
 		"Status",
+		"Port",
 		"Log Dir",
 		"Data Dir",
 	}
@@ -217,6 +220,7 @@ func FormatStatus(statuses []task.ServiceStatus, vebose, expand bool) string {
 			status.Replica,
 			status.ContainerId,
 			tui.DecorateMessage{Message: status.Status, Decorate: statusDecorate},
+			status.Port,
 			status.LogDir,
 			status.DataDir,
 		})

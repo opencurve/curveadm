@@ -24,6 +24,7 @@ package common
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/configure/topology"
@@ -57,6 +58,7 @@ type (
 		Replica     string
 		ContainerId string
 		Status      string
+		Port        string
 		LogDir      string
 		DataDir     string
 		SortedKey   string
@@ -81,6 +83,7 @@ func (s *step2FormatStatus) Execute(ctx *context.Context) error {
 		Replica:     fmt.Sprintf("1/%d", config.GetReplica()),
 		ContainerId: tui.TrimContainerId(s.containerId),
 		Status:      status,
+		Port:        strconv.Itoa(config.GetListenPort()),
 		LogDir:      config.GetLogDir(),
 		DataDir:     config.GetDataDir(),
 		SortedKey:   config.GetId(),
