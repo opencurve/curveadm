@@ -24,6 +24,8 @@ package common
 
 import (
 	"fmt"
+	"regexp"
+	"strings"
 
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/configure/topology"
@@ -46,6 +48,7 @@ type (
 		serviceId   string
 		containerId string
 		status      *string
+		ports       *string
 		memStorage  *utils.SafeMap
 	}
 
@@ -57,6 +60,7 @@ type (
 		Replica     string
 		ContainerId string
 		Status      string
+		ListenPort  string
 		LogDir      string
 		DataDir     string
 		SortedKey   string
@@ -65,6 +69,15 @@ type (
 
 func (s *step2FormatStatus) Execute(ctx *context.Context) error {
 	status := *s.status
+	ports := *s.ports
+	var listen_ports string
+	reg, _ := regexp.Compile("^[0-9\r\n]*$")
+	if !reg.MatchString(ports) {
+		listen_ports = ""
+	} else {
+		n := strings.Count(ports, "\n")
+		listen_ports = strings.Replace(ports, "\n", ",", n-1)
+	}
 	if s.containerId == "-" { // container cleaned
 		status = STATUS_CLEANED
 	} else if len(status) == 0 { // container losed
@@ -81,6 +94,7 @@ func (s *step2FormatStatus) Execute(ctx *context.Context) error {
 		Replica:     fmt.Sprintf("1/%d", config.GetReplica()),
 		ContainerId: tui.TrimContainerId(s.containerId),
 		Status:      status,
+		ListenPort:  listen_ports,
 		LogDir:      config.GetLogDir(),
 		DataDir:     config.GetDataDir(),
 		SortedKey:   config.GetId(),
@@ -89,6 +103,7 @@ func (s *step2FormatStatus) Execute(ctx *context.Context) error {
 }
 
 func NewGetServiceStatusTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task.Task, error) {
+	role := dc.GetRole()
 	serviceId := curveadm.GetServiceId(dc.GetId())
 	containerId, err := curveadm.Storage().GetContainerId(serviceId)
 	if err != nil {
@@ -103,6 +118,7 @@ func NewGetServiceStatusTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) 
 
 	// add step
 	var status string
+	var ports string
 	t.AddStep(&step.ListContainers{
 		ShowAll:       true,
 		Format:        `"{{.Status}}"`,
@@ -112,11 +128,20 @@ func NewGetServiceStatusTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) 
 		ExecSudoAlias: curveadm.SudoAlias(),
 		Out:           &status,
 	})
+	t.AddStep(&step.ContainerExec{
+		ContainerId:   &containerId,
+		Command:       "netstat -plnt | grep " + role + " | awk '{print $4}' | awk -F ':' '{print $2}'",
+		ExecWithSudo:  true,
+		ExecInLocal:   false,
+		ExecSudoAlias: curveadm.SudoAlias(),
+		Out:           &ports,
+	})
 	t.AddStep(&step2FormatStatus{
 		config:      dc,
 		serviceId:   serviceId,
 		containerId: containerId,
 		status:      &status,
+		ports:       &ports,
 		memStorage:  curveadm.MemStorage(),
 	})
 

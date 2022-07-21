@@ -45,6 +45,7 @@ const (
 	ITEM_ID = iota
 	ITEM_CONTAINER_ID
 	ITEM_STATUS
+	ITEM_LISTEN_PORT
 	ITEM_LOG_DIR
 	ITEM_DATA_DIR
 
@@ -119,6 +120,23 @@ func status(items []string) string {
 	return STATUS_ABNORMAL
 }
 
+func port(items []string) string {
+	p := map[string]struct{}{}
+	for _, item := range items {
+		p[item] = struct{}{}
+	}
+	ports := make([]string, 0, len(p))
+	for k := range p {
+		if k != "" {
+			ports = append(ports, k)
+		}
+	}
+	if len(ports) > 0 {
+		return strings.Join(ports, ",")
+	}
+	return ""
+}
+
 func dir(items []string) string {
 	if len(items) == 1 {
 		return items[0]
@@ -141,6 +159,9 @@ func merge(statuses []task.ServiceStatus, item int) string {
 			items = append(items, status.ContainerId)
 		case ITEM_STATUS:
 			items = append(items, status.Status)
+		case ITEM_LISTEN_PORT:
+			ports := strings.Split(status.ListenPort, ",")
+			items = append(items, ports...)
 		case ITEM_LOG_DIR:
 			items = append(items, status.LogDir)
 		case ITEM_DATA_DIR:
@@ -156,6 +177,8 @@ func merge(statuses []task.ServiceStatus, item int) string {
 		return id(items)
 	case ITEM_STATUS:
 		return status(items)
+	case ITEM_LISTEN_PORT:
+		return port(items)
 	case ITEM_LOG_DIR:
 		return dir(items)
 	case ITEM_DATA_DIR:
@@ -178,6 +201,7 @@ func mergeStatues(statuses []task.ServiceStatus) []task.ServiceStatus {
 			Replica:     fmt.Sprintf("%d/%s", j-i, strings.Split(status.Replica, "/")[1]),
 			ContainerId: merge(statuses[i:j], ITEM_CONTAINER_ID),
 			Status:      merge(statuses[i:j], ITEM_STATUS),
+			ListenPort:  merge(statuses[i:j], ITEM_LISTEN_PORT),
 			LogDir:      merge(statuses[i:j], ITEM_LOG_DIR),
 			DataDir:     merge(statuses[i:j], ITEM_DATA_DIR),
 		})
@@ -197,6 +221,7 @@ func FormatStatus(statuses []task.ServiceStatus, vebose, expand bool) string {
 		"Replica",
 		"Container Id",
 		"Status",
+		"Listen Port",
 		"Log Dir",
 		"Data Dir",
 	}
@@ -217,6 +242,7 @@ func FormatStatus(statuses []task.ServiceStatus, vebose, expand bool) string {
 			status.Replica,
 			status.ContainerId,
 			tui.DecorateMessage{Message: status.Status, Decorate: statusDecorate},
+			status.ListenPort,
 			status.LogDir,
 			status.DataDir,
 		})
