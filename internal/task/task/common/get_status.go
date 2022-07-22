@@ -51,17 +51,20 @@ type (
 	}
 
 	ServiceStatus struct {
-		Id          string
-		ParentId    string
-		Role        string
-		Host        string
-		Replica     string
-		ContainerId string
-		Status      string
-		Port        string
-		LogDir      string
-		DataDir     string
-		SortedKey   string
+		Id               string
+		ParentId         string
+		Role             string
+		Host             string
+		Replica          string
+		ContainerId      string
+		Status           string
+		ListenPort       string
+		ListenClientPort string
+		ListenProxyPort  string
+		ListenDummyPort  string
+		LogDir           string
+		DataDir          string
+		SortedKey        string
 	}
 )
 
@@ -83,10 +86,37 @@ func (s *step2FormatStatus) Execute(ctx *context.Context) error {
 		Replica:     fmt.Sprintf("1/%d", config.GetReplica()),
 		ContainerId: tui.TrimContainerId(s.containerId),
 		Status:      status,
-		Port:        strconv.Itoa(config.GetListenPort()),
-		LogDir:      config.GetLogDir(),
-		DataDir:     config.GetDataDir(),
-		SortedKey:   config.GetId(),
+		ListenPort: func() string {
+			if config.GetListenPort() == 0 {
+				return "None"
+			} else {
+				return strconv.Itoa(config.GetListenPort())
+			}
+		}(),
+		ListenClientPort: func() string {
+			if config.GetListenClientPort() == 0 {
+				return "None"
+			} else {
+				return strconv.Itoa(config.GetListenClientPort())
+			}
+		}(),
+		ListenDummyPort: func() string {
+			if config.GetListenDummyPort() == 0 {
+				return "None"
+			} else {
+				return strconv.Itoa(config.GetListenDummyPort())
+			}
+		}(),
+		ListenProxyPort: func() string {
+			if config.GetListenProxyPort() == 0 {
+				return "None"
+			} else {
+				return strconv.Itoa(config.GetListenProxyPort())
+			}
+		}(),
+		LogDir:    config.GetLogDir(),
+		DataDir:   config.GetDataDir(),
+		SortedKey: config.GetId(),
 	})
 	return nil
 }

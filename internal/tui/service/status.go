@@ -45,7 +45,10 @@ const (
 	ITEM_ID = iota
 	ITEM_CONTAINER_ID
 	ITEM_STATUS
-	ITEM_PORT
+	ITEM_LISTEN_PORT
+	ITEM_LISTEN_CLIENT_PORT
+	ITEM_LISTEN_DUMMY_PORT
+	ITEM_LISTEN_PROXY_PORT
 	ITEM_LOG_DIR
 	ITEM_DATA_DIR
 
@@ -120,6 +123,20 @@ func status(items []string) string {
 	return STATUS_ABNORMAL
 }
 
+func port(items []string) string {
+	if len(items) == 1 {
+		fmt.Println("only one")
+		return items[0]
+	}
+	p := map[string]struct{}{}
+	for _, item := range items {
+		p[item] = struct{}{}
+	}
+	ports := make([]string, 0, len(p))
+	return strings.Join(ports, ",")
+
+}
+
 func dir(items []string) string {
 	if len(items) == 1 {
 		return items[0]
@@ -142,6 +159,14 @@ func merge(statuses []task.ServiceStatus, item int) string {
 			items = append(items, status.ContainerId)
 		case ITEM_STATUS:
 			items = append(items, status.Status)
+		case ITEM_LISTEN_PORT:
+			items = append(items, status.ListenPort)
+		case ITEM_LISTEN_CLIENT_PORT:
+			items = append(items, status.ListenClientPort)
+		case ITEM_LISTEN_DUMMY_PORT:
+			items = append(items, status.ListenDummyPort)
+		case ITEM_LISTEN_PROXY_PORT:
+			items = append(items, status.ListenProxyPort)
 		case ITEM_LOG_DIR:
 			items = append(items, status.LogDir)
 		case ITEM_DATA_DIR:
@@ -157,6 +182,14 @@ func merge(statuses []task.ServiceStatus, item int) string {
 		return id(items)
 	case ITEM_STATUS:
 		return status(items)
+	case ITEM_LISTEN_PORT:
+		return port(items)
+	case ITEM_LISTEN_CLIENT_PORT:
+		return port(items)
+	case ITEM_LISTEN_DUMMY_PORT:
+		return port(items)
+	case ITEM_LISTEN_PROXY_PORT:
+		return port(items)
 	case ITEM_LOG_DIR:
 		return dir(items)
 	case ITEM_DATA_DIR:
@@ -173,15 +206,18 @@ func mergeStatues(statuses []task.ServiceStatus) []task.ServiceStatus {
 		}
 		status := statuses[i]
 		ss = append(ss, task.ServiceStatus{
-			Id:          merge(statuses[i:j], ITEM_ID),
-			Role:        status.Role,
-			Host:        status.Host,
-			Replica:     fmt.Sprintf("%d/%s", j-i, strings.Split(status.Replica, "/")[1]),
-			ContainerId: merge(statuses[i:j], ITEM_CONTAINER_ID),
-			Status:      merge(statuses[i:j], ITEM_STATUS),
-			Port:        status.Port,
-			LogDir:      merge(statuses[i:j], ITEM_LOG_DIR),
-			DataDir:     merge(statuses[i:j], ITEM_DATA_DIR),
+			Id:               merge(statuses[i:j], ITEM_ID),
+			Role:             status.Role,
+			Host:             status.Host,
+			Replica:          fmt.Sprintf("%d/%s", j-i, strings.Split(status.Replica, "/")[1]),
+			ContainerId:      merge(statuses[i:j], ITEM_CONTAINER_ID),
+			Status:           merge(statuses[i:j], ITEM_STATUS),
+			ListenPort:       merge(statuses[i:j], ITEM_LISTEN_PORT),
+			ListenClientPort: merge(statuses[i:j], ITEM_LISTEN_CLIENT_PORT),
+			ListenDummyPort:  merge(statuses[i:j], ITEM_LISTEN_DUMMY_PORT),
+			ListenProxyPort:  merge(statuses[i:j], ITEM_LISTEN_PROXY_PORT),
+			LogDir:           merge(statuses[i:j], ITEM_LOG_DIR),
+			DataDir:          merge(statuses[i:j], ITEM_DATA_DIR),
 		})
 		i = j - 1
 	}
@@ -199,7 +235,10 @@ func FormatStatus(statuses []task.ServiceStatus, vebose, expand bool) string {
 		"Replica",
 		"Container Id",
 		"Status",
-		"Port",
+		"Server Port",
+		"Client Port",
+		"Dummy Port",
+		"Proxy Port",
 		"Log Dir",
 		"Data Dir",
 	}
@@ -220,7 +259,10 @@ func FormatStatus(statuses []task.ServiceStatus, vebose, expand bool) string {
 			status.Replica,
 			status.ContainerId,
 			tui.DecorateMessage{Message: status.Status, Decorate: statusDecorate},
-			status.Port,
+			status.ListenPort,
+			status.ListenClientPort,
+			status.ListenDummyPort,
+			status.ListenProxyPort,
 			status.LogDir,
 			status.DataDir,
 		})
