@@ -97,6 +97,9 @@ func runMap(curveadm *cli.CurveAdm, options mapOptions) error {
 	if err != nil {
 		return err
 	}
+	if user == "root" {
+		return fmt.Errorf("invalid user name, please use non-root user")
+	}
 
 	size, err := parseSize(options.size)
 	if err != nil {
