@@ -125,7 +125,6 @@ func status(items []string) string {
 
 func port(items []string) string {
 	if len(items) == 1 {
-		fmt.Println("only one")
 		return items[0]
 	}
 	p := map[string]struct{}{}
@@ -133,6 +132,9 @@ func port(items []string) string {
 		p[item] = struct{}{}
 	}
 	ports := make([]string, 0, len(p))
+	for k := range p {
+		ports = append(ports, k)
+	}
 	return strings.Join(ports, ",")
 
 }
