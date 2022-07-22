@@ -113,6 +113,13 @@ var (
 		DEFAULT_REPORT_USAGE,
 	)
 
+    CONFIG_ENABLE_RDMA = itemset.insert(
+		"enable_rdma",
+		REQUIRE_BOOL,
+		true,
+		false,
+	)
+
 	CONFIG_CONTAINER_IMAGE = itemset.insert(
 		"container_image",
 		REQUIRE_STRING,

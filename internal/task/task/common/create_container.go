@@ -179,6 +179,11 @@ func NewCreateContainerTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (
 	subname := fmt.Sprintf("host=%s role=%s", dc.GetHost(), dc.GetRole())
 	t := task.NewTask("Create Container", subname, dc.GetSSHConfig())
 
+    env := []string{ "LD_PRELOAD=/usr/local/lib/libjemalloc.so" }
+    if dc.GetEnableRDMA() == true {
+        env = []string{  "'LD_PRELOAD=/usr/local/lib/libjemalloc.so  /usr/local/lib/libsmc-preload.so'" }
+    }
+
 	// add step
 	var oldContainerId, containerId string
 	clusterId := curveadm.ClusterId()
@@ -200,7 +205,7 @@ func NewCreateContainerTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (
 	t.AddStep(&step.CreateContainer{
 		Image:         dc.GetContainerImage(),
 		Command:       fmt.Sprintf("--role %s --args='%s'", role, getArguments(dc)),
-		Envs:          []string{"LD_PRELOAD=/usr/local/lib/libjemalloc.so"},
+		Envs:          env,
 		Hostname:      fmt.Sprintf("%s-%s", kind, role),
 		Init:          true,
 		Name:          fmt.Sprintf("%s-%s-%s", kind, role, serviceId),

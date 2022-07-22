@@ -131,6 +131,7 @@ func (dc *DeployConfig) GetUser() string             { return dc.getString(CONFI
 func (dc *DeployConfig) GetSSHPort() int             { return dc.getInt(CONFIG_SSH_PORT) }
 func (dc *DeployConfig) GetPrivateKeyFile() string   { return dc.getString(CONFIG_PRIVATE_CONFIG_FILE) }
 func (dc *DeployConfig) GetReportUsage() bool        { return dc.getBool(CONFIG_REPORT_USAGE) }
+func (dc *DeployConfig) GetEnableRDMA() bool         { return dc.getBool(CONFIG_ENABLE_RDMA) }
 func (dc *DeployConfig) GetContainerImage() string   { return dc.getString(CONFIG_CONTAINER_IMAGE) }
 func (dc *DeployConfig) GetLogDir() string           { return dc.getString(CONFIG_LOG_DIR) }
 func (dc *DeployConfig) GetDataDir() string          { return dc.getString(CONFIG_DATA_DIR) }
