@@ -133,10 +133,14 @@ func port(items []string) string {
 	}
 	ports := make([]string, 0, len(p))
 	for k := range p {
-		ports = append(ports, k)
+		if k != "None" {
+			ports = append(ports, k)
+		}
 	}
-	return strings.Join(ports, ",")
-
+	if len(ports) > 0 {
+		return strings.Join(ports, ",")
+	}
+	return "None"
 }
 
 func dir(items []string) string {
