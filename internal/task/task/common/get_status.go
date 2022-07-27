@@ -73,10 +73,11 @@ func (s *step2FormatStatus) Execute(ctx *context.Context) error {
 	var listen_ports string
 	reg, _ := regexp.Compile("^[0-9\r\n]*$")
 	if !reg.MatchString(ports) {
+
 		listen_ports = ""
 	} else {
-		n := strings.Count(ports, "\n")
-		listen_ports = strings.Replace(ports, "\n", ",", n-1)
+		listen_ports = strings.TrimSpace(ports)
+		listen_ports = strings.Replace(listen_ports, "\n", ",", -1)
 	}
 	if s.containerId == "-" { // container cleaned
 		status = STATUS_CLEANED
@@ -86,6 +87,7 @@ func (s *step2FormatStatus) Execute(ctx *context.Context) error {
 
 	id := s.serviceId
 	config := s.config
+
 	s.memStorage.Set(id, ServiceStatus{
 		Id:          id,
 		ParentId:    config.GetParentId(),
@@ -103,7 +105,14 @@ func (s *step2FormatStatus) Execute(ctx *context.Context) error {
 }
 
 func NewGetServiceStatusTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task.Task, error) {
-	role := dc.GetRole()
+	var exectuble string
+	switch dc.GetRole() {
+	case topology.ROLE_ETCD:
+		exectuble = dc.GetRole()
+	default:
+		exectuble = dc.GetKind() + "-" + dc.GetRole()
+	}
+	cmd := "lsof -i -P -n -sTCP:LISTEN " + "/" + dc.GetKind() + "/" + dc.GetRole() + "/sbin/" + exectuble + " | awk '{print$9}' | awk -F ':' '{print$2}'"
 	serviceId := curveadm.GetServiceId(dc.GetId())
 	containerId, err := curveadm.Storage().GetContainerId(serviceId)
 	if err != nil {
@@ -130,7 +139,7 @@ func NewGetServiceStatusTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) 
 	})
 	t.AddStep(&step.ContainerExec{
 		ContainerId:   &containerId,
-		Command:       "netstat -plnt | grep " + role + " | awk '{print $4}' | awk -F ':' '{print $2}'",
+		Command:       cmd,
 		ExecWithSudo:  true,
 		ExecInLocal:   false,
 		ExecSudoAlias: curveadm.SudoAlias(),
