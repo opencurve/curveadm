@@ -251,8 +251,9 @@ func FormatStatus(statuses []task.ServiceStatus, vebose, expand bool) string {
 	// cut column
 	locate := utils.Locate(title)
 	if !vebose {
-		tui.CutColumn(lines, locate["Data Dir"]) // Data Dir
-		tui.CutColumn(lines, locate["Log Dir"])  // Log Dir
+		tui.CutColumn(lines, locate["Listen Port"]) // Listen Port
+		tui.CutColumn(lines, locate["Data Dir"])    // Data Dir
+		tui.CutColumn(lines, locate["Log Dir"])     // Log Dir
 	}
 
 	output := tui.FixedFormat(lines, 2)
