@@ -39,6 +39,7 @@ type (
 	Format struct {
 		User           string   `mapstructure:"user"`
 		SSHPort        int      `mapstructure:"ssh_port"`
+		ChunkSize      int      `mapstructure:"chunk_size"`
 		PrivateKeyFile string   `mapstructure:"private_key_file"`
 		Version        string   `mapstructure:"version"`
 		ContainerImage string   `mapstructure:"container_image"`
@@ -135,6 +136,7 @@ func ParseFormat(filename string) ([]*FormatConfig, error) {
 							Host:           host,
 							User:           format.User,
 							SSHPort:        format.SSHPort,
+							ChunkSize:      format.ChunkSize,
 							PrivateKeyFile: format.PrivateKeyFile,
 							ContainerIamge: containerImage,
 							Device:         device,
@@ -151,6 +153,7 @@ func ParseFormat(filename string) ([]*FormatConfig, error) {
 					Host:           host,
 					User:           format.User,
 					SSHPort:        format.SSHPort,
+					ChunkSize:      format.ChunkSize,
 					PrivateKeyFile: format.PrivateKeyFile,
 					ContainerIamge: containerImage,
 					Device:         items[0],

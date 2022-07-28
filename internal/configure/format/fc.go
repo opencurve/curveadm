@@ -35,6 +35,7 @@ type (
 		Host           string
 		User           string
 		SSHPort        int
+        ChunkSize      int
 		PrivateKeyFile string
 		ContainerIamge string
 		Device         string
@@ -48,6 +49,7 @@ func (fc *FormatConfig) GetContainerIamge() string { return fc.ContainerIamge }
 func (fc *FormatConfig) GetDevice() string         { return fc.Device }
 func (fc *FormatConfig) GetMountPoint() string     { return fc.MountPoint }
 func (fc *FormatConfig) GetUsagePercent() int      { return fc.UsagePercent }
+func (fc *FormatConfig) GetChunkSize() int         { return fc.ChunkSize }
 
 func (fc *FormatConfig) GetSSHConfig() *module.SSHConfig {
 	return &module.SSHConfig{

@@ -73,8 +73,12 @@ func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *format.FormatConfig)
 	chunkfilePoolRootDir := layout.ChunkfilePoolRootDir
 	formatScript := scripts.SCRIPT_FORMAT
 	formatScriptPath := fmt.Sprintf("%s/format.sh", layout.ToolsBinDir)
+    chunkSize := DEFAULT_CHUNKFILE_SIZE
+    if fc.GetChunkSize() > 0 {
+        chunkSize = fc.GetChunkSize()
+    }
 	formatCommand := fmt.Sprintf("%s %s %d %d %s %s", formatScriptPath, layout.FormatBinaryPath,
-		usagePercent, DEFAULT_CHUNKFILE_SIZE, layout.ChunkfilePoolDir, layout.ChunkfilePoolMetaPath)
+		usagePercent, chunkSize, layout.ChunkfilePoolDir, layout.ChunkfilePoolMetaPath)
 	// 1: skip if formating container exist
 	t.AddStep(&step.ListContainers{
 		ShowAll:       true,
