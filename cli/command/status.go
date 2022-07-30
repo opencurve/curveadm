@@ -41,7 +41,7 @@ type statusOptions struct {
 	id          string
 	role        string
 	host        string
-	vebose      bool
+	verbose     bool
 	showReplica bool
 }
 
@@ -62,7 +62,7 @@ func NewStatusCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	flags.StringVarP(&options.id, "id", "", "*", "Specify service id")
 	flags.StringVarP(&options.role, "role", "", "*", "Specify service role")
 	flags.StringVarP(&options.host, "host", "", "*", "Specify service host")
-	flags.BoolVarP(&options.vebose, "verbose", "v", false, "Verbose output for status")
+	flags.BoolVarP(&options.verbose, "verbose", "v", false, "Verbose output for status")
 	flags.BoolVarP(&options.showReplica, "show-replica", "s", false, "Display replica service")
 
 	return cmd
@@ -137,8 +137,12 @@ func runStatus(curveadm *cli.CurveAdm, options statusOptions) error {
 		Role: options.role,
 		Host: options.host,
 	})
-
-	if err := tasks.ExecTasks(tasks.GET_SERVICE_STATUS, curveadm, dcs); err != nil {
+	if options.verbose {
+		err = tasks.ExecTasks(tasks.GET_SERVICE_STATUS_DETAIL, curveadm, dcs)
+	} else {
+		err = tasks.ExecTasks(tasks.GET_SERVICE_STATUS, curveadm, dcs)
+	}
+	if err != nil {
 		return curveadm.NewPromptError(err, "Did you deploy the cluster?")
 	}
 
@@ -150,7 +154,7 @@ func runStatus(curveadm *cli.CurveAdm, options statusOptions) error {
 		statuses = append(statuses, status)
 	}
 
-	output := tui.FormatStatus(statuses, options.vebose, options.showReplica)
+	output := tui.FormatStatus(statuses, options.verbose, options.showReplica)
 	curveadm.WriteOut("\n")
 	curveadm.WriteOut("cluster name    : %s\n", curveadm.ClusterName())
 	curveadm.WriteOut("cluster kind    : %s\n", dcs[0].GetKind())

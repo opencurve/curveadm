@@ -71,6 +71,7 @@ const (
 	RESTART_SERVICE
 	CREATE_POOL
 	GET_SERVICE_STATUS
+	GET_SERVICE_STATUS_DETAIL
 	CLEAN_SERVICE
 	SYNC_BINARY
 	COLLECT_SERVICE
@@ -225,7 +226,11 @@ func ExecTasks(taskType int, curveadm *cli.CurveAdm, configSlice interface{}) er
 		case GET_SERVICE_STATUS:
 			option.SilentSubBar = true
 			option.SkipError = true
-			t, err = comm.NewGetServiceStatusTask(curveadm, dc)
+			t, err = comm.NewGetServiceStatusTask(curveadm, dc, false)
+		case GET_SERVICE_STATUS_DETAIL:
+			option.SilentSubBar = true
+			option.SkipError = true
+			t, err = comm.NewGetServiceStatusTask(curveadm, dc, true)
 		case CLEAN_SERVICE:
 			t, err = comm.NewCleanServiceTask(curveadm, dc)
 		case COLLECT_SERVICE:

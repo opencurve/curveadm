@@ -31,7 +31,7 @@ import (
 )
 
 type listOptions struct {
-	vebose bool
+	verbose bool
 }
 
 func NewListCommand(curveadm *cli.CurveAdm) *cobra.Command {
@@ -49,7 +49,7 @@ func NewListCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	}
 
 	flags := cmd.Flags()
-	flags.BoolVarP(&options.vebose, "verbose", "v", false, "Verbose output for clusters")
+	flags.BoolVarP(&options.verbose, "verbose", "v", false, "Verbose output for clusters")
 
 	return cmd
 }
@@ -62,7 +62,7 @@ func runList(curveadm *cli.CurveAdm, options listOptions) error {
 		return err
 	}
 
-	output := tui.FormatClusters(clusters, options.vebose)
+	output := tui.FormatClusters(clusters, options.verbose)
 	curveadm.WriteOut(output)
 	return nil
 }

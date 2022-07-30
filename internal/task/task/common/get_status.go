@@ -104,15 +104,7 @@ func (s *step2FormatStatus) Execute(ctx *context.Context) error {
 	return nil
 }
 
-func NewGetServiceStatusTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task.Task, error) {
-	var exectuble string
-	switch dc.GetRole() {
-	case topology.ROLE_ETCD:
-		exectuble = dc.GetRole()
-	default:
-		exectuble = dc.GetKind() + "-" + dc.GetRole()
-	}
-	cmd := "lsof -i -P -n -sTCP:LISTEN " + "/" + dc.GetKind() + "/" + dc.GetRole() + "/sbin/" + exectuble + " | awk '{print$9}' | awk -F ':' '{print$2}'"
+func NewGetServiceStatusTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig, verbose bool) (*task.Task, error) {
 	serviceId := curveadm.GetServiceId(dc.GetId())
 	containerId, err := curveadm.Storage().GetContainerId(serviceId)
 	if err != nil {
@@ -137,14 +129,18 @@ func NewGetServiceStatusTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) 
 		ExecSudoAlias: curveadm.SudoAlias(),
 		Out:           &status,
 	})
-	t.AddStep(&step.ContainerExec{
-		ContainerId:   &containerId,
-		Command:       cmd,
-		ExecWithSudo:  true,
-		ExecInLocal:   false,
-		ExecSudoAlias: curveadm.SudoAlias(),
-		Out:           &ports,
-	})
+	if verbose {
+		t.AddStep(&step.ContainerExec{
+			ContainerId:   &containerId,
+			Command:       "ss -pl | grep users | awk '{print$5}' | awk -F ':' '{print$2}'",
+			ExecWithSudo:  true,
+			ExecInLocal:   false,
+			ExecSudoAlias: curveadm.SudoAlias(),
+			Out:           &ports,
+		})
+	} else {
+		ports = ""
+	}
 	t.AddStep(&step2FormatStatus{
 		config:      dc,
 		serviceId:   serviceId,
