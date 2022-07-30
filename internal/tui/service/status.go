@@ -210,7 +210,7 @@ func mergeStatues(statuses []task.ServiceStatus) []task.ServiceStatus {
 	return ss
 }
 
-func FormatStatus(statuses []task.ServiceStatus, vebose, expand bool) string {
+func FormatStatus(statuses []task.ServiceStatus, verbose, expand bool) string {
 	lines := [][]interface{}{}
 
 	// title
@@ -250,7 +250,7 @@ func FormatStatus(statuses []task.ServiceStatus, vebose, expand bool) string {
 
 	// cut column
 	locate := utils.Locate(title)
-	if !vebose {
+	if !verbose {
 		tui.CutColumn(lines, locate["Listen Port"]) // Listen Port
 		tui.CutColumn(lines, locate["Data Dir"])    // Data Dir
 		tui.CutColumn(lines, locate["Log Dir"])     // Log Dir
