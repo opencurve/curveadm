@@ -23,7 +23,6 @@
 package fs
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -47,7 +46,7 @@ const (
 
 	CLIENT_CONFIG_DELIMITER = "="
 
-	KEY_CURVEBS_CLUSTER = "curvebs.cluster"
+	KEY_CURVEBS_CLUSTER = "volumeCluster"
 
 	CURVEBS_CONF_PATH = "/etc/curve/client.conf"
 )
@@ -171,10 +170,10 @@ func newMutate(cc *client.ClientConfig, delimiter string) step.Mutate {
 func newCurveBSMutate(cc *client.ClientConfig, delimiter string) step.Mutate {
 	serviceConfig := cc.GetServiceConfig()
 
-	// we need `curvebs.cluster` if fstype is volume
-	if serviceConfig[KEY_CURVEBS_CLUSTER] == "" {
+	// we need `volumeCluster` if fstype is volume
+	if _, ok := serviceConfig[KEY_CURVEBS_CLUSTER]; ok {
 		return func(in, key, value string) (out string, err error) {
-			err = errors.New("need `curvebs.cluster` if fstype is `volume`")
+			err = fmt.Errorf("need `%s` if fstype is `volume`", KEY_CURVEBS_CLUSTER)
 			return
 		}
 	}
@@ -197,12 +196,12 @@ func newCurveBSMutate(cc *client.ClientConfig, delimiter string) step.Mutate {
 			value = bsClientFixedOptions[key]
 		} else {
 			replaceKey := key
-			if bsClientItems[key] != "" {
-				replaceKey = bsClientItems[key]
+			if v, ok := bsClientItems[key]; ok {
+				replaceKey = v
 			}
 
-			v, ok := serviceConfig[replaceKey]
-			if ok {
+			replaceKey = strings.ToLower(replaceKey)
+			if v, ok := serviceConfig[replaceKey]; ok {
 				value = v
 			}
 		}

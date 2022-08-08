@@ -10,9 +10,7 @@ s3.bucket_name: curvefs
 
 ### if fstype is volume
 # curvebs cluster's mds ip and port
-curvebs.cluster: 10.0.10.1:6700,10.0.10.2:6700,10.0.10.3:6700
-# volume size in bytes
-volumeSize: 10737418240
+volumeCluster: 10.0.10.1:6700,10.0.10.2:6700,10.0.10.3:6700
 # volume name
 volumeName: /volume
 # user of volume
@@ -20,3 +18,7 @@ volumeUser: user
 # password of volume
 # if not specified when create volume then leave it empty string ''
 volumePassword: password
+# auto extend volume when space used up
+volumeAutoExtend: false
+# auto extend factor
+volumeExtendFactor: 1.5

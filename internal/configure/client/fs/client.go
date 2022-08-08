@@ -24,11 +24,9 @@ package fs
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/opencurve/curveadm/internal/configure/topology"
-	"github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/viper"
 )
 
@@ -66,14 +64,7 @@ type (
 )
 
 func all2str(v interface{}) string {
-	if utils.IsString(v) {
-		return v.(string)
-	} else if utils.IsInt(v) {
-		return strconv.Itoa(v.(int))
-	} else if utils.IsBool(v) {
-		return strconv.FormatBool(v.(bool))
-	}
-	return ""
+	return fmt.Sprintf("%v", v)
 }
 
 func ParseClientConfig(filename string) (*ClientConfig, error) {
