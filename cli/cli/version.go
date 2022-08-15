@@ -20,8 +20,10 @@
  * Author: Jingli Chen (Wine93)
  */
 
+// __SIGN_BY_WINE93__
+
 package cli
 
 var (
-	Version = "0.0.27"
+	Version = "0.1.0-rc0"
 )

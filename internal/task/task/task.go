@@ -20,19 +20,21 @@
  * Author: Jingli Chen (Wine93)
  */
 
+// __SIGN_BY_WINE93__
+
 package task
 
 import (
 	"errors"
-
 	"github.com/google/uuid"
-	ssh "github.com/melbahja/goph"
+	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/task/context"
 	"github.com/opencurve/curveadm/pkg/module"
 )
 
 var (
 	ERR_SKIP_TASK = errors.New("skip task")
+	ERR_TASK_DONE = errors.New("task done")
 )
 
 type (
@@ -46,6 +48,7 @@ type (
 		name      string
 		subname   string
 		steps     []Step
+		postSteps []Step
 		sshConfig *module.SSHConfig
 		context   context.Context
 	}
@@ -94,12 +97,25 @@ func (t *Task) AddStep(step Step) {
 	t.steps = append(t.steps, step)
 }
 
-func (t *Task) Execute() error {
-	var sshClient *ssh.Client
-	if t.sshConfig != nil {
-		client, err := module.NewSshClient(*t.sshConfig)
+func (t *Task) AddPostStep(step Step) {
+	t.postSteps = append(t.postSteps, step)
+}
+
+func (t *Task) executePost(ctx *context.Context) {
+	for _, step := range t.postSteps {
+		err := step.Execute(ctx)
 		if err != nil {
-			return err
+			return
+		}
+	}
+}
+
+func (t *Task) Execute() error {
+	var sshClient *module.SSHClient
+	if t.sshConfig != nil {
+		client, err := module.NewSSHClient(*t.sshConfig)
+		if err != nil {
+			return errno.ERR_SSH_CONNECT_FAILED.E(err)
 		}
 		sshClient = client
 	}
@@ -109,10 +125,13 @@ func (t *Task) Execute() error {
 		return err
 	}
 	defer ctx.Close()
+	defer t.executePost(ctx)
 
 	for _, step := range t.steps {
 		err := step.Execute(ctx)
-		if err != nil {
+		if err == ERR_TASK_DONE {
+			break
+		} else if err != nil {
 			return err
 		}
 	}

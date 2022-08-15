@@ -20,18 +20,21 @@
  * Author: Jingli Chen (Wine93)
  */
 
+// __SIGN_BY_WINE93__
+
 package cluster
 
 import (
 	"github.com/opencurve/curveadm/cli/cli"
+	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/tui"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
-	"github.com/opencurve/curveadm/pkg/log"
+	log "github.com/opencurve/curveadm/pkg/log/glg"
 	"github.com/spf13/cobra"
 )
 
 type listOptions struct {
-	vebose bool
+	verbose bool
 }
 
 func NewListCommand(curveadm *cli.CurveAdm) *cobra.Command {
@@ -49,20 +52,23 @@ func NewListCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	}
 
 	flags := cmd.Flags()
-	flags.BoolVarP(&options.vebose, "verbose", "v", false, "Verbose output for clusters")
+	flags.BoolVarP(&options.verbose, "verbose", "v", false, "Verbose output for clusters")
 
 	return cmd
 }
 
 func runList(curveadm *cli.CurveAdm, options listOptions) error {
+	// 1) get all clusters
 	storage := curveadm.Storage()
-	clusters, err := storage.GetClusters("%") // Get all clusters
+	clusters, err := storage.GetClusters("%")
 	if err != nil {
-		log.Error("GetClusters", log.Field("error", err))
-		return err
+		log.Error("Get clusters failed",
+			log.Field("error", err))
+		return errno.ERR_GET_ALL_CLUSTERS_FAILED.E(err)
 	}
 
-	output := tui.FormatClusters(clusters, options.vebose)
+	// 2) display clusters
+	output := tui.FormatClusters(clusters, options.verbose)
 	curveadm.WriteOut(output)
 	return nil
 }

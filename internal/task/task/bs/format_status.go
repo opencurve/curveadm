@@ -26,8 +26,10 @@ import (
 	"fmt"
 	"strings"
 
+	comm "github.com/opencurve/curveadm/internal/common"
+	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/cli/cli"
-	"github.com/opencurve/curveadm/internal/configure/format"
+	"github.com/opencurve/curveadm/internal/configure"
 	"github.com/opencurve/curveadm/internal/task/context"
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
@@ -36,7 +38,7 @@ import (
 
 type (
 	step2FormatStatus struct {
-		config          *format.FormatConfig
+		config          *configure.FormatConfig
 		deviceUsage     *string
 		containerStatus *string
 		containerName   string
@@ -51,6 +53,19 @@ type (
 		Status     string // Done, Mounting, Pulling image, Formating
 	}
 )
+
+func setFormatStatus(memStorage *utils.SafeMap, id string, status FormatStatus) {
+	memStorage.TX(func(kv *utils.SafeMap) error {
+		m := map[string]FormatStatus{}
+		v := kv.Get(comm.KEY_ALL_FORMAT_STATUS)
+		if v != nil {
+			m = v.(map[string]FormatStatus)
+		}
+		m[id] = status
+		kv.Set(comm.KEY_ALL_FORMAT_STATUS, m)
+		return nil
+	})
+}
 
 /* deviceUsgae:
  *   Use%
@@ -69,24 +84,25 @@ func (s *step2FormatStatus) Execute(ctx *context.Context) error {
 		deviceUsage = strings.TrimPrefix(deviceUsage, " ")
 		deviceUsage = strings.TrimSuffix(deviceUsage, "%")
 	}
-	formated := fmt.Sprintf("%s/%d", deviceUsage, s.config.GetUsagePercent())
+	formated := fmt.Sprintf("%s/%d", deviceUsage, s.config.GetFormatPercent())
 
 	// status
 	status := "Done"
 	usage, ok := utils.Str2Int(strings.TrimPrefix(deviceUsage, " "))
 	if !ok {
-		return fmt.Errorf("'%s': get device usage failed", deviceUsage)
+		return errno.ERR_INVALID_DEVICE_USAGE.
+			F("device usage: %s", deviceUsage)
 	}
 	if usage == 0 {
 		status = "Mounting"
 	} else if len(*s.containerStatus) > 1 {
 		status = "Formatting"
-	} else if usage < s.config.GetUsagePercent() {
+	} else if usage < s.config.GetFormatPercent() {
 		status = "Pulling image"
 	}
 
 	id := fmt.Sprintf("%s:%s", host, device)
-	s.memStorage.Set(id, FormatStatus{
+	setFormatStatus(s.memStorage, id, FormatStatus{
 		Host:       host,
 		Device:     device,
 		MountPoint: mountPoint,
@@ -96,30 +112,33 @@ func (s *step2FormatStatus) Execute(ctx *context.Context) error {
 	return nil
 }
 
-func NewGetFormatStatusTask(curveadm *cli.CurveAdm, fc *format.FormatConfig) (*task.Task, error) {
+func NewGetFormatStatusTask(curveadm *cli.CurveAdm, fc *configure.FormatConfig) (*task.Task, error) {
+	host := fc.GetHost()
+	hc, err := curveadm.GetHost(host)
+	if err != nil {
+		return nil, err
+	}
+
+	// new task
 	device := fc.GetDevice()
 	subname := fmt.Sprintf("host=%s device=%s", fc.GetHost(), fc.GetDevice())
-	t := task.NewTask("Get Format Status", subname, fc.GetSSHConfig())
+	t := task.NewTask("Get Format Status", subname, hc.GetSSHConfig())
 
-	// add step
+	// add step to task
 	var deviceUsage, containerStatus string
 	containerName := device2ContainerName(device)
 	t.AddStep(&step.ShowDiskFree{
-		Files:         []string{device},
-		Format:        "pcent",
-		Out:           &deviceUsage,
-		ExecWithSudo:  false,
-		ExecInLocal:   false,
-		ExecSudoAlias: curveadm.SudoAlias(),
+		Files:       []string{device},
+		Format:      "pcent",
+		Out:         &deviceUsage,
+		ExecOptions: curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.ListContainers{
-		ShowAll:       true,
-		Format:        "'{{.Status}}'",
-		Filter:        fmt.Sprintf("name=%s", containerName),
-		Out:           &containerStatus,
-		ExecWithSudo:  true,
-		ExecInLocal:   false,
-		ExecSudoAlias: curveadm.SudoAlias(),
+		ShowAll:     true,
+		Format:      "'{{.Status}}'",
+		Filter:      fmt.Sprintf("name=%s", containerName),
+		Out:         &containerStatus,
+		ExecOptions: curveadm.ExecOptions(),
 	})
 	t.AddStep(&step2FormatStatus{
 		config:          fc,
@@ -128,5 +147,6 @@ func NewGetFormatStatusTask(curveadm *cli.CurveAdm, fc *format.FormatConfig) (*t
 		containerName:   containerName,
 		memStorage:      curveadm.MemStorage(),
 	})
+
 	return t, nil
 }

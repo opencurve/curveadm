@@ -20,13 +20,14 @@
  * Author: Jingli Chen (Wine93)
  */
 
+// __SIGN_BY_WINE93__
+
 package topology
 
 import (
 	"fmt"
 
 	"github.com/opencurve/curveadm/internal/utils"
-	"github.com/opencurve/curveadm/pkg/module"
 	"github.com/opencurve/curveadm/pkg/variable"
 )
 
@@ -109,27 +110,15 @@ func (dc *DeployConfig) GetId() string                       { return dc.id }
 func (dc *DeployConfig) GetParentId() string                 { return dc.parentId }
 func (dc *DeployConfig) GetRole() string                     { return dc.role }
 func (dc *DeployConfig) GetHost() string                     { return dc.host }
+func (dc *DeployConfig) GetHostname() string                 { return dc.hostname }
 func (dc *DeployConfig) GetName() string                     { return dc.name }
-func (dc *DeployConfig) GetReplica() int                     { return dc.replica }
+func (dc *DeployConfig) GetReplicas() int                    { return dc.replicas }
 func (dc *DeployConfig) GetHostSequence() int                { return dc.hostSequence }
-func (dc *DeployConfig) GetReplicaSequence() int             { return dc.replicaSequence }
+func (dc *DeployConfig) GetReplicasSequence() int            { return dc.replicasSequence }
 func (dc *DeployConfig) GetServiceConfig() map[string]string { return dc.serviceConfig }
 func (dc *DeployConfig) GetVariables() *variable.Variables   { return dc.variables }
 
-func (dc *DeployConfig) GetSSHConfig() *module.SSHConfig {
-	return &module.SSHConfig{
-		User:           dc.GetUser(),
-		Host:           dc.GetHost(),
-		Port:           (uint)(dc.GetSSHPort()),
-		PrivateKeyPath: dc.GetPrivateKeyFile(),
-		Timeout:        DEFAULT_SSH_TIMEOUT_SECONDS,
-	}
-}
-
 // (2): config item
-func (dc *DeployConfig) GetUser() string             { return dc.getString(CONFIG_USER) }
-func (dc *DeployConfig) GetSSHPort() int             { return dc.getInt(CONFIG_SSH_PORT) }
-func (dc *DeployConfig) GetPrivateKeyFile() string   { return dc.getString(CONFIG_PRIVATE_CONFIG_FILE) }
 func (dc *DeployConfig) GetReportUsage() bool        { return dc.getBool(CONFIG_REPORT_USAGE) }
 func (dc *DeployConfig) GetContainerImage() string   { return dc.getString(CONFIG_CONTAINER_IMAGE) }
 func (dc *DeployConfig) GetLogDir() string           { return dc.getString(CONFIG_LOG_DIR) }
@@ -142,6 +131,11 @@ func (dc *DeployConfig) GetListenDummyPort() int     { return dc.getInt(CONFIG_L
 func (dc *DeployConfig) GetListenProxyPort() int     { return dc.getInt(CONFIG_LISTEN_PROXY_PORT) }
 func (dc *DeployConfig) GetListenExternalIp() string { return dc.getString(CONFIG_LISTEN_EXTERNAL_IP) }
 func (dc *DeployConfig) GetCopysets() int            { return dc.getInt(CONFIG_COPYSETS) }
+func (dc *DeployConfig) GetS3AccessKey() string      { return dc.getString(CONFIG_S3_ACCESS_KEY) }
+func (dc *DeployConfig) GetS3SecretKey() string      { return dc.getString(CONFIG_S3_SECRET_KEY) }
+func (dc *DeployConfig) GetS3Address() string        { return dc.getString(CONFIG_S3_ADDRESS) }
+func (dc *DeployConfig) GetS3BucketName() string     { return dc.getString(CONFIG_S3_BUCKET_NAME) }
+func (dc *DeployConfig) GetEnableRenameAt2() string  { return dc.getString(CONFIG_ENABLE_RENAMEAT2) }
 
 func (dc *DeployConfig) GetEnableExternalServer() bool {
 	return dc.getBool(CONFIG_ENABLE_EXTERNAL_SERVER)
@@ -296,7 +290,7 @@ func (dc *DeployConfig) GetProjectLayout() Layout {
 }
 
 func GetProjectLayout(kind, role string) Layout {
-	dc := DeployConfig{kind: kind, role:role}
+	dc := DeployConfig{kind: kind, role: role}
 	return dc.GetProjectLayout()
 }
 

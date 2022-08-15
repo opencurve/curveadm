@@ -128,7 +128,7 @@ func sortDeployConfigs(dcs []*topology.DeployConfig) {
 		dc1, dc2 := dcs[i], dcs[j]
 		if dc1.GetRole() == dc2.GetRole() {
 			if dc1.GetHostSequence() == dc2.GetHostSequence() {
-				return dc1.GetReplicaSequence() < dc2.GetReplicaSequence()
+				return dc1.GetReplicasSequence() < dc2.GetReplicasSequence()
 			}
 			return dc1.GetHostSequence() < dc2.GetHostSequence()
 		}
@@ -137,7 +137,7 @@ func sortDeployConfigs(dcs []*topology.DeployConfig) {
 }
 
 func formatName(dc *topology.DeployConfig) string {
-	return fmt.Sprintf("%s_%s_%d", dc.GetHost(), dc.GetName(), dc.GetReplicaSequence())
+	return fmt.Sprintf("%s_%s_%d", dc.GetHost(), dc.GetName(), dc.GetReplicasSequence())
 }
 
 func createLogicalPool(dcs []*topology.DeployConfig, logicalPool string) (LogicalPool, []Server) {
@@ -164,7 +164,7 @@ func createLogicalPool(dcs []*topology.DeployConfig, logicalPool string) (Logica
 			// see issue: https://github.com/opencurve/curve/issues/1441
 			internalPort := dc.GetListenPort()
 			externalPort := dc.GetListenExternalPort()
-			if dc.GetReplica() > 1 {
+			if dc.GetReplicass() > 1 {
 				internalPort = 0
 				externalPort = 0
 			}

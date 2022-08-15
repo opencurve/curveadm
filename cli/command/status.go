@@ -20,29 +20,39 @@
  * Author: Jingli Chen (Wine93)
  */
 
+// __SIGN_BY_WINE93__
+
 package command
 
 import (
-	"io/ioutil"
-	"net/http"
-	"strconv"
+	"fmt"
 	"strings"
 
+	"github.com/fatih/color"
 	"github.com/opencurve/curveadm/cli/cli"
+	comm "github.com/opencurve/curveadm/internal/common"
 	"github.com/opencurve/curveadm/internal/configure/topology"
+	"github.com/opencurve/curveadm/internal/errno"
+	"github.com/opencurve/curveadm/internal/playbook"
 	task "github.com/opencurve/curveadm/internal/task/task/common"
-	"github.com/opencurve/curveadm/internal/task/tasks"
 	tui "github.com/opencurve/curveadm/internal/tui/service"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/cobra"
 )
 
+var (
+	GET_STATUS_PLAYBOOK_STEPS = []int{
+		playbook.INIT_SERVIE_STATUS,
+		playbook.GET_SERVICE_STATUS,
+	}
+)
+
 type statusOptions struct {
-	id          string
-	role        string
-	host        string
-	vebose      bool
-	showReplica bool
+	id           string
+	role         string
+	host         string
+	verbose      bool
+	showReplicas bool
 }
 
 func NewStatusCommand(curveadm *cli.CurveAdm) *cobra.Command {
@@ -59,103 +69,106 @@ func NewStatusCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	}
 
 	flags := cmd.Flags()
-	flags.StringVarP(&options.id, "id", "", "*", "Specify service id")
-	flags.StringVarP(&options.role, "role", "", "*", "Specify service role")
-	flags.StringVarP(&options.host, "host", "", "*", "Specify service host")
-	flags.BoolVarP(&options.vebose, "verbose", "v", false, "Verbose output for status")
-	flags.BoolVarP(&options.showReplica, "show-replica", "s", false, "Display replica service")
+	flags.StringVar(&options.id, "id", "*", "Specify service id")
+	flags.StringVar(&options.role, "role", "*", "Specify service role")
+	flags.StringVar(&options.host, "host", "*", "Specify service host")
+	flags.BoolVarP(&options.verbose, "verbose", "v", false, "Verbose output for status")
+	flags.BoolVarP(&options.showReplicas, "show-replicas", "s", false, "Display service replicas")
 
 	return cmd
 }
 
-func isLeader(addr string, kind string) bool {
-	url := "http://" + addr
-	if kind == topology.KIND_CURVEBS {
-		url = url + "/vars/mds_status?console=1"
-	} else {
-		url = url + "/vars/curvefs_mds_status?console=1"
-	}
-	resp, err := http.Get(url)
-	if err != nil {
-		return false
-	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return false
-	}
-	if resp.StatusCode == 200 {
-		if strings.Contains(string(body), "leader") {
-			return true
-		}
-	}
-	return false
-}
-
 func getClusterMdsAddr(dcs []*topology.DeployConfig) string {
-	mdsList := []string{}
-	for _, dc := range dcs {
-		role := dc.GetRole()
-		if role != "mds" {
-			continue
-		}
-		kind := dc.GetKind()
-		ip := dc.GetListenIp()
-		port := dc.GetListenPort()
-		dummyPort := dc.GetListenDummyPort()
-		dummyAddr := string(ip) + ":" + strconv.Itoa(dummyPort)
-		leader := isLeader(dummyAddr, kind)
-
-		if leader {
-			mdsList = append(mdsList, string(ip)+":"+strconv.Itoa(port)+"(leader)")
-		} else {
-			mdsList = append(mdsList, string(ip)+":"+strconv.Itoa(port))
-		}
-	}
-	if len(mdsList) > 0 {
-		return strings.Join(mdsList, ",")
-	} else {
+	value, err := dcs[0].GetVariables().Get("cluster_mds_addr")
+	if err != nil {
 		return "-"
 	}
+	return value
 }
 
-func runStatus(curveadm *cli.CurveAdm, options statusOptions) error {
-	if curveadm.ClusterId() == -1 {
-		curveadm.WriteOut("No cluster, please add a cluster firstly\n")
-		return nil
+func getClusterMdsLeader(statuses []task.ServiceStatus) string {
+	leaders := []string{}
+	for _, status := range statuses {
+		if !status.IsLeader {
+			continue
+		}
+		dc := status.Config
+		leader := fmt.Sprintf("%s:%d / %s",
+			dc.GetListenIp(), dc.GetListenPort(), status.Id)
+		leaders = append(leaders, leader)
 	}
-	dcs, err := topology.ParseTopology(curveadm.ClusterTopologyData())
-	if err != nil {
-		return err
-	} else if len(dcs) == 0 {
-		curveadm.WriteOut("No service, please check your cluster topology\n")
-		return nil
+	if len(leaders) > 0 {
+		return strings.Join(leaders, ", ")
+	}
+	return color.RedString("<no leader>")
+}
+
+func displayStatus(curveadm *cli.CurveAdm, dcs []*topology.DeployConfig, options statusOptions) {
+	statuses := []task.ServiceStatus{}
+	value := curveadm.MemStorage().Get(comm.KEY_ALL_SERVICE_STATUS)
+		if value != nil {
+			m := value.(map[string]task.ServiceStatus)
+			for _, status := range m {
+				statuses = append(statuses, status)
+			}
 	}
 
+	output := tui.FormatStatus(statuses, options.verbose, options.showReplicas)
+	curveadm.WriteOutln("")
+	curveadm.WriteOutln("cluster name      : %s", curveadm.ClusterName())
+	curveadm.WriteOutln("cluster kind      : %s", dcs[0].GetKind())
+	curveadm.WriteOutln("cluster mds addr  : %s", getClusterMdsAddr(dcs))
+	curveadm.WriteOutln("cluster mds leader: %s", getClusterMdsLeader(statuses))
+	curveadm.WriteOutln("")
+	curveadm.WriteOut("%s", output)
+}
+
+func genStatusPlaybook(curveadm *cli.CurveAdm,
+	dcs []*topology.DeployConfig,
+	options statusOptions) (*playbook.Playbook, error) {
 	dcs = curveadm.FilterDeployConfig(dcs, topology.FilterOption{
 		Id:   options.id,
 		Role: options.role,
 		Host: options.host,
 	})
-
-	if err := tasks.ExecTasks(tasks.GET_SERVICE_STATUS, curveadm, dcs); err != nil {
-		return curveadm.NewPromptError(err, "Did you deploy the cluster?")
+	if len(dcs) == 0 {
+		return nil, errno.ERR_NO_SERVICES_MATCHED
 	}
 
-	// display status
-	statuses := []task.ServiceStatus{}
-	m := curveadm.MemStorage().Map
-	for _, v := range m {
-		status := v.(task.ServiceStatus)
-		statuses = append(statuses, status)
+	steps := GET_STATUS_PLAYBOOK_STEPS
+	pb := playbook.NewPlaybook(curveadm)
+	for _, step := range steps {
+		pb.AddStep(&playbook.PlaybookStep{
+			Type:    step,
+			Configs: dcs,
+			ExecOptions: playbook.ExecOptions{
+				//Concurrency:   10,
+				SilentSubBar:  true,
+				SilentMainBar: step == playbook.INIT_SERVIE_STATUS,
+				SkipError:     true,
+			},
+		})
+	}
+	return pb, nil
+}
+
+func runStatus(curveadm *cli.CurveAdm, options statusOptions) error {
+	// 1) parse cluster topology
+	dcs, err := curveadm.ParseTopology()
+	if err != nil {
+		return err
 	}
 
-	output := tui.FormatStatus(statuses, options.vebose, options.showReplica)
-	curveadm.WriteOut("\n")
-	curveadm.WriteOut("cluster name    : %s\n", curveadm.ClusterName())
-	curveadm.WriteOut("cluster kind    : %s\n", dcs[0].GetKind())
-	curveadm.WriteOut("cluster mds addr: %s\n", getClusterMdsAddr(dcs))
-	curveadm.WriteOut("\n")
-	curveadm.WriteOut("%s", output)
-	return nil
+	// 2) generate get status playbook
+	pb, err := genStatusPlaybook(curveadm, dcs, options)
+	if err != nil {
+		return err
+	}
+
+	// 3) run playground
+	err = pb.Run()
+
+	// 4) display service status
+	displayStatus(curveadm, dcs, options)
+	return err
 }

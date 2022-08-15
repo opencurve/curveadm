@@ -20,6 +20,8 @@
  * Author: Jingli Chen (Wine93)
  */
 
+// __SIGN_BY_WINE93__
+
 package common
 
 import (
@@ -27,18 +29,19 @@ import (
 	"strings"
 
 	"github.com/opencurve/curveadm/cli/cli"
+	comm "github.com/opencurve/curveadm/internal/common"
 	"github.com/opencurve/curveadm/internal/configure/topology"
+	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/storage"
 	"github.com/opencurve/curveadm/internal/task/context"
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
-	"github.com/opencurve/curveadm/pkg/log"
+	log "github.com/opencurve/curveadm/pkg/log/glg"
 )
 
 const (
 	POLICY_ALWAYS_RESTART = "always"
 	POLICY_NEVER_RESTART  = "no"
-	CLEANED_CONTAINER_ID  = "-"
 )
 
 type step2GetService struct {
@@ -59,15 +62,22 @@ func (s *step2GetService) Execute(ctx *context.Context) error {
 	containerId, err := s.storage.GetContainerId(s.serviceId)
 
 	if err != nil {
-		return err
-	} else if containerId == CLEANED_CONTAINER_ID { // "-" means container removed
+		return errno.ERR_GET_SERVICE_CONTAINER_ID_FAILED.E(err)
+	} else if containerId == comm.CLEANED_CONTAINER_ID { // "-" means container removed
 		// do nothing
-	} else if len(containerId) > 0 { // service already exist
+	} else if len(containerId) > 0 {
 		return task.ERR_SKIP_TASK
 	}
 
 	*s.containerId = containerId
 	return nil
+}
+
+func (s *step2InsertService) E(e error, ec *errno.ErrorCode) error {
+	if e == nil {
+		return nil
+	}
+	return ec.E(e)
 }
 
 func (s *step2InsertService) Execute(ctx *context.Context) error {
@@ -76,15 +86,18 @@ func (s *step2InsertService) Execute(ctx *context.Context) error {
 	clusterId := s.clusterId
 	oldContainerId := *s.oldContainerId
 	containerId := *s.containerId
-	if oldContainerId == CLEANED_CONTAINER_ID { // container cleaned
+	if oldContainerId == comm.CLEANED_CONTAINER_ID { // container cleaned
 		err = s.storage.SetContainId(serviceId, containerId)
+		err = s.E(err, errno.ERR_SET_SERVICE_CONTAINER_ID_FAILED)
 	} else {
 		err = s.storage.InsertService(clusterId, serviceId, containerId)
+		err = s.E(err, errno.ERR_INSERT_SERVICE_CONTAINER_ID_FAILED)
 	}
 
-	log.SwitchLevel(err)("InsertService",
-		log.Field("serviceId", serviceId),
-		log.Field("containerId", containerId))
+	log.SwitchLevel(err)("Insert service",
+		log.Field("ServiceId", serviceId),
+		log.Field("ContainerId", containerId))
+
 	return err
 }
 
@@ -174,11 +187,25 @@ func getRestartPolicy(dc *topology.DeployConfig) string {
 	return POLICY_NEVER_RESTART
 }
 
-func NewCreateContainerTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task.Task, error) {
-	subname := fmt.Sprintf("host=%s role=%s", dc.GetHost(), dc.GetRole())
-	t := task.NewTask("Create Container", subname, dc.GetSSHConfig())
+func trimContainerId(containerId *string) step.LambdaType {
+	return func(ctx *context.Context) error {
+		items := strings.Split(*containerId, "\n")
+		*containerId = items[len(items)-1]
+		return nil
+	}
+}
 
-	// add step
+func NewCreateContainerTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task.Task, error) {
+	hc, err := curveadm.GetHost(dc.GetHost())
+	if err != nil {
+		return nil, err
+	}
+
+	// new task
+	subname := fmt.Sprintf("host=%s role=%s", dc.GetHost(), dc.GetRole())
+	t := task.NewTask("Create Container", subname, hc.GetSSHConfig())
+
+	// add step to task
 	var oldContainerId, containerId string
 	clusterId := curveadm.ClusterId()
 	dcId := dc.GetId()
@@ -186,33 +213,35 @@ func NewCreateContainerTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (
 	kind := dc.GetKind()
 	role := dc.GetRole()
 	hostname := fmt.Sprintf("%s-%s-%s", kind, role, serviceId)
+	options := curveadm.ExecOptions()
+	options.ExecWithSudo = false
+
 	t.AddStep(&step2GetService{ // if service exist, break task
 		serviceId:   serviceId,
 		containerId: &oldContainerId,
 		storage:     curveadm.Storage(),
 	})
 	t.AddStep(&step.CreateDirectory{
-		Paths:         []string{dc.GetLogDir(), dc.GetDataDir()},
-		ExecWithSudo:  false,
-		ExecInLocal:   false,
-		ExecSudoAlias: curveadm.SudoAlias(),
+		Paths:       []string{dc.GetLogDir(), dc.GetDataDir()},
+		ExecOptions: options,
 	})
 	t.AddStep(&step.CreateContainer{
-		Image:         dc.GetContainerImage(),
-		Command:       fmt.Sprintf("--role %s --args='%s'", role, getArguments(dc)),
-		AddHost:       []string{fmt.Sprintf("%s:127.0.0.1", hostname)},
-		Envs:          []string{"LD_PRELOAD=/usr/local/lib/libjemalloc.so"},
-		Hostname:      hostname,
-		Init:          true,
-		Name:          hostname,
-		Privileged:    true,
-		Restart:       getRestartPolicy(dc),
-		Ulimits:       []string{"core=-1"},
-		Volumes:       getMountVolumes(dc),
-		Out:           &containerId,
-		ExecWithSudo:  true,
-		ExecInLocal:   false,
-		ExecSudoAlias: curveadm.SudoAlias(),
+		Image:       dc.GetContainerImage(),
+		Command:     fmt.Sprintf("--role %s --args='%s'", role, getArguments(dc)),
+		AddHost:     []string{fmt.Sprintf("%s:127.0.0.1", hostname)},
+		Envs:        []string{"LD_PRELOAD=/usr/local/lib/libjemalloc.so"},
+		Hostname:    hostname,
+		Init:        true,
+		Name:        hostname,
+		Privileged:  true,
+		Restart:     getRestartPolicy(dc),
+		Ulimits:     []string{"core=-1"},
+		Volumes:     getMountVolumes(dc),
+		Out:         &containerId,
+		ExecOptions: curveadm.ExecOptions(),
+	})
+	t.AddStep(&step.Lambda{
+		Lambda: trimContainerId(&containerId),
 	})
 	t.AddStep(&step2InsertService{
 		clusterId:      clusterId,

@@ -20,21 +20,27 @@
  * Author: Jingli Chen (Wine93)
  */
 
+// __SIGN_BY_WINE93__
+
 package step
 
 import (
-	"strings"
-
+	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/task/context"
 	"github.com/opencurve/curveadm/pkg/module"
 )
 
 type (
+	DockerInfo struct {
+		Success *bool
+		Out     *string
+		module.ExecOptions
+	}
+
 	PullImage struct {
-		Image         string
-		ExecWithSudo  bool
-		ExecInLocal   bool
-		ExecSudoAlias string
+		Image string
+		Out   *string
+		module.ExecOptions
 	}
 
 	Volume struct { // bind mount a volume
@@ -63,103 +69,101 @@ type (
 		Ulimits           []string
 		Volumes           []Volume
 		Out               *string
-		ExecWithSudo      bool
-		ExecInLocal       bool
-		ExecSudoAlias     string
+		module.ExecOptions
 	}
 
 	StartContainer struct {
-		ContainerId   *string
-		ExecWithSudo  bool
-		ExecInLocal   bool
-		ExecSudoAlias string
+		ContainerId *string
+		Success     *bool
+		Out         *string
+		module.ExecOptions
 	}
 
 	StopContainer struct {
-		ContainerId   string
-		Time          int
-		ExecWithSudo  bool
-		ExecInLocal   bool
-		ExecSudoAlias string
+		ContainerId string
+		Time        int
+		Out         *string
+		module.ExecOptions
 	}
 
 	RestartContainer struct {
-		ContainerId   string
-		ExecWithSudo  bool
-		ExecInLocal   bool
-		ExecSudoAlias string
+		ContainerId string
+		Out         *string
+		module.ExecOptions
 	}
 
 	WaitContainer struct {
-		ContainerId   string
-		ExecWithSudo  bool
-		ExecInLocal   bool
-		ExecSudoAlias string
+		ContainerId string
+		Out         *string
+		module.ExecOptions
 	}
 
 	RemoveContainer struct {
-		ContainerId   string
-		ExecWithSudo  bool
-		ExecInLocal   bool
-		ExecSudoAlias string
+		ContainerId string
+		Success     *bool
+		Out         *string
+		module.ExecOptions
 	}
 
 	ListContainers struct {
-		Format        string
-		Filter        string
-		Quiet         bool // Only display numeric IDs
-		ShowAll       bool // Show all containers (default shows just running)
-		Out           *string
-		ExecWithSudo  bool
-		ExecInLocal   bool
-		ExecSudoAlias string
+		Format  string
+		Filter  string
+		Quiet   bool // Only display numeric IDs
+		ShowAll bool // Show all containers (default shows just running)
+		Out     *string
+		module.ExecOptions
 	}
 
 	ContainerExec struct {
-		ContainerId   *string
-		Command       string
-		Out           *string
-		ExecWithSudo  bool
-		ExecInLocal   bool
-		ExecSudoAlias string
+		ContainerId *string
+		Command     string
+		Success     *bool
+		Out         *string
+		module.ExecOptions
 	}
 
 	CopyFromContainer struct {
 		ContainerId      string
 		ContainerSrcPath string
 		HostDestPath     string
-		ExecWithSudo     bool
-		ExecInLocal      bool
-		ExecSudoAlias    string
+		Out              *string
+		module.ExecOptions
 	}
 
 	CopyIntoContainer struct {
 		HostSrcPath       string
 		ContainerId       string
 		ContainerDestPath string
-		ExecWithSudo      bool
-		ExecInLocal       bool
-		ExecSudoAlias     string
+		Out               *string
+		module.ExecOptions
 	}
 
 	InspectContainer struct {
-		ContainerId   string
-		Format        string
-		Out           *string
-		ExecWithSudo  bool
-		ExecInLocal   bool
-		ExecSudoAlias string
+		ContainerId string
+		Format      string
+		Out         *string
+		Success     *bool
+		module.ExecOptions
+	}
+
+	ContainerLogs struct {
+		ContainerId string
+		Out         *string
+		Success     *bool
+		module.ExecOptions
 	}
 )
 
+func (s *DockerInfo) Execute(ctx *context.Context) error {
+	cli := ctx.Module().DockerCli().DockerInfo()
+	out, err := cli.Execute(s.ExecOptions)
+	return PostHandle(s.Success, s.Out, out, err, errno.ERR_GET_DOCKER_INFO_FAILED)
+}
+
 func (s *PullImage) Execute(ctx *context.Context) error {
 	cli := ctx.Module().DockerCli().PullImage(s.Image)
-	_, err := cli.Execute(module.ExecOption{
-		ExecWithSudo:  s.ExecWithSudo,
-		ExecInLocal:   s.ExecInLocal,
-		ExecSudoAlias: s.ExecSudoAlias,
-	})
-	return err
+	out, err := cli.Execute(s.ExecOptions)
+	return PostHandle(nil, s.Out, out, err, errno.ERR_PULL_IMAGE_FAILED)
 }
 
 func (s *CreateContainer) Execute(ctx *context.Context) error {
@@ -218,23 +222,14 @@ func (s *CreateContainer) Execute(ctx *context.Context) error {
 		cli.AddOption("--volume %s:%s", volume.HostPath, volume.ContainerPath)
 	}
 
-	out, err := cli.Execute(module.ExecOption{
-		ExecWithSudo:  s.ExecWithSudo,
-		ExecInLocal:   s.ExecInLocal,
-		ExecSudoAlias: s.ExecSudoAlias,
-	})
-	*s.Out = strings.TrimSuffix(out, "\n")
-	return err
+	out, err := cli.Execute(s.ExecOptions)
+	return PostHandle(nil, s.Out, out, err, errno.ERR_CREATE_CONTAINER_FAILED)
 }
 
 func (s *StartContainer) Execute(ctx *context.Context) error {
 	cli := ctx.Module().DockerCli().StartContainer(*s.ContainerId)
-	_, err := cli.Execute(module.ExecOption{
-		ExecWithSudo:  s.ExecWithSudo,
-		ExecInLocal:   s.ExecInLocal,
-		ExecSudoAlias: s.ExecSudoAlias,
-	})
-	return err
+	out, err := cli.Execute(s.ExecOptions)
+	return PostHandle(s.Success, s.Out, out, err, errno.ERR_START_CONTAINER_FAILED)
 }
 
 func (s *StopContainer) Execute(ctx *context.Context) error {
@@ -242,42 +237,27 @@ func (s *StopContainer) Execute(ctx *context.Context) error {
 	if s.Time > 0 {
 		cli.AddOption("--time %d", s.Time)
 	}
-	_, err := cli.Execute(module.ExecOption{
-		ExecWithSudo:  s.ExecWithSudo,
-		ExecInLocal:   s.ExecInLocal,
-		ExecSudoAlias: s.ExecSudoAlias,
-	})
-	return err
+
+	out, err := cli.Execute(s.ExecOptions)
+	return PostHandle(nil, s.Out, out, err, errno.ERR_STOP_CONTAINER_FAILED)
 }
 
 func (s *RestartContainer) Execute(ctx *context.Context) error {
 	cli := ctx.Module().DockerCli().RestartContainer(s.ContainerId)
-	_, err := cli.Execute(module.ExecOption{
-		ExecWithSudo:  s.ExecWithSudo,
-		ExecInLocal:   s.ExecInLocal,
-		ExecSudoAlias: s.ExecSudoAlias,
-	})
-	return err
+	out, err := cli.Execute(s.ExecOptions)
+	return PostHandle(nil, s.Out, out, err, errno.ERR_RESTART_CONTAINER_FAILED)
 }
 
 func (s *WaitContainer) Execute(ctx *context.Context) error {
 	cli := ctx.Module().DockerCli().WaitContainer(s.ContainerId)
-	_, err := cli.Execute(module.ExecOption{
-		ExecWithSudo:  s.ExecWithSudo,
-		ExecInLocal:   s.ExecInLocal,
-		ExecSudoAlias: s.ExecSudoAlias,
-	})
-	return err
+	out, err := cli.Execute(s.ExecOptions)
+	return PostHandle(nil, s.Out, out, err, errno.ERR_WAIT_CONTAINER_STOP_FAILED)
 }
 
 func (s *RemoveContainer) Execute(ctx *context.Context) error {
 	cli := ctx.Module().DockerCli().RemoveContainer(s.ContainerId)
-	_, err := cli.Execute(module.ExecOption{
-		ExecWithSudo:  s.ExecWithSudo,
-		ExecInLocal:   s.ExecInLocal,
-		ExecSudoAlias: s.ExecSudoAlias,
-	})
-	return err
+	out, err := cli.Execute(s.ExecOptions)
+	return PostHandle(s.Success, s.Out, out, err, errno.ERR_REMOVE_CONTAINER_FAILED)
 }
 
 func (s *ListContainers) Execute(ctx *context.Context) error {
@@ -294,13 +274,27 @@ func (s *ListContainers) Execute(ctx *context.Context) error {
 	if s.ShowAll {
 		cli.AddOption("--all")
 	}
-	out, err := cli.Execute(module.ExecOption{
-		ExecWithSudo:  s.ExecWithSudo,
-		ExecInLocal:   s.ExecInLocal,
-		ExecSudoAlias: s.ExecSudoAlias,
-	})
-	*s.Out = strings.TrimSuffix(out, "\n")
-	return err
+
+	out, err := cli.Execute(s.ExecOptions)
+	return PostHandle(nil, s.Out, out, err, errno.ERR_LIST_CONTAINERS_FAILED)
+}
+
+func (s *ContainerExec) Execute(ctx *context.Context) error {
+	cli := ctx.Module().DockerCli().ContainerExec(*s.ContainerId, s.Command)
+	out, err := cli.Execute(s.ExecOptions)
+	return PostHandle(s.Success, s.Out, out, err, errno.ERR_RUN_COMMAND_IN_CONTAINER_FAILED)
+}
+
+func (s *CopyFromContainer) Execute(ctx *context.Context) error {
+	cli := ctx.Module().DockerCli().CopyFromContainer(s.ContainerId, s.ContainerSrcPath, s.HostDestPath)
+	out, err := cli.Execute(s.ExecOptions)
+	return PostHandle(nil, s.Out, out, err, errno.ERR_COPY_FROM_CONTAINER_FAILED)
+}
+
+func (s *CopyIntoContainer) Execute(ctx *context.Context) error {
+	cli := ctx.Module().DockerCli().CopyIntoContainer(s.HostSrcPath, s.ContainerId, s.ContainerDestPath)
+	out, err := cli.Execute(s.ExecOptions)
+	return PostHandle(nil, s.Out, out, err, errno.ERR_COPY_INTO_CONTAINER_FAILED)
 }
 
 func (s *InspectContainer) Execute(ctx *context.Context) error {
@@ -308,44 +302,13 @@ func (s *InspectContainer) Execute(ctx *context.Context) error {
 	if len(s.Format) > 0 {
 		cli.AddOption("--format=%s", s.Format)
 	}
-	out, err := cli.Execute(module.ExecOption{
-		ExecWithSudo:  s.ExecWithSudo,
-		ExecInLocal:   s.ExecInLocal,
-		ExecSudoAlias: s.ExecSudoAlias,
-	})
-	*s.Out = out
-	return err
+
+	out, err := cli.Execute(s.ExecOptions)
+	return PostHandle(s.Success, s.Out, out, err, errno.ERR_INSPECT_CONTAINER_FAILED)
 }
 
-func (s *ContainerExec) Execute(ctx *context.Context) error {
-	cli := ctx.Module().DockerCli().ContainerExec(*s.ContainerId, s.Command)
-	out, err := cli.Execute(module.ExecOption{
-		ExecWithSudo:  s.ExecWithSudo,
-		ExecInLocal:   s.ExecInLocal,
-		ExecSudoAlias: s.ExecSudoAlias,
-	})
-	if s.Out != nil {
-		*s.Out = out
-	}
-	return err
-}
-
-func (s *CopyFromContainer) Execute(ctx *context.Context) error {
-	cli := ctx.Module().DockerCli().CopyFromContainer(s.ContainerId, s.ContainerSrcPath, s.HostDestPath)
-	_, err := cli.Execute(module.ExecOption{
-		ExecWithSudo:  s.ExecWithSudo,
-		ExecInLocal:   s.ExecInLocal,
-		ExecSudoAlias: s.ExecSudoAlias,
-	})
-	return err
-}
-
-func (s *CopyIntoContainer) Execute(ctx *context.Context) error {
-	cli := ctx.Module().DockerCli().CopyIntoContainer(s.HostSrcPath, s.ContainerId, s.ContainerDestPath)
-	_, err := cli.Execute(module.ExecOption{
-		ExecWithSudo:  s.ExecWithSudo,
-		ExecInLocal:   s.ExecInLocal,
-		ExecSudoAlias: s.ExecSudoAlias,
-	})
-	return err
+func (s *ContainerLogs) Execute(ctx *context.Context) error {
+	cli := ctx.Module().DockerCli().ContainerLogs(s.ContainerId)
+	out, err := cli.Execute(s.ExecOptions)
+	return PostHandle(s.Success, s.Out, out, err, errno.ERR_GET_CONTAINER_LOGS_FAILED)
 }

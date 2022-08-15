@@ -26,25 +26,42 @@ import (
 	"strconv"
 
 	"github.com/fatih/color"
+	comm "github.com/opencurve/curveadm/internal/common"
 	"github.com/opencurve/curveadm/internal/storage"
 	tuicommon "github.com/opencurve/curveadm/internal/tui/common"
+	"github.com/opencurve/curveadm/internal/utils"
 )
 
-const (
-	RESULT_SUCCESS = "success"
-	RESULT_FAIL    = "fail"
-)
-
-func resultDecorate(message string) string {
-	if message == RESULT_SUCCESS {
-		return color.GreenString(message)
+var (
+	code2str = map[int]string{
+		comm.AUDIT_STATUS_ABORT:   "ABORT",
+		comm.AUDIT_STATUS_SUCCESS: "SUCCESS",
+		comm.AUDIT_STATUS_FAIL:    "FAIL",
+		comm.AUDIT_STATUS_CANCEL:  "CANCEL",
 	}
-	return color.RedString(message)
+)
+
+func statusDecorate(message string) string {
+	if message == code2str[comm.AUDIT_STATUS_ABORT] {
+		return color.HiWhiteString(message)
+	} else if message == code2str[comm.AUDIT_STATUS_SUCCESS] {
+		return color.GreenString(message)
+	} else if message == code2str[comm.AUDIT_STATUS_FAIL] {
+		return color.RedString(message)
+	} else if message == code2str[comm.AUDIT_STATUS_CANCEL] {
+		return color.YellowString(message)
+	}
+
+	return message
 }
 
-func FormatAuditLogs(auditLogs []storage.AuditLog) string {
+func FormatAuditLogs(auditLogs []storage.AuditLog, verbose bool) string {
 	lines := [][]interface{}{}
-	title := []string{"Id", "Execute Time", "Command", "Result"}
+	title := []string{"Id", "Status", "Execute Time", "Command"}
+	if verbose {
+		title = append(title, "Work Directory")
+		title = append(title, "Error Code")
+	}
 	first, second := tuicommon.FormatTitle(title)
 	lines = append(lines, first)
 	lines = append(lines, second)
@@ -52,15 +69,26 @@ func FormatAuditLogs(auditLogs []storage.AuditLog) string {
 	for i := 0; i < len(auditLogs); i++ {
 		line := []interface{}{}
 		auditLog := auditLogs[i]
+
+		// id
 		line = append(line, strconv.Itoa(auditLog.Id))
+		// status
+		status := "UNKNOWN"
+		if v, ok := code2str[auditLog.Status]; ok {
+			status = v
+		}
+		line = append(line, tuicommon.DecorateMessage{Message: status, Decorate: statusDecorate})
+		// execute time
 		line = append(line, auditLog.ExecuteTime.Format("2006-01-02 15:04:05"))
+		// command
 		line = append(line, auditLog.Command)
 
-		result := RESULT_SUCCESS
-		if !auditLog.Success {
-			result = RESULT_FAIL
+		if verbose {
+			// work directory
+			line = append(line, auditLog.WorkDirectory)
+			// error code
+			line = append(line, utils.Atoa(auditLog.ErrorCode))
 		}
-		line = append(line, tuicommon.DecorateMessage{Message: result, Decorate: resultDecorate})
 
 		lines = append(lines, line)
 	}

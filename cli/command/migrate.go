@@ -23,75 +23,82 @@
 package command
 
 import (
-	"errors"
-	"fmt"
-
 	"github.com/fatih/color"
 	"github.com/opencurve/curveadm/cli/cli"
 	comm "github.com/opencurve/curveadm/internal/common"
-	"github.com/opencurve/curveadm/internal/configure/pool"
+	"github.com/opencurve/curveadm/internal/configure"
 	"github.com/opencurve/curveadm/internal/configure/topology"
-	task "github.com/opencurve/curveadm/internal/task/task/common"
+	"github.com/opencurve/curveadm/internal/errno"
+	"github.com/opencurve/curveadm/internal/playbook"
 	tui "github.com/opencurve/curveadm/internal/tui/common"
-	"github.com/opencurve/curveadm/internal/utils"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/cobra"
 )
 
 var (
-	// etcd
 	MIGRATE_ETCD_STEPS = []int{
-		comm.STOP_ETCD,
-		comm.CLEAN_SERVICE_CONTAINER,
-		comm.PULL_IMAGE,
-		comm.CREATE_CONTAINER,
-		comm.SYNC_CONFIG,
-		comm.START_ETCD,
+		playbook.STOP_SERVICE,
+		playbook.CLEAN_SERVICE, // only container
+		playbook.PULL_IMAGE,
+		playbook.CREATE_CONTAINER,
+		playbook.SYNC_CONFIG,
+		playbook.START_ETCD,
+		playbook.UPDATE_TOPOLOGY,
 	}
 
 	// mds
 	MIGRATE_MDS_STEPS = []int{
-		comm.STOP_MDS,
-		comm.CLEAN_SERVICE_CONTAINER,
-		comm.PULL_IMAGE,
-		comm.CREATE_CONTAINER,
-		comm.SYNC_CONFIG,
-		comm.START_MDS,
+		playbook.STOP_SERVICE,
+		playbook.CLEAN_SERVICE, // only container
+		playbook.PULL_IMAGE,
+		playbook.CREATE_CONTAINER,
+		playbook.SYNC_CONFIG,
+		playbook.START_MDS,
+		playbook.UPDATE_TOPOLOGY,
 	}
 
 	// snapshotclone
 	MIGRATE_SNAPSHOTCLONE_STEPS = []int{
-		comm.STOP_SNAPSHOTCLONE,
-		comm.CLEAN_SERVICE_CONTAINER,
-		comm.PULL_IMAGE,
-		comm.CREATE_CONTAINER,
-		comm.SYNC_CONFIG,
-		comm.START_SNAPSHOTCLONE,
+		playbook.STOP_SERVICE,
+		playbook.CLEAN_SERVICE, // only container
+		playbook.PULL_IMAGE,
+		playbook.CREATE_CONTAINER,
+		playbook.SYNC_CONFIG,
+		playbook.START_SNAPSHOTCLONE,
+		playbook.UPDATE_TOPOLOGY,
 	}
 
 	// chunkserevr (curvebs)
 	MIGRATE_CHUNKSERVER_STEPS = []int{
-		comm.BACKUP_ETCD_DATA,
-		comm.STOP_CHUNKSERVER,
-		comm.CLEAN_SERVICE_CONTAINER,
-		comm.PULL_IMAGE,
-		comm.CREATE_CONTAINER,
-		comm.SYNC_CONFIG,
-		comm.CREATE_PHYSICAL_POOL,
-		comm.START_CHUNKSERVER,
-		comm.CREATE_LOGICAL_POOL,
+		playbook.BACKUP_ETCD_DATA,
+		playbook.STOP_SERVICE,
+		playbook.CLEAN_SERVICE, // only container
+		playbook.PULL_IMAGE,
+		playbook.CREATE_CONTAINER,
+		playbook.SYNC_CONFIG,
+		playbook.CREATE_PHYSICAL_POOL,
+		playbook.START_CHUNKSERVER,
+		playbook.CREATE_LOGICAL_POOL,
 	}
 
 	// metaserver (curvefs)
 	MIGRATE_METASERVER_STEPS = []int{
-		comm.BACKUP_ETCD_DATA,
-		comm.STOP_METASEREVR,
-		comm.CLEAN_SERVICE_CONTAINER,
-		comm.PULL_IMAGE,
-		comm.CREATE_CONTAINER,
-		comm.SYNC_CONFIG,
-		comm.START_METASEREVR,
-		comm.CREATE_LOGICAL_POOL,
+		playbook.BACKUP_ETCD_DATA,
+		playbook.STOP_SERVICE, // only container
+		playbook.CLEAN_SERVICE,
+		playbook.PULL_IMAGE,
+		playbook.CREATE_CONTAINER,
+		playbook.SYNC_CONFIG,
+		playbook.START_METASERVER,
+		playbook.CREATE_LOGICAL_POOL,
+	}
+
+	MIGRATE_ROLE_STEPS = map[string][]int{
+		topology.ROLE_ETCD:          MIGRATE_ETCD_STEPS,
+		topology.ROLE_MDS:           MIGRATE_MDS_STEPS,
+		topology.ROLE_CHUNKSERVER:   MIGRATE_CHUNKSERVER_STEPS,
+		topology.ROLE_SNAPSHOTCLONE: MIGRATE_SNAPSHOTCLONE_STEPS,
+		topology.ROLE_METASERVER:    MIGRATE_METASERVER_STEPS,
 	}
 )
 
@@ -116,140 +123,168 @@ func NewMigrateCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	return cmd
 }
 
-func checkMigrateTopology(oldData, newData string) (error, bool) {
-	diffs, err := comm.DiffTopology(oldData, newData)
-	if errors.Is(err, comm.ERR_EMPTY_TOPOLOGY) {
-		return fmt.Errorf("cluster topology is empty"), false
-	} else if errors.Is(err, comm.ERR_NO_SERVICE) {
-		return fmt.Errorf("you can't scale out empty cluster"), false
-	} else if err != nil {
-		return err, false
+// NOTE: you can only migrate same role whole host services ervey time
+func checkMigrateTopology(curveadm *cli.CurveAdm, data string) error {
+	diffs, err := curveadm.DiffTopology(curveadm.ClusterTopologyData(), data)
+	if err != nil {
+		return err
 	}
 
-	dcs4add, dcs4del, dcs4change := comm.ParseDiff(diffs)
-	if len(dcs4del) != len(dcs4add) {
-		return fmt.Errorf("you can only migrate same host services ervery time"), false
-	} else if len(dcs4add) == 0 {
-		return fmt.Errorf("no service for migrating"), false
-	} else if !comm.IsSameRole(dcs4add) || !comm.IsSameRole(dcs4add) ||
-		dcs4del[0].GetRole() != dcs4add[0].GetRole() {
-		return fmt.Errorf("you can only migrate same role services every time"), false
-	} else if len(dcs4del) != dcs4del[0].GetReplica() {
-		return fmt.Errorf("you can only migrate whole host services every time"), false
+	m := map[int][]*topology.DeployConfig{}
+	for _, diff := range diffs {
+		key := diff.DiffType
+		m[key] = append(m[key], diff.DeployConfig)
 	}
-	return nil, len(dcs4change) != 0
+
+	dcs2add := m[topology.DIFF_ADD]
+	dcs2del := m[topology.DIFF_DELETE]
+	if len(dcs2add) > len(dcs2del) {
+		return errno.ERR_ADD_SERVICE_WHILE_MIGRATING_IS_DENIED
+	} else if len(dcs2add) < len(dcs2del) {
+		return errno.ERR_DELETE_SERVICE_WHILE_MIGRATING_IS_DENIED
+	}
+	// len(dcs2add) == len(dcs2del)
+	if len(dcs2add) == 0 {
+		return errno.ERR_NO_SERVICES_FOR_MIGRATING
+	}
+	if !curveadm.IsSameRole(dcs2add) ||
+		!curveadm.IsSameRole(dcs2del) ||
+		dcs2add[0].GetRole() != dcs2del[0].GetRole() {
+		return errno.ERR_REQUIRE_SAME_ROLE_SERVICES_FOR_MIGRATING
+	}
+	if len(dcs2del) != dcs2del[0].GetReplicas() {
+		return errno.ERR_REQUIRE_WHOLE_HOST_SERVICES_FOR_MIGRATING
+	}
+
+	return nil
 }
 
-func selectActiveMDS(dcs, dcs4del, dcs4add []*topology.DeployConfig) []*topology.DeployConfig {
-	deleted := map[string]bool{}
-	for _, dc := range dcs4del {
-		deleted[dc.GetName()] = true
+func getMigrates(curveadm *cli.CurveAdm, data string) []*configure.MigrateServer {
+	diffs, _ := diffTopology(curveadm, data)
+	dcs2add := diffs[topology.DIFF_ADD]
+	dcs2del := diffs[topology.DIFF_DELETE]
+	configure.SortDeployConfigs(dcs2add)
+	configure.SortDeployConfigs(dcs2del)
+
+	migrates := []*configure.MigrateServer{}
+	for i := 0; i < len(dcs2add); i++ {
+		migrates = append(migrates, &configure.MigrateServer{
+			From: dcs2del[i],
+			To:   dcs2add[i],
+		})
 	}
 
-	out := []*topology.DeployConfig{}
-	for _, dc := range dcs {
-		if deleted[dc.GetName()] { // already deleted
-			continue
-		}
-		out = append(out, dc)
-	}
-	return append(out, dcs4add...)
+	return migrates
 }
 
-func genMigrateSteps(curveadm *cli.CurveAdm, oldData, newData string) ([]comm.DeployStep, error) {
-	diffs, _ := comm.DiffTopology(oldData, newData) // ignore error
-	dcs4add, dcs4del, _ := comm.ParseDiff(diffs)
-	dcs, _ := topology.ParseTopology(curveadm.ClusterTopologyData())
-	comm.SortDeployConfigs(dcs4add)
-	comm.SortDeployConfigs(dcs4del)
+func genMigratePlaybook(curveadm *cli.CurveAdm,
+	dcs []*topology.DeployConfig, data string) (*playbook.Playbook, error) {
+	diffs, _ := diffTopology(curveadm, data)
+	dcs2add := diffs[topology.DIFF_ADD]
+	dcs2del := diffs[topology.DIFF_DELETE]
+	migrates := getMigrates(curveadm, data)
+	role := migrates[0].From.GetRole()
+	steps := MIGRATE_ROLE_STEPS[role]
 
-	migrates := []*pool.MigrateServer{}
-	for i := 0; i < len(dcs4del); i++ {
-		migrates = append(migrates, &pool.MigrateServer{dcs4del[i], dcs4add[i]})
-	}
-	curveadm.MemStorage().Set(task.KEY_MIGRATE_SERVERS, migrates)
-
-	var steps []int
-	role := dcs4del[0].GetRole()
-	switch role {
-	case topology.ROLE_ETCD:
-		steps = MIGRATE_ETCD_STEPS
-	case topology.ROLE_MDS:
-		steps = MIGRATE_MDS_STEPS
-	case topology.ROLE_SNAPSHOTCLONE:
-		steps = MIGRATE_SNAPSHOTCLONE_STEPS
-	case topology.ROLE_CHUNKSERVER:
-		steps = MIGRATE_CHUNKSERVER_STEPS
-	case topology.ROLE_METASERVER:
-		steps = MIGRATE_METASERVER_STEPS
-	default:
-		return nil, fmt.Errorf("unknown role '%s'", role)
-	}
-
-	dss := []comm.DeployStep{}
+	pb := playbook.NewPlaybook(curveadm)
 	for _, step := range steps {
-		ds := comm.DeployStep{Type: step}
+		// configs
+		config := dcs2add
 		switch step {
-		case comm.STOP_ETCD, comm.STOP_MDS, comm.STOP_SNAPSHOTCLONE, comm.STOP_CHUNKSERVER, comm.STOP_METASEREVR:
-			ds.DeployConfigs = dcs4del
-		case comm.CLEAN_SERVICE_CONTAINER:
-			ds.DeployConfigs = dcs4del
-		case comm.BACKUP_ETCD_DATA:
-			ds.DeployConfigs = comm.FilterDeployConfig(curveadm, dcs, topology.ROLE_ETCD)
-		case comm.CREATE_PHYSICAL_POOL:
-			ds.DeployConfigs = comm.FilterDeployConfig(curveadm, dcs, topology.ROLE_MDS)
-			ds.DeployConfigs = selectActiveMDS(ds.DeployConfigs, dcs4del, dcs4add)[:1]
-		case comm.CREATE_LOGICAL_POOL:
-			ds.DeployConfigs = comm.FilterDeployConfig(curveadm, dcs, topology.ROLE_MDS)
-			ds.DeployConfigs = selectActiveMDS(ds.DeployConfigs, dcs4del, dcs4add)[:1]
-		default: // PULL_IMAGE, CREATE_CONATINER, SYNC_CONFIG, START_{ETCD,MDS,SNAPSHOTCLONE,CHUNKSERVER,METASERVER}
-			ds.DeployConfigs = dcs4add
+		case playbook.STOP_SERVICE,
+			playbook.CLEAN_SERVICE:
+			config = dcs2del
+		case playbook.BACKUP_ETCD_DATA:
+			config = curveadm.FilterDeployConfigByRole(dcs, topology.ROLE_ETCD)
+		case CREATE_PHYSICAL_POOL,
+			CREATE_LOGICAL_POOL:
+			config = curveadm.FilterDeployConfigByRole(dcs, topology.ROLE_MDS)[:1]
 		}
-		dss = append(dss, ds)
+
+		// options
+		options := map[string]interface{}{}
+		switch step {
+		case playbook.CLEAN_SERVICE:
+			options[comm.KEY_CLEAN_ITEMS] = []string{comm.CLEAN_ITEM_CONTAINER}
+			options[comm.KEY_CLEAN_BY_RECYCLE] = true
+		case playbook.CREATE_PHYSICAL_POOL:
+			options[comm.KEY_CREATE_POOL_TYPE] = comm.POOL_TYPE_PHYSICAL
+			options[comm.KEY_MIGRATE_SERVERS] = migrates
+		case playbook.CREATE_LOGICAL_POOL:
+			options[comm.KEY_CREATE_POOL_TYPE] = comm.POOL_TYPE_LOGICAL
+			options[comm.KEY_MIGRATE_SERVERS] = migrates
+			options[comm.KEY_NEW_TOPOLOGY_DATA] = data
+		case playbook.UPDATE_TOPOLOGY:
+			options[comm.KEY_NEW_TOPOLOGY_DATA] = data
+		}
+
+		pb.AddStep(&playbook.PlaybookStep{
+			Type:    step,
+			Configs: config,
+			Options: options,
+			ExecOptions: playbook.ExecOptions{
+				SilentSubBar: step == playbook.UPDATE_TOPOLOGY,
+			},
+		})
 	}
-	return dss, nil
+	return pb, nil
 }
 
-func displayMigrateTitle(curveadm *cli.CurveAdm) {
-	migrates := curveadm.MemStorage().Get(task.KEY_MIGRATE_SERVERS).([]*pool.MigrateServer)
+func displayMigrateTitle(curveadm *cli.CurveAdm, data string) {
+	migrates := getMigrates(curveadm, data)
 	from := migrates[0].From
 	to := migrates[0].To
-	curveadm.WriteOutln("NOTICE: cluster '%s' is about to migrate services:", curveadm.ClusterName())
-	curveadm.WriteOutln("  - Migrate services: %s*%d", from.GetRole(), len(migrates))
-	curveadm.WriteOutln("  - Migrate host: from %s to %s", from.GetHost(), to.GetHost())
+	curveadm.WriteOutln("")
+	curveadm.WriteOutln(color.YellowString("NOTICE: cluster '%s' is about to migrate services:", curveadm.ClusterName()))
+	curveadm.WriteOutln(color.YellowString("  - Migrate services: %s*%d", from.GetRole(), len(migrates)))
+	curveadm.WriteOutln(color.YellowString("  - Migrate host: from %s to %s", from.GetHost(), to.GetHost()))
 }
 
 func runMigrate(curveadm *cli.CurveAdm, options migrateOptions) error {
-	// 1. show topology difference
-	oldData := curveadm.ClusterTopologyData()
-	newData, err := utils.ReadFile(options.filename)
-	if err != nil {
-		return err
-	}
-	curveadm.WriteOutln(utils.Diff(oldData, newData))
-
-	// 2. validate topology difference
-	err, warning := checkMigrateTopology(oldData, newData)
+	// TODO(P0): added prechek for target host
+	// 1) parse cluster topology
+	dcs, err := curveadm.ParseTopology()
 	if err != nil {
 		return err
 	}
 
-	// 3. generate scale-out deploy steps
-	steps, err := genMigrateSteps(curveadm, oldData, newData)
+	// 2) read topology from file
+	data, err := readTopology(curveadm, options.filename)
 	if err != nil {
 		return err
 	}
 
-	// 4. execute scale-out steps one by one
-	displayMigrateTitle(curveadm)
-	if pass := tui.ConfirmYes(tui.PromptMigrate(warning)); !pass {
-		curveadm.WriteOutln(tui.PromptCancelOpetation("migrate"))
-		return nil
-	} else if err := comm.ExecDeploy(curveadm, steps); err != nil {
-		return curveadm.NewPromptError(err, "")
-	} else if err := curveadm.Storage().SetClusterTopology(curveadm.ClusterId(), newData); err != nil {
+	// 3) check topology
+	err = checkMigrateTopology(curveadm, data)
+	if err != nil {
 		return err
 	}
-	curveadm.WriteOut(color.GreenString("Services successfully migrated\n"))
+
+	// 4) display title
+	displayMigrateTitle(curveadm, data)
+
+	// 5) confirm by user
+	if pass := tui.ConfirmYes(tui.DEFAULT_CONFIRM_PROMPT); !pass {
+		curveadm.WriteOutln(tui.PromptCancelOpetation("migrate service"))
+		return errno.ERR_CANCEL_OPERATION
+	}
+
+	// 6) generate migrate playbook
+	pb, err := genMigratePlaybook(curveadm, dcs, data)
+	if err != nil {
+		return err
+	}
+
+	// 8) run playground
+	err = pb.Run()
+	if err != nil {
+		return err
+	}
+
+	// 9) print success prompt
+	curveadm.WriteOutln("")
+	curveadm.WriteOutln(color.GreenString("Services successfully migrateed ^_^."))
+	// TODO(P1): warning iff there is changed configs
+	// tui.PromptMigrate()
 	return nil
 }

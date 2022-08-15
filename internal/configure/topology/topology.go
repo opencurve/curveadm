@@ -20,12 +20,14 @@
  * Author: Jingli Chen (Wine93)
  */
 
+// __SIGN_BY_WINE93__
+
 package topology
 
 import (
 	"bytes"
-	"fmt"
 
+	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/viper"
 )
@@ -37,10 +39,11 @@ var (
 
 type (
 	Deploy struct {
-		Host    string                 `mapstructure:"host"`
-		Name    string                 `mapstructure:"name"`
-		Replica int                    `mapstructure:"replica"`
-		Config  map[string]interface{} `mapstructure:"config"`
+		Host     string                 `mapstructure:"host"`
+		Name     string                 `mapstructure:"name"`
+		Replica  int                    `mapstructure:"replica"` // old version
+		Replicas int                    `mapstructure:"replicas"`
+		Config   map[string]interface{} `mapstructure:"config"`
 	}
 
 	Service struct {
@@ -81,21 +84,22 @@ func newIfNil(config map[string]interface{}) map[string]interface{} {
 	return config
 }
 
-func ParseTopology(data string) ([]*DeployConfig, error) {
+func ParseTopology(data string, ctx *Context) ([]*DeployConfig, error) {
 	if len(data) == 0 {
-		return nil, fmt.Errorf("cluster topology is empty")
+		return nil, errno.ERR_EMPTY_CLUSTER_TOPOLOGY
 	}
+
 	parser := viper.NewWithOptions(viper.KeyDelimiter("::"))
 	parser.SetConfigType("yaml")
 	err := parser.ReadConfig(bytes.NewBuffer([]byte(data)))
 	if err != nil {
-		return nil, err
+		return nil, errno.ERR_PARSE_TOPOLOGY_FAILED.E(err)
 	}
 
 	topology := &Topology{}
 	err = parser.Unmarshal(topology)
 	if err != nil {
-		return nil, err
+		return nil, errno.ERR_PARSE_TOPOLOGY_FAILED.E(err)
 	}
 
 	// check topology kind
@@ -106,7 +110,7 @@ func ParseTopology(data string) ([]*DeployConfig, error) {
 	} else if kind == KIND_CURVEFS {
 		roles = append(roles, CURVEFS_ROLES...)
 	} else {
-		return nil, fmt.Errorf("unsupport kind('%s')", kind)
+		return nil, errno.ERR_UNSUPPORT_CLUSTER_KIND
 	}
 
 	dcs := []*DeployConfig{}
@@ -136,17 +140,25 @@ func ParseTopology(data string) ([]*DeployConfig, error) {
 			merge(servicesConfig, deployConfig, 1)
 
 			// create deploy config
-			replica := deploy.Replica
-			if replica <= 0 {
-				replica = 1
+			replicas := 1
+			if deploy.Replicas < 0 {
+				return nil, errno.ERR_REPLICAS_REQUIRES_POSITIVE_INTEGER.
+					F("replicas: %d", deploy.Replicas)
+			} else if deploy.Replica < 0 {
+				return nil, errno.ERR_REPLICAS_REQUIRES_POSITIVE_INTEGER.
+					F("replica: %d", deploy.Replica)
+			} else if deploy.Replicas > 0 {
+				replicas = deploy.Replicas
+			} else if deploy.Replica > 0 {
+				replicas = deploy.Replica
 			}
 
-			for replicaSequence := 0; replicaSequence < replica; replicaSequence++ {
-				dc, err := NewDeployConfig(kind,
-					role, deploy.Host, deploy.Name, replica,
-					hostSequence, replicaSequence, utils.DeepCopy(deployConfig))
+			for replicasSequence := 0; replicasSequence < replicas; replicasSequence++ {
+				dc, err := NewDeployConfig(ctx, kind,
+					role, deploy.Host, deploy.Name, replicas,
+					hostSequence, replicasSequence, utils.DeepCopy(deployConfig))
 				if err != nil {
-					return nil, err
+					return nil, err // already is error code
 				}
 				dcs = append(dcs, dc)
 			}
@@ -156,23 +168,27 @@ func ParseTopology(data string) ([]*DeployConfig, error) {
 	// add service variables
 	exist := map[string]bool{}
 	for idx, dc := range dcs {
-		if err = AddServiceVariables(dcs, idx); err != nil {
+		if err = dc.ResolveHost(); err != nil {
 			return nil, err
+		} else if err = AddServiceVariables(dcs, idx); err != nil {
+			return nil, err // already is error code
 		} else if err = dc.Build(); err != nil {
-			return nil, err
+			return nil, err // already is error code
 		} else if exist[dc.GetId()] {
 			// actually the dc.GetId() return configure id
-			return nil, fmt.Errorf("service id(%s) is duplicate", dc.GetId())
+			return nil, errno.ERR_DUPLICATE_SERVICE_ID.
+				F("service id: %s", dc.GetId())
 		}
 	}
 
 	// add cluster variables
 	for idx, dc := range dcs {
 		if err = AddClusterVariables(dcs, idx); err != nil {
-			return nil, err
+			return nil, err // already is error code
 		} else if err = dc.GetVariables().Build(); err != nil {
-			return nil, err
+			return nil, errno.ERR_RESOLVE_VARIABLE_FAILED.E(err)
 		}
+
 		dc.GetVariables().Debug()
 	}
 

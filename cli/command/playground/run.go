@@ -29,12 +29,12 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/opencurve/curveadm/cli/cli"
-	pg "github.com/opencurve/curveadm/internal/configure/playground"
+	"github.com/opencurve/curveadm/internal/configure"
 	"github.com/opencurve/curveadm/internal/configure/topology"
-	"github.com/opencurve/curveadm/internal/task/tasks"
+	"github.com/opencurve/curveadm/internal/errno"
+	"github.com/opencurve/curveadm/internal/playbook"
 	"github.com/opencurve/curveadm/internal/utils"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
-	"github.com/opencurve/curveadm/pkg/log"
 	"github.com/spf13/cobra"
 )
 
@@ -50,25 +50,33 @@ var (
 		KIND_CURVEBS: true,
 		KIND_CURVEFS: true,
 	}
+
+	RUN_PLAYGROUND_PLAYBOOK_STEPS = []int{
+		playbook.RUN_PLAYGROUND,
+	}
 )
 
 type runOptions struct {
+	name           string
 	kind           string
 	mountPoint     string
 	containerImage string
 }
 
-func checkOptions(options runOptions) error {
+func checkRunOptions(curveadm *cli.CurveAdm, options runOptions) error {
 	kind := options.kind
 	mountPoint := options.mountPoint
 	if !supportKind[kind] {
-		return fmt.Errorf("unsupport kind '%s'", options.kind)
+		return errno.ERR_UNSUPPORT_PLAYGROUND_KIND.
+			F("kind=%s", kind)
 	} else if kind == KIND_CURVEFS && len(mountPoint) == 0 {
-		return fmt.Errorf("you must specify mountpoint for CurveFS")
-	} else if kind == KIND_CURVEFS && !utils.PathExist(mountPoint) {
-		return fmt.Errorf("mountpoint '%s' not exist", mountPoint)
+		return errno.ERR_MUST_SPECIFY_MOUNTPOINT_FOR_CURVEFS_PLAYGROUND
 	} else if kind == KIND_CURVEFS && !filepath.IsAbs(mountPoint) {
-		return fmt.Errorf("mountpoint '%s' must be an absolute path", mountPoint)
+		return errno.ERR_PLAYGROUND_MOUNTPOINT_REQUIRE_ABSOLUTE_PATH.
+			F("mountPoint=%s", mountPoint)
+	} else if kind == KIND_CURVEFS && !utils.PathExist(mountPoint) {
+		return errno.ERR_PLAYGROUND_MOUNTPOINT_NOT_EXIST.
+			F("mountPoint=%s", mountPoint)
 	}
 	return nil
 }
@@ -81,10 +89,10 @@ func NewRunCommand(curveadm *cli.CurveAdm) *cobra.Command {
 		Aliases: []string{"create"},
 		Short:   "Run playground",
 		Args:    cliutil.NoArgs,
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			return checkRunOptions(curveadm, options)
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := checkOptions(options); err != nil {
-				return err
-			}
 			return runRun(curveadm, options)
 		},
 		DisableFlagsInUseLine: true,
@@ -92,36 +100,52 @@ func NewRunCommand(curveadm *cli.CurveAdm) *cobra.Command {
 
 	flags := cmd.Flags()
 	flags.StringVarP(&options.kind, "kind", "k", "curvefs", "Specify the type of playground (curvebs/curvefs)")
-	flags.StringVarP(&options.mountPoint, "mountpoint", "m", "", "Specify the mountpoint for CurveFS playground")
-	flags.StringVarP(&options.containerImage, "container_image", "c", "", "Specify the playground container image")
+	flags.StringVar(&options.mountPoint, "mountpoint", "m", "Specify the mountpoint for CurveFS playground")
+	flags.StringVar(&options.containerImage, "container_image", "i", "Specify the playground container image")
 
 	return cmd
 }
 
+func genRunPlaybook(curveadm *cli.CurveAdm,
+	options runOptions) (*playbook.Playbook, error) {
+	steps := RUN_PLAYGROUND_PLAYBOOK_STEPS
+	pb := playbook.NewPlaybook(curveadm)
+	for _, step := range steps {
+		pb.AddStep(&playbook.PlaybookStep{
+			Type: step,
+			Configs: &configure.PlaygroundConfig{
+				Kind:       options.kind,
+				Name: options.name,
+				Mountpoint: options.mountPoint,
+			},
+		})
+	}
+	return pb, nil
+}
+
 func runRun(curveadm *cli.CurveAdm, options runOptions) error {
+	// 1) insert a new playground
 	kind := options.kind
-	name := fmt.Sprintf(FORMAT_PLAYGROUND_NAME, kind, time.Now().Unix())
-	err := curveadm.Storage().InsertPlayground(name, options.mountPoint, "STOPPED")
+	options.name = fmt.Sprintf(FORMAT_PLAYGROUND_NAME, kind, time.Now().Unix())
+	err := curveadm.Storage().InsertPlayground(options.name, options.mountPoint, "STOPPED")
+	if err != nil {
+		return errno.ERR_INSERT_PLAYGROUND_FAILED.E(err)
+	}
+
+	// 2) generate remove playground
+	pb, err := genRunPlaybook(curveadm, options)
 	if err != nil {
 		return err
 	}
 
-	err = tasks.ExecTasks(tasks.RUN_PLAYGROUND, curveadm, &pg.PlaygroundConfig{
-		Kind:           options.kind,
-		Name:           name,
-		ContainerImage: options.containerImage,
-		Mountpoint:     options.mountPoint,
-	})
-	if err == nil {
-		err = curveadm.Storage().SetPlaygroundStatus(name, "RUNNING")
-		if err != nil {
-			log.Error("SetPlaygroundStatus", log.Field("error", err))
-		}
+	// 3) run playground
+	err = pb.Run()
+	if err != nil {
+		return err
 	}
 
-	if err != nil {
-		return curveadm.NewPromptError(err, "")
-	}
-	curveadm.WriteOutln(color.GreenString("Playground '%s' successfully deployed ^_^", name))
+	// 4) print success prompt
+	curveadm.WriteOutln(color.GreenString("Playground '%s' successfully deployed ^_^",
+		options.name))
 	return nil
 }

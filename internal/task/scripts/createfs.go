@@ -47,6 +47,9 @@ ret=$?
 if [ $ret -eq 0 ]; then
     $g_entrypoint "$@"
     ret=$?
+    exit $ret
+else
+    echo "CREATEFS FAILED"
+    exit 0
 fi
-exit $ret
 `

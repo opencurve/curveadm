@@ -20,28 +20,18 @@
  * Author: Jingli Chen (Wine93)
  */
 
+// __SIGN_BY_WINE93__
+
 package module
 
 import (
 	"fmt"
 	"strings"
 	"text/template"
-
-	ssh "github.com/melbahja/goph"
 )
 
-// docker pull [OPTIONS] NAME[:TAG|@DIGEST]
-// docker create [OPTIONS] IMAGE [COMMAND] [ARG...]
-// docker start [OPTIONS] CONTAINER [CONTAINER...]
-// docker stop [OPTIONS] CONTAINER [CONTAINER...]
-// docker restart [OPTIONS] CONTAINER [CONTAINER...]
-// docker wait {{.options}} {{.containers}}
-// docker rm [OPTIONS] CONTAINER [CONTAINER...]
-// docker ps [OPTIONS]
-// docker inspect [OPTIONS] NAME|ID [NAME|ID...]
-// docker exec [OPTIONS] CONTAINER COMMAND [ARG...]
-// docker cp [OPTIONS] CONTAINER:SRC_PATH DEST_PATH|-
 const (
+	TEMPLATE_DOCKER_INFO         = "docker info"
 	TEMPLATE_PULL_IMAGE          = "docker pull {{.options}} {{.name}}"
 	TEMPLATE_CREATE_CONTAINER    = "docker create {{.options}} {{.image}} {{.command}}"
 	TEMPLATE_START_CONTAINER     = "docker start {{.options}} {{.containers}}"
@@ -50,20 +40,21 @@ const (
 	TEMPLATE_WAIT_CONTAINER      = "docker wait {{.options}} {{.containers}}"
 	TEMPLATE_REMOVE_CONTAINER    = "docker rm {{.options}} {{.containers}}"
 	TEMPLATE_LIST_CONTAINERS     = "docker ps {{.options}}"
-	TEMPLATE_INSPECT_CONTAINER   = "docker inspect {{.options}} {{.container}}"
 	TEMPLATE_CONTAINER_EXEC      = "docker exec {{.options}} {{.container}} {{.command}}"
 	TEMPLATE_COPY_FROM_CONTAINER = "docker cp {{.options}} {{.container}}:{{.srcPath}} {{.destPath}}"
 	TEMPLATE_COPY_INTO_CONTAINER = "docker cp {{.options}}  {{.srcPath}} {{.container}}:{{.destPath}}"
+	TEMPLATE_INSPECT_CONTAINER   = "docker inspect {{.options}} {{.container}}"
+	TEMPLATE_CONTAINER_LOGS      = "docker logs {{.options}} {{.container}}"
 )
 
 type DockerCli struct {
-	sshClient *ssh.Client
+	sshClient *SSHClient
 	options   []string
 	tmpl      *template.Template
 	data      map[string]interface{}
 }
 
-func NewDockerCli(sshClient *ssh.Client) *DockerCli {
+func NewDockerCli(sshClient *SSHClient) *DockerCli {
 	return &DockerCli{
 		sshClient: sshClient,
 		options:   []string{},
@@ -75,6 +66,16 @@ func NewDockerCli(sshClient *ssh.Client) *DockerCli {
 func (s *DockerCli) AddOption(format string, args ...interface{}) *DockerCli {
 	s.options = append(s.options, fmt.Sprintf(format, args...))
 	return s
+}
+
+func (cli *DockerCli) Execute(options ExecOptions) (string, error) {
+	cli.data["options"] = strings.Join(cli.options, " ")
+	return execCommand(cli.sshClient, cli.tmpl, cli.data, options)
+}
+
+func (cli *DockerCli) DockerInfo() *DockerCli {
+	cli.tmpl = template.Must(template.New("DockerInfo").Parse(TEMPLATE_DOCKER_INFO))
+	return cli
 }
 
 func (cli *DockerCli) PullImage(image string) *DockerCli {
@@ -125,12 +126,6 @@ func (cli *DockerCli) ListContainers() *DockerCli {
 	return cli
 }
 
-func (cli *DockerCli) InspectContainer(containerId string) *DockerCli {
-	cli.tmpl = template.Must(template.New("InspectContainer").Parse(TEMPLATE_INSPECT_CONTAINER))
-	cli.data["container"] = containerId
-	return cli
-}
-
 func (cli *DockerCli) ContainerExec(containerId, command string) *DockerCli {
 	cli.tmpl = template.Must(template.New("ContainerExec").Parse(TEMPLATE_CONTAINER_EXEC))
 	cli.data["container"] = containerId
@@ -154,7 +149,14 @@ func (cli *DockerCli) CopyIntoContainer(srcPath, containerId, destPath string) *
 	return cli
 }
 
-func (cli *DockerCli) Execute(options ExecOption) (string, error) {
-	cli.data["options"] = strings.Join(cli.options, " ")
-	return execCommand(cli.sshClient, cli.tmpl, cli.data, options)
+func (cli *DockerCli) InspectContainer(containerId string) *DockerCli {
+	cli.tmpl = template.Must(template.New("InspectContainer").Parse(TEMPLATE_INSPECT_CONTAINER))
+	cli.data["container"] = containerId
+	return cli
+}
+
+func (cli *DockerCli) ContainerLogs(containerId string) *DockerCli {
+	cli.tmpl = template.Must(template.New("ContainerLogs").Parse(TEMPLATE_CONTAINER_LOGS))
+	cli.data["container"] = containerId
+	return cli
 }

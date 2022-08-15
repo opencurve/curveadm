@@ -31,21 +31,15 @@ var MAP = `
 
 g_user=$1
 g_volume=$2
-g_create=$3
-g_size=$4
-
-if [ $g_create == "true" ]; then
-    output=$(curve_ops_tool create -userName=$g_user -fileName=$g_volume -fileLength=$g_size)
-    if [ $? -ne 0 ]; then
-        if [ "$output" != "CreateFile fail with errCode: 101" ]; then
-            echo ${output}
-            exit 1
-        fi
-    fi
-fi
+g_stderr=/tmp/__curveadm_map__
 
 mkdir -p /curvebs/nebd/data/lock
 touch /etc/curve/curvetab
-curve-nbd map --nbds_max=16 cbd:pool/${g_volume}_${g_user}_
-[[ ! -z $(pgrep curve-nbd) ]] && tail --pid=$(pgrep curve-nbd) -f /dev/null
+curve-nbd map --nbds_max=16 cbd:pool/${g_volume}_${g_user}_ > ${g_stderr} 2>&1
+if [ $? -ne 0 ]; then
+  cat ${g_stderr}
+  exit 1
+else
+  echo "SUCCESS"
+fi
 `

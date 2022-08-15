@@ -20,6 +20,8 @@
  * Author: Jingli Chen (Wine93)
  */
 
+// __SIGN_BY_WINE93__
+
 package common
 
 import (
@@ -27,6 +29,7 @@ import (
 
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/configure/topology"
+	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/task/context"
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
@@ -38,49 +41,89 @@ const (
 	CMD_ADD_CONTABLE = "bash -c '[[ ! -z $(which crontab) ]] && crontab %s'"
 )
 
-type step2PostStart struct {
-	ContainerId   string
-	ExecWithSudo  bool
-	ExecInLocal   bool
-	ExecSudoAlias string
+type step2CheckPostStart struct {
+	host        string
+	role        string
+	containerId string
+	success     *bool
+	out         *string
+	execOptions module.ExecOptions
 }
 
-func (s *step2PostStart) Execute(ctx *context.Context) error {
-	command := fmt.Sprintf(CMD_ADD_CONTABLE, CURVE_CRONTAB_FILE)
-	cli := ctx.Module().DockerCli().ContainerExec(s.ContainerId, command)
-	_, err := cli.Execute(module.ExecOption{
-		ExecWithSudo:  s.ExecWithSudo,
-		ExecInLocal:   s.ExecInLocal,
-		ExecSudoAlias: s.ExecSudoAlias,
-	})
-	return err
+func (s *step2CheckPostStart) Execute(ctx *context.Context) error {
+	if *s.success {
+		return nil
+	}
+
+	var status string
+	step := &step.InspectContainer{
+		ContainerId: s.containerId,
+		Format:      "'{{.State.Status}}'",
+		Out:         &status,
+		ExecOptions: s.execOptions,
+	}
+	err := step.Execute(ctx)
+	if err != nil {
+		return errno.ERR_START_CRONTAB_IN_CONTAINER_FAILED.S(*s.out)
+	} else if status != "running" {
+		return errno.ERR_CONTAINER_IS_ABNORMAL.
+			F("host=%s role=%s containerId=%s",
+				s.host, s.role, tui.TrimContainerId(s.containerId))
+	}
+	return nil
 }
 
 func NewStartServiceTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task.Task, error) {
 	serviceId := curveadm.GetServiceId(dc.GetId())
-	containerId, err := curveadm.Storage().GetContainerId(serviceId)
+	containerId, err := curveadm.GetContainerId(serviceId)
 	if err != nil {
 		return nil, err
-	} else if containerId == "" {
-		return nil, fmt.Errorf("service(id=%s) not found", serviceId)
+	}
+	hc, err := curveadm.GetHost(dc.GetHost())
+	if err != nil {
+		return nil, err
 	}
 
+	// new task
 	subname := fmt.Sprintf("host=%s role=%s containerId=%s",
 		dc.GetHost(), dc.GetRole(), tui.TrimContainerId(containerId))
-	t := task.NewTask("Start Service", subname, dc.GetSSHConfig())
+	t := task.NewTask("Start Service", subname, hc.GetSSHConfig())
 
-	// add step
-	t.AddStep(&step.StartContainer{
-		ContainerId:   &containerId,
-		ExecWithSudo:  true,
-		ExecInLocal:   false,
-		ExecSudoAlias: curveadm.SudoAlias(),
+	// add step to task
+	var out string
+	var success bool
+	host, role := dc.GetHost(), dc.GetRole()
+	t.AddStep(&step.ListContainers{
+		ShowAll:     true,
+		Format:      `"{{.ID}}"`,
+		Filter:      fmt.Sprintf("id=%s", containerId),
+		Out:         &out,
+		ExecOptions: curveadm.ExecOptions(),
 	})
-	t.AddStep(&step2PostStart{
-		ContainerId:   containerId,
-		ExecWithSudo:  true,
-		ExecInLocal:   false,
-		ExecSudoAlias: curveadm.SudoAlias(),
+	t.AddStep(&step.Lambda{
+		Lambda: checkContainerExist(host, role, containerId, &out),
+	})
+	t.AddStep(&step.StartContainer{
+		ContainerId: &containerId,
+		ExecOptions: curveadm.ExecOptions(),
+	})
+	t.AddStep(&step.Lambda{
+		Lambda: waitContainerStart(3),
+	})
+	t.AddStep(&step.ContainerExec{
+		ContainerId: &containerId,
+		Command:     fmt.Sprintf(CMD_ADD_CONTABLE, CURVE_CRONTAB_FILE),
+		Success:     &success,
+		Out:         &out,
+		ExecOptions: curveadm.ExecOptions(),
+	})
+	t.AddStep(&step2CheckPostStart{
+		host:        dc.GetHost(),
+		role:        dc.GetRole(),
+		containerId: containerId,
+		success:     &success,
+		out:         &out,
+		execOptions: curveadm.ExecOptions(),
 	})
 
 	return t, nil

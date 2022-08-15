@@ -20,6 +20,8 @@
  * Author: Jingli Chen (Wine93)
  */
 
+// __SIGN_BY_WINE93__
+
 package common
 
 import (
@@ -28,7 +30,9 @@ import (
 	"strings"
 
 	"github.com/opencurve/curveadm/cli/cli"
+	comm "github.com/opencurve/curveadm/internal/common"
 	"github.com/opencurve/curveadm/internal/configure/topology"
+	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/storage"
 	"github.com/opencurve/curveadm/internal/task/context"
 	"github.com/opencurve/curveadm/internal/task/scripts"
@@ -41,16 +45,12 @@ import (
 )
 
 const (
-	KEY_RECYCLE     = "RECYCLE"
-	KEY_CLEAN_ITEMS = "CLEAN_ITEMS"
-	ITEM_LOG        = "log"
-	ITEM_DATA       = "data"
-	ITEM_CONTAINER  = "container"
-
 	LAYOUT_CURVEBS_CHUNKFILE_POOL_DIR = topology.LAYOUT_CURVEBS_CHUNKFILE_POOL_DIR
 	LAYOUT_CURVEBS_COPYSETS_DIR       = topology.LAYOUT_CURVEBS_COPYSETS_DIR
 	LAYOUT_CURVEBS_RECYCLER_DIR       = topology.LAYOUT_CURVEBS_RECYCLER_DIR
 	METAFILE_CHUNKSERVER_ID           = topology.METAFILE_CHUNKSERVER_ID
+
+	SIGNATURE_CONTAINER_REMOVED = "No such container"
 )
 
 type (
@@ -58,25 +58,21 @@ type (
 		dc                *topology.DeployConfig
 		clean             map[string]bool
 		recycleScriptPath string
-		execWithSudo      bool
-		execInLocal       bool
-		execSudoAlias     string
+		execOptions       module.ExecOptions
 	}
 
 	step2CleanContainer struct {
-		config        *topology.DeployConfig
-		serviceId     string
-		containerId   string
-		storage       *storage.Storage
-		execWithSudo  bool
-		execInLocal   bool
-		execSudoAlias string
+		config      *topology.DeployConfig
+		serviceId   string
+		containerId string
+		storage     *storage.Storage
+		execOptions module.ExecOptions
 	}
 )
 
 func (s *step2RecycleChunk) Execute(ctx *context.Context) error {
 	dc := s.dc
-	if !s.clean[ITEM_DATA] {
+	if !s.clean[comm.CLEAN_ITEM_DATA] {
 		return nil
 	} else if dc.GetRole() != topology.ROLE_CHUNKSERVER {
 		return nil
@@ -89,45 +85,40 @@ func (s *step2RecycleChunk) Execute(ctx *context.Context) error {
 	recyclerDir := fmt.Sprintf("%s/%s", dataDir, LAYOUT_CURVEBS_RECYCLER_DIR)
 	source := fmt.Sprintf("'%s %s'", copysetsDir, recyclerDir)
 	dest := fmt.Sprintf("%s/%s", dataDir, LAYOUT_CURVEBS_CHUNKFILE_POOL_DIR)
-	chunk_size := strconv.Itoa(bs.DEFAULT_CHUNKFILE_SIZE + bs.DEFAULT_CHUNKFILE_HEADER_SIZE)
-	cmd := ctx.Module().Shell().BashScript(s.recycleScriptPath, source, dest, chunk_size)
-	_, err := cmd.Execute(module.ExecOption{
-		ExecWithSudo:  s.execWithSudo,
-		ExecInLocal:   s.execInLocal,
-		ExecSudoAlias: s.execSudoAlias,
-	})
-	return err
+	chunkSize := strconv.Itoa(bs.DEFAULT_CHUNKFILE_SIZE + bs.DEFAULT_CHUNKFILE_HEADER_SIZE)
+	cmd := ctx.Module().Shell().BashScript(s.recycleScriptPath, source, dest, chunkSize)
+	_, err := cmd.Execute(s.execOptions)
+	if err != nil {
+		errno.ERR_RUN_SCRIPT_FAILED.E(err)
+	}
+	return nil
 }
 
 func (s *step2CleanContainer) Execute(ctx *context.Context) error {
 	containerId := s.containerId
-	if containerId == "" { // container not created
+	if len(containerId) == 0 { // container not created
 		return nil
-	} else if containerId == "-" { // container has removed
+	} else if containerId == comm.CLEANED_CONTAINER_ID { // container has removed
 		return nil
 	}
 
 	cli := ctx.Module().DockerCli().RemoveContainer(s.containerId)
-	out, err := cli.Execute(module.ExecOption{
-		ExecWithSudo:  s.execWithSudo,
-		ExecInLocal:   s.execInLocal,
-		ExecSudoAlias: s.execSudoAlias,
-	})
+	out, err := cli.Execute(s.execOptions)
 
 	// container has removed
-	if err != nil && !strings.Contains(out, "No such container") {
+	if err != nil && !strings.Contains(out, SIGNATURE_CONTAINER_REMOVED) {
 		return err
 	}
-	return s.storage.SetContainId(s.serviceId, "-")
+	return s.storage.SetContainId(s.serviceId, comm.CLEANED_CONTAINER_ID)
 }
 
 func getCleanFiles(clean map[string]bool, dc *topology.DeployConfig, recycle bool) []string {
 	files := []string{}
 	for item := range clean {
 		switch item {
-		case ITEM_LOG:
+		case comm.CLEAN_ITEM_LOG:
 			files = append(files, dc.GetLogDir())
-		case ITEM_DATA:
+		case comm.CLEAN_ITEM_DATA:
 			if dc.GetRole() != topology.ROLE_CHUNKSERVER || !recycle {
 				files = append(files, dc.GetDataDir())
 			} else {
@@ -143,56 +134,51 @@ func getCleanFiles(clean map[string]bool, dc *topology.DeployConfig, recycle boo
 
 func NewCleanServiceTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task.Task, error) {
 	serviceId := curveadm.GetServiceId(dc.GetId())
-	containerId, err := curveadm.Storage().GetContainerId(serviceId)
+	containerId, err := curveadm.GetContainerId(serviceId)
 	if err != nil {
 		return nil, err
-	} else if containerId == "" {
-		return nil, fmt.Errorf("service(id=%s) not found", serviceId)
+	}
+	hc, err := curveadm.GetHost(dc.GetHost())
+	if err != nil {
+		return nil, err
 	}
 
-	only := curveadm.MemStorage().Get(KEY_CLEAN_ITEMS).([]string)
-	recycle := curveadm.MemStorage().Get(KEY_RECYCLE).(bool)
+	// new task
+	only := curveadm.MemStorage().Get(comm.KEY_CLEAN_ITEMS).([]string)
+	recycle := curveadm.MemStorage().Get(comm.KEY_CLEAN_BY_RECYCLE).(bool)
 	subname := fmt.Sprintf("host=%s role=%s containerId=%s clean=%s",
 		dc.GetHost(), dc.GetRole(), tui.TrimContainerId(containerId), strings.Join(only, ","))
-	t := task.NewTask("Clean Service", subname, dc.GetSSHConfig())
+	t := task.NewTask("Clean Service", subname, hc.GetSSHConfig())
 
-	// add step
+	// add step to task
 	clean := utils.Slice2Map(only)
 	files := getCleanFiles(clean, dc, recycle) // directorys which need cleaned
 	recyleScript := scripts.SCRIPT_RECYCLE
 	recyleScriptPath := utils.RandFilename(TEMP_DIR)
 
 	t.AddStep(&step.InstallFile{
-		Content:       &recyleScript,
-		HostDestPath:  recyleScriptPath,
-		Mode:          "777",
-		ExecWithSudo:  true,
-		ExecInLocal:   false,
-		ExecSudoAlias: curveadm.SudoAlias(),
+		Content:      &recyleScript,
+		HostDestPath: recyleScriptPath,
+		Mode:         "777", // FIXME: remove mode
+		ExecOptions: curveadm.ExecOptions(),
 	})
 	t.AddStep(&step2RecycleChunk{
 		dc:                dc,
 		clean:             clean,
 		recycleScriptPath: recyleScriptPath,
-		execWithSudo:      true,
-		execInLocal:       false,
-		execSudoAlias:     curveadm.SudoAlias(),
+		execOptions:       curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.RemoveFile{
-		Files:         files,
-		ExecWithSudo:  true,
-		ExecInLocal:   false,
-		ExecSudoAlias: curveadm.SudoAlias(),
+		Files:       files,
+		ExecOptions: curveadm.ExecOptions(),
 	})
-	if clean[ITEM_CONTAINER] == true {
+	if clean[comm.CLEAN_ITEM_CONTAINER] == true {
 		t.AddStep(&step2CleanContainer{
-			config:        dc,
-			serviceId:     serviceId,
-			containerId:   containerId,
-			storage:       curveadm.Storage(),
-			execWithSudo:  true,
-			execInLocal:   false,
-			execSudoAlias: curveadm.SudoAlias(),
+			config:      dc,
+			serviceId:   serviceId,
+			containerId: containerId,
+			storage:     curveadm.Storage(),
+			execOptions: curveadm.ExecOptions(),
 		})
 	}
 

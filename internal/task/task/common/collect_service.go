@@ -24,66 +24,52 @@ package common
 
 import (
 	"fmt"
-	"path/filepath"
-
 	"github.com/opencurve/curveadm/cli/cli"
+	comm "github.com/opencurve/curveadm/internal/common"
 	"github.com/opencurve/curveadm/internal/configure/topology"
 	"github.com/opencurve/curveadm/internal/task/context"
-	"github.com/opencurve/curveadm/internal/task/scripts"
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
 	tui "github.com/opencurve/curveadm/internal/tui/common"
 	"github.com/opencurve/curveadm/internal/utils"
-	"github.com/opencurve/curveadm/pkg/module"
+	"path"
 )
 
 const (
 	TEMP_DIR = "/tmp"
-
-	KEY_COLLECT_SAVE_DIR   = "COLLECT_SAVE_DIR"
-	KEY_COLLECT_SECRET_KEY = "COLLECT_SECRET_KEY"
 )
 
 type (
-	step2CollectService struct {
-		prefix      string
-		script      string
-		saveDir     string
-		serviceId   string
+	step2CopyFilesFromContainer struct {
+		files       *[]string
 		containerId string
+		hostDestDir string
+		curveadm    *cli.CurveAdm
 	}
 )
 
-func (s *step2CollectService) Execute(ctx *context.Context) error {
-	script := s.script
-	prefix := s.prefix
-	containerId := s.containerId
-	serviceId := s.serviceId
-	localPath := fmt.Sprintf("%s/%s.tar.gz", s.saveDir, serviceId)
-	remoteSaveDir := fmt.Sprintf("/tmp/%s_%s", serviceId, utils.RandString(5))
-	remotePath := fmt.Sprintf("%s.tar.gz", remoteSaveDir)
-	cmd1 := fmt.Sprintf("bash %s %s %s %s", script, prefix, containerId, remoteSaveDir)
-	cmd2 := fmt.Sprintf("cd %s && tar -zcvf %s %s",
-		filepath.Dir(remotePath), filepath.Base(remotePath), filepath.Base(remoteSaveDir))
-	option := module.ExecOption{ExecWithSudo: false, ExecInLocal: false}
-	defer func() {
-		ctx.Module().Shell().Remove(remoteSaveDir).AddOption("--parents").Execute(option)
-		ctx.Module().Shell().Remove(remotePath).AddOption("--parents").Execute(option)
-		ctx.Module().Shell().Remove(script).AddOption("--parents").Execute(option)
-	}()
-
-	if _, err := ctx.Module().Shell().Command(cmd1).Execute(option); err != nil {
-		return err
-	} else if _, err := ctx.Module().Shell().Command(cmd2).Execute(option); err != nil {
-		return err
-	} else if err := ctx.Module().File().Download(remotePath, localPath); err != nil {
-		return err
-	}
-
-	return nil
+func encodeSecret(secret string) string {
+	return utils.MD5Sum(secret)
 }
 
-func (s *step2CollectService) Rollback(ctx *context.Context) {
+func (s *step2CopyFilesFromContainer) Execute(ctx *context.Context) error {
+	steps := []task.Step{}
+	for _, file := range *s.files {
+		steps = append(steps, &step.CopyFromContainer{
+			ContainerSrcPath: file,
+			HostDestPath:     s.hostDestDir,
+			ContainerId:      s.containerId,
+			ExecOptions:      s.curveadm.ExecOptions(),
+		})
+	}
+
+	for _, step := range steps {
+		err := step.Execute(ctx)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func NewCollectServiceTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task.Task, error) {
@@ -91,29 +77,96 @@ func NewCollectServiceTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*
 	containerId, err := curveadm.Storage().GetContainerId(serviceId)
 	if err != nil {
 		return nil, err
-	} else if containerId == "" {
+	} else if len(containerId) == 0 {
+		return nil, nil
+	} else if containerId == comm.CLEANED_CONTAINER_ID {
 		return nil, nil
 	}
+	hc, err := curveadm.GetHost(dc.GetHost())
+	if err != nil {
+		return nil, err
+	}
 
-	memStorage := curveadm.MemStorage()
+	// new task
 	subname := fmt.Sprintf("host=%s role=%s containerId=%s",
 		dc.GetHost(), dc.GetRole(), tui.TrimContainerId(containerId))
-	t := task.NewTask("Collect Service", subname, dc.GetSSHConfig())
+	t := task.NewTask("Collect Service", subname, hc.GetSSHConfig())
 
-	// add step
+	// add step to task
+	var out string
+	//var files []string
+	secret := curveadm.MemStorage().Get(comm.KEY_SECRET).(string)
+	urlFormat := curveadm.MemStorage().Get(comm.KEY_SUPPORT_UPLOAD_URL_FORMAT).(string)
+	baseDir := TEMP_DIR
+	vname := utils.NewVariantName(fmt.Sprintf("%s_%s", serviceId, utils.RandString(5)))
+	remoteSaveDir := fmt.Sprintf("%s/%s", baseDir, vname.Name)                // /tmp/7b510fb63730_ox1fe
+	remoteTarbllPath := path.Join(baseDir, vname.CompressName)                // /tmp/7b510fb63730_ox1fe.tar.gz
+	localTarballPath := path.Join(baseDir, vname.CompressName)                // /tmp/7b510fb63730_ox1fe.tar.gz
+	localEncryptdTarballPath := path.Join(baseDir, vname.EncryptCompressName) // // /tmp/7b510fb63730_ox1fe-encrypted.tar.gz
+	httpSavePath := path.Join("/", encodeSecret(secret), "service", dc.GetRole())
 	layout := dc.GetProjectLayout()
-	collectScript := scripts.SCRIPT_COLLECT
-	collectScriptPath := utils.RandFilename(TEMP_DIR)
-	t.AddStep(&step.InstallFile{
-		HostDestPath: collectScriptPath,
-		Content:      &collectScript,
+	containerLogDir := layout.ServiceLogDir   // /curvebs/etcd/logs
+	containerConfDir := layout.ServiceConfDir // /curvebs/etcd/conf
+	localOptions := curveadm.ExecOptions()
+	localOptions.ExecInLocal = true
+
+	t.AddStep(&step.CreateDirectory{
+		Paths:       []string{remoteSaveDir /*, hostLogDir, hostConfDir*/},
+		ExecOptions: curveadm.ExecOptions(),
 	})
-	t.AddStep(&step2CollectService{
-		prefix:      layout.ServiceRootDir,
-		script:      collectScriptPath,
-		saveDir:     memStorage.Get(KEY_COLLECT_SAVE_DIR).(string),
-		serviceId:   serviceId,
+	t.AddStep(&step2CopyFilesFromContainer{ // copy logs directory
 		containerId: containerId,
+		files:       &[]string{containerLogDir},
+		hostDestDir: remoteSaveDir,
+		curveadm:    curveadm,
 	})
+	t.AddStep(&step2CopyFilesFromContainer{ // copy conf directory
+		containerId: containerId,
+		files:       &[]string{containerConfDir},
+		hostDestDir: remoteSaveDir,
+		curveadm:    curveadm,
+	})
+	t.AddStep(&step.ContainerLogs{
+		ContainerId: containerId,
+		Out:         &out,
+		ExecOptions: curveadm.ExecOptions(),
+	})
+	t.AddStep(&step.InstallFile{
+		Content:      &out,
+		HostDestPath: fmt.Sprintf("%s/docker.log", path.Join(remoteSaveDir, "logs")),
+		ExecOptions:  curveadm.ExecOptions(),
+	})
+	t.AddStep(&step.Tar{
+		File:        remoteSaveDir,
+		Archive:     remoteTarbllPath,
+		Create:      true,
+		Gzip:        true,
+		Verbose:     true,
+		ExecOptions: curveadm.ExecOptions(),
+	})
+	t.AddStep(&step.DownloadFile{
+		RemotePath:  remoteTarbllPath,
+		LocalPath:   localTarballPath,
+		ExecOptions: curveadm.ExecOptions(),
+	})
+	t.AddStep(&step2EncryptFile{
+		source: localTarballPath,
+		dest:   localEncryptdTarballPath,
+		secret: secret,
+	})
+	t.AddStep(&step.Curl{ // upload to curve team // curl -F "path=@$FILE" http://localhost:8080/upload\?path\=/
+		Url:         fmt.Sprintf(urlFormat, httpSavePath),
+		Form:        fmt.Sprintf("path=@%s", localEncryptdTarballPath),
+		ExecOptions: localOptions,
+	})
+	t.AddPostStep(&step.RemoveFile{
+		Files:       []string{remoteSaveDir, remoteTarbllPath},
+		ExecOptions: curveadm.ExecOptions(),
+	})
+	t.AddPostStep(&step.RemoveFile{
+		Files:       []string{localTarballPath, localEncryptdTarballPath},
+		ExecOptions: localOptions,
+	})
+
 	return t, nil
 }

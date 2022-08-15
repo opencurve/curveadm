@@ -14,8 +14,9 @@ require (
 	github.com/go-resty/resty/v2 v2.7.0
 	github.com/google/uuid v1.2.0
 	github.com/jpillora/longestcommon v0.0.0-20161227235612-adb9d91ee629
+	github.com/kpango/glg v1.6.11
 	github.com/mattn/go-sqlite3 v1.6.0
-	github.com/melbahja/goph v1.2.1
+	github.com/melbahja/goph v1.3.0
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/moby/sys/mount v0.2.0 // indirect
 	github.com/moby/term v0.0.0-20210619224110-3f7ff695adc6
@@ -25,7 +26,6 @@ require (
 	github.com/spf13/viper v1.10.0
 	github.com/theupdateframework/notary v0.7.0 // indirect
 	github.com/vbauerster/mpb/v7 v7.1.5
-	go.uber.org/zap v1.19.0
-	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
-	golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b // indirect
+	go.uber.org/zap v1.21.0
+	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
 )

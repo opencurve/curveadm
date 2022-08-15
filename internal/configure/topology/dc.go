@@ -20,14 +20,18 @@
  * Author: Jingli Chen (Wine93)
  */
 
+// __SIGN_BY_WINE93__
+
 package topology
 
 import (
 	"fmt"
 	"strconv"
 
+	"github.com/opencurve/curveadm/internal/build"
+	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/utils"
-	"github.com/opencurve/curveadm/pkg/log"
+	log "github.com/opencurve/curveadm/pkg/log/glg"
 	"github.com/opencurve/curveadm/pkg/variable"
 )
 
@@ -44,19 +48,21 @@ const (
 
 type (
 	DeployConfig struct {
-		kind            string // KIND_CURVEFS / KIND_CUVREBS
-		id              string // role_host_[name/hostSequence]_replicaSequence
-		parentId        string // role_host_[name/hostSequence]_0
-		role            string // etcd/mds/metaserevr/chunkserver
-		host            string
-		name            string
-		replica         int
-		hostSequence    int // start with 0
-		replicaSequence int // start with 0
+		kind             string // KIND_CURVEFS / KIND_CUVREBS
+		id               string // role_host_[name/hostSequence]_replicasSequence
+		parentId         string // role_host_[name/hostSequence]_0
+		role             string // etcd/mds/metaserevr/chunkserver
+		host             string
+		hostname         string
+		name             string
+		replicas         int
+		hostSequence     int // start with 0
+		replicasSequence int // start with 0
 
 		config        map[string]interface{}
 		serviceConfig map[string]string
 		variables     *variable.Variables
+		ctx           *Context
 	}
 
 	FilterOption struct {
@@ -67,8 +73,8 @@ type (
 )
 
 // etcd_hostname_0_0
-func formatId(role, host, name string, replicaSequence int) string {
-	return fmt.Sprintf("%s_%s_%s_%d", role, host, name, replicaSequence)
+func formatId(role, host, name string, replicasSequence int) string {
+	return fmt.Sprintf("%s_%s_%s_%d", role, host, name, replicasSequence)
 }
 
 func formatName(name string, hostSequence int) string {
@@ -87,21 +93,24 @@ func newVariables(m map[string]interface{}) (*variable.Variables, error) {
 	for k, v := range m {
 		value, ok := utils.All2Str(v)
 		if !ok {
-			return nil, fmt.Errorf("unsupport value type for variable '%s'", k)
+			return nil, errno.ERR_UNSUPPORT_VARIABLE_VALUE_TYPE.
+				F("%s: %v", k, v)
 		} else if len(value) == 0 {
-			return nil, fmt.Errorf("invalid value for variable '%s'", k)
+			return nil, errno.ERR_INVALID_VARIABLE_VALUE.
+				F("%s: %v", k, v)
 		}
 		vars.Register(variable.Variable{Name: k, Value: value})
 	}
 	return vars, nil
 }
 
-func NewDeployConfig(kind, role, host, name string, replica int,
-	hostSequence, replicaSequence int, config map[string]interface{}) (*DeployConfig, error) {
+func NewDeployConfig(ctx *Context, kind, role, host, name string, replicas int,
+	hostSequence, replicasSequence int, config map[string]interface{}) (*DeployConfig, error) {
 	// variable section
 	v := config[CONFIG_VARIABLE.key]
 	if !utils.IsStringAnyMap(v) && v != nil {
-		return nil, fmt.Errorf("invalid variable section")
+		return nil, errno.ERR_INVALID_VARIABLE_SECTION.
+			F("%s: %v", CONFIG_VARIABLE.key, v)
 	}
 
 	vars, err := newVariables(v.(map[string]interface{}))
@@ -117,32 +126,35 @@ func NewDeployConfig(kind, role, host, name string, replica int,
 		if strv, ok := utils.All2Str(v); ok {
 			config[k] = strv
 		} else {
-			return nil, fmt.Errorf("topology: unsupport value type for config key '%s'", k)
+			return nil, errno.ERR_UNSUPPORT_CONFIGURE_VALUE_TYPE.
+				F("%s: %v", k, v)
 		}
 	}
 
 	name = formatName(name, hostSequence)
 	return &DeployConfig{
-		kind:            kind,
-		id:              formatId(role, host, name, replicaSequence),
-		parentId:        formatId(role, host, name, 0),
-		role:            role,
-		host:            host,
-		name:            name,
-		replica:         replica,
-		hostSequence:    hostSequence,
-		replicaSequence: replicaSequence,
-		config:          config,
-		serviceConfig:   map[string]string{},
-		variables:       vars,
+		kind:             kind,
+		id:               formatId(role, host, name, replicasSequence),
+		parentId:         formatId(role, host, name, 0),
+		role:             role,
+		host:             host,
+		name:             name,
+		replicas:         replicas,
+		hostSequence:     hostSequence,
+		replicasSequence: replicasSequence,
+		config:           config,
+		serviceConfig:    map[string]string{},
+		variables:        vars,
+		ctx:              ctx,
 	}, nil
 }
 
 func (dc *DeployConfig) renderVariables() error {
 	vars := dc.GetVariables()
 	if err := vars.Build(); err != nil {
-		log.Error("BuildVariables", log.Field("error", err))
-		return err
+		log.Error("Build variables failed",
+			log.Field("error", err))
+		return errno.ERR_RESOLVE_VARIABLE_FAILED.E(err)
 	}
 
 	err := func(values ...*string) error {
@@ -154,17 +166,20 @@ func (dc *DeployConfig) renderVariables() error {
 			*value = realValue
 		}
 		return nil
-	}(&dc.host, &dc.name, &dc.id, &dc.parentId)
+	}(&dc.name, &dc.id, &dc.parentId)
 	if err != nil {
-		return err
+		return errno.ERR_RENDERING_VARIABLE_FAILED.E(err)
 	}
 
 	for k, v := range dc.config {
 		realv, err := vars.Rendering(v.(string))
 		if err != nil {
-			return err
+			return errno.ERR_RENDERING_VARIABLE_FAILED.E(err)
 		}
 		dc.config[k] = realv
+		build.DEBUG(build.DEBUG_TOPOLOGY,
+			build.Field{k, v},
+			build.Field{k, realv})
 	}
 	return nil
 }
@@ -188,7 +203,8 @@ func (dc *DeployConfig) convert() error {
 		}
 		v, ok := utils.All2Str(value)
 		if !ok {
-			return fmt.Errorf("topology: unsupport value type for config key '%s'", k)
+			return errno.ERR_UNSUPPORT_CONFIGURE_VALUE_TYPE.
+				F("%s: %v", k, value)
 		}
 
 		switch item.require {
@@ -196,31 +212,62 @@ func (dc *DeployConfig) convert() error {
 			// do nothing
 		case REQUIRE_INT:
 			if intv, ok := utils.Str2Int(v); !ok {
-				return fmt.Errorf("'%s': must be an integer", k)
+				return errno.ERR_CONFIGURE_VALUE_REQUIRES_INTEGER.
+					F("%s: %v", k, value)
 			} else {
 				dc.config[k] = intv
 			}
 		case REQUIRE_STRING:
 			if len(v) == 0 {
-				return fmt.Errorf("'%s': length must greater than zero", k)
+				return errno.ERR_CONFIGURE_VALUE_REQUIRES_NON_EMPTY_STRING.
+					F("%s: %v", k, value)
 			}
 		case REQUIRE_BOOL:
 			if boolv, ok := utils.Str2Bool(v); !ok {
-				return fmt.Errorf("'%s': must be a boolean", k)
+				return errno.ERR_CONFIGURE_VALUE_REQUIRES_BOOL.
+					F("%s: %v", k, value)
 			} else {
 				dc.config[k] = boolv
 			}
 		case REQUIRE_POSITIVE_INTEGER:
 			if intv, ok := utils.Str2Int(v); !ok {
-				return fmt.Errorf("'%s': must be an integer", k)
+				return errno.ERR_CONFIGURE_VALUE_REQUIRES_INTEGER.
+					F("%s: %v", k, value)
 			} else if intv <= 0 {
-				return fmt.Errorf("'%s': must be a positive integer", k)
+				return errno.ERR_CONFIGURE_VALUE_REQUIRES_POSITIVE_INTEGER.
+					F("%s: %v", k, value)
 			} else {
 				dc.config[k] = intv
 			}
 		}
 	}
 
+	return nil
+}
+
+func (dc *DeployConfig) ResolveHost() error {
+	if dc.ctx == nil {
+		dc.hostname = dc.host
+		return nil
+	}
+
+	vars := dc.GetVariables()
+	if err := vars.Build(); err != nil {
+		log.Error("Build variables failed",
+			log.Field("error", err))
+		return errno.ERR_RESOLVE_VARIABLE_FAILED.E(err)
+	}
+
+	var err error
+	dc.host, err = vars.Rendering(dc.GetHost())
+	if err != nil {
+		return errno.ERR_RENDERING_VARIABLE_FAILED.E(err)
+	}
+	dc.hostname = dc.ctx.Lookup(dc.GetHost())
+	if len(dc.hostname) == 0 {
+		return errno.ERR_HOST_NOT_FOUND.
+			F("host: %s", dc.GetHost())
+	}
 	return nil
 }
 

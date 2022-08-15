@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2021 NetEase Inc.
+ *  Copyright (c) 2022 NetEase Inc.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -23,35 +23,59 @@
 package bs
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
 	"github.com/opencurve/curveadm/cli/cli"
-	"github.com/opencurve/curveadm/internal/configure/client/bs"
-	client "github.com/opencurve/curveadm/internal/configure/client/bs"
+	comm "github.com/opencurve/curveadm/internal/common"
+	"github.com/opencurve/curveadm/internal/configure"
+	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/task/context"
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
+	"github.com/opencurve/curveadm/internal/task/task/checker"
+	"github.com/opencurve/curveadm/internal/utils"
 )
 
 const (
-	DEFAULT_NEBD_CONTAINER_NAME = "curvebs-nebd-server"
-
 	CLIENT_CONFIG_DELIMITER = "="
 )
 
 type (
-	step2CheckNEBDServer struct{ containerId *string }
+	step2InsertClient struct {
+		curveadm    *cli.CurveAdm
+		options     MapOptions
+		config      *configure.ClientConfig
+		containerId *string
+	}
+
+	AuxInfo struct {
+		User   string `json:"user"`
+		Volume string `json:"volume,"`
+		Config string `json:"config,omitempty"` // TODO(P1)
+	}
 )
 
-func (s *step2CheckNEBDServer) Execute(ctx *context.Context) error {
-	if len(*s.containerId) > 0 {
-		return task.ERR_SKIP_TASK
-	}
-	return nil
+func formatImage(user, volume string) string {
+	return fmt.Sprintf("cbd:pool/%s_%s_", volume, user)
 }
 
-func newMutate(cc *bs.ClientConfig, delimiter string) step.Mutate {
+func volume2ContainerName(user, volume string) string {
+	return fmt.Sprintf("curvebs-volume-%s", utils.MD5Sum(formatImage(user, volume)))
+}
+
+func checkVolumeExist(volume string, containerId *string) step.LambdaType {
+	return func(ctx *context.Context) error {
+		if len(*containerId) > 0 {
+			return errno.ERR_VOLUME_ALREADY_MAPPED.
+				F("volume: %s", volume)
+		}
+		return nil
+	}
+}
+
+func newMutate(cc *configure.ClientConfig, delimiter string) step.Mutate {
 	serviceConfig := cc.GetServiceConfig()
 	return func(in, key, value string) (out string, err error) {
 		if len(key) == 0 {
@@ -76,12 +100,12 @@ func newMutate(cc *bs.ClientConfig, delimiter string) step.Mutate {
 	}
 }
 
-func getVolumes(cc *client.ClientConfig) []step.Volume {
+func getVolumes(cc *configure.ClientConfig) []step.Volume {
 	volumes := []step.Volume{
 		{HostPath: "/dev", ContainerPath: "/dev"},
 		{HostPath: "/lib/modules", ContainerPath: "/lib/modules"},
-		{HostPath: cc.GetDataDir(), ContainerPath: "/curvebs/nebd/data"},
 	}
+	// see also: https://github.com/opencurve/curve/tree/master/nebd/etc/nebd
 	if len(cc.GetLogDir()) > 0 {
 		volumes = append(volumes, step.Volume{
 			HostPath:      cc.GetLogDir(),
@@ -91,52 +115,92 @@ func getVolumes(cc *client.ClientConfig) []step.Volume {
 	return volumes
 }
 
-func NewStartNEBDServiceTask(curveadm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task, error) {
-	subname := fmt.Sprintf("hostname=%s image=%s", cc.GetHost(), cc.GetContainerImage())
-	t := task.NewTask("Start NEBD Service", subname, cc.GetSSHConfig())
+func (s *step2InsertClient) Execute(ctx *context.Context) error {
+	config := s.config
+	curveadm := s.curveadm
+	options := s.options
+	volumeId := curveadm.GetVolumeId(options.Host, options.User, options.Volume)
+
+	auxInfo := &AuxInfo{
+		User:   options.User,
+		Volume: options.Volume,
+	}
+	bytes, err := json.Marshal(auxInfo)
+	if err != nil {
+		return errno.ERR_ENCODE_VOLUME_INFO_TO_JSON_FAILED.E(err)
+	}
+
+	err = curveadm.Storage().InsertClient(volumeId, config.GetKind(),
+		options.Host, *s.containerId, string(bytes))
+	if err != nil {
+		return errno.ERR_INSERT_CLIENT_FAILED.E(err)
+	}
+	return nil
+}
+
+func NewStartNEBDServiceTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.Task, error) {
+	options := curveadm.MemStorage().Get(comm.KEY_MAP_OPTIONS).(MapOptions)
+	hc, err := curveadm.GetHost(options.Host)
+	if err != nil {
+		return nil, err
+	}
+
+	subname := fmt.Sprintf("hostname=%s image=%s", hc.GetHostname(), cc.GetContainerImage())
+	t := task.NewTask("Start NEBD Service", subname, hc.GetSSHConfig())
 
 	// add step
-	var containerId string
-	hostname := fmt.Sprintf("curvebs-nebd-%s", cc.GetHost())
-	hostEntry := fmt.Sprintf("%s:%s", hostname, cc.GetHost())
-	t.AddStep(&step.ListContainers{
-		ShowAll:       true,
-		Format:        "'{{.ID}}'",
-		Quiet:         true,
-		Filter:        fmt.Sprintf("name=%s", DEFAULT_NEBD_CONTAINER_NAME),
-		Out:           &containerId,
-		ExecWithSudo:  true,
-		ExecInLocal:   false,
-		ExecSudoAlias: curveadm.SudoAlias(),
+	var containerId, out string
+	var success bool
+	volume := fmt.Sprintf("%s:%s", options.User, options.Volume)
+	containerName := volume2ContainerName(options.User, options.Volume)
+	hostname := containerName
+	host2addr := fmt.Sprintf("%s:%s", hostname, hc.GetHostname())
+
+	t.AddStep(&step.DockerInfo{
+		Success:     &success,
+		Out:         &out,
+		ExecOptions: curveadm.ExecOptions(),
 	})
-	t.AddStep(&step2CheckNEBDServer{ // skip if nebd-server exist
-		containerId: &containerId,
+	t.AddStep(&step.Lambda{
+		Lambda: checker.CheckDockerInfo(options.Host, &success, &out),
+	})
+	t.AddStep(&step.ListContainers{
+		ShowAll:     true,
+		Format:      "'{{.ID}}'",
+		Quiet:       true,
+		Filter:      fmt.Sprintf("name=%s", containerName),
+		Out:         &containerId,
+		ExecOptions: curveadm.ExecOptions(),
+	})
+	t.AddStep(&step.Lambda{
+		Lambda: checkVolumeExist(volume, &containerId),
 	})
 	t.AddStep(&step.CreateDirectory{
-		Paths:         []string{cc.GetLogDir(), cc.GetDataDir()},
-		ExecWithSudo:  true,
-		ExecInLocal:   false,
-		ExecSudoAlias: curveadm.SudoAlias(),
+		Paths:       []string{cc.GetLogDir(), cc.GetDataDir()},
+		ExecOptions: curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.PullImage{
-		Image:         cc.GetContainerImage(),
-		ExecWithSudo:  true,
-		ExecInLocal:   false,
-		ExecSudoAlias: curveadm.SudoAlias(),
+		Image:       cc.GetContainerImage(),
+		ExecOptions: curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.CreateContainer{
-		Image:         cc.GetContainerImage(),
-		AddHost:       []string{hostEntry},
-		Envs:          []string{"LD_PRELOAD=/usr/local/lib/libjemalloc.so"},
-		Hostname:      hostname,
-		Command:       fmt.Sprintf("--role nebd"),
-		Name:          DEFAULT_NEBD_CONTAINER_NAME,
-		Privileged:    true,
-		Volumes:       getVolumes(cc),
-		Out:           &containerId,
-		ExecWithSudo:  true,
-		ExecInLocal:   false,
-		ExecSudoAlias: curveadm.SudoAlias(),
+		Image:       cc.GetContainerImage(),
+		AddHost:     []string{host2addr},
+		Envs:        []string{"LD_PRELOAD=/usr/local/lib/libjemalloc.so"},
+		Hostname:    hostname,
+		Command:     fmt.Sprintf("--role nebd"),
+		Name:        containerName,
+		Pid:         "host",
+		Privileged:  true,
+		Volumes:     getVolumes(cc),
+		Out:         &containerId,
+		ExecOptions: curveadm.ExecOptions(),
+	})
+	t.AddStep(&step2InsertClient{
+		curveadm:    curveadm,
+		options:     options,
+		config:      cc,
+		containerId: &containerId,
 	})
 	for _, filename := range []string{"client.conf", "nebd-server.conf"} {
 		t.AddStep(&step.SyncFile{
@@ -146,16 +210,14 @@ func NewStartNEBDServiceTask(curveadm *cli.CurveAdm, cc *client.ClientConfig) (*
 			ContainerDestPath: "/curvebs/nebd/conf/" + filename,
 			KVFieldSplit:      CLIENT_CONFIG_DELIMITER,
 			Mutate:            newMutate(cc, CLIENT_CONFIG_DELIMITER),
-			ExecWithSudo:      true,
-			ExecInLocal:       false,
-			ExecSudoAlias:     curveadm.SudoAlias(),
+			ExecOptions:       curveadm.ExecOptions(),
 		})
 	}
 	t.AddStep(&step.StartContainer{
-		ContainerId:   &containerId,
-		ExecWithSudo:  true,
-		ExecInLocal:   false,
-		ExecSudoAlias: curveadm.SudoAlias(),
+		ContainerId: &containerId,
+		Out:         &out,
+		ExecOptions: curveadm.ExecOptions(),
 	})
+
 	return t, nil
 }

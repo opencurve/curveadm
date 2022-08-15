@@ -20,16 +20,19 @@
  * Author: Jingli Chen (Wine93)
  */
 
+// __SIGN_BY_WINE93__
+
 package config
 
 import (
 	"github.com/opencurve/curveadm/cli/cli"
+	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/cobra"
 )
 
-var (
-	diffExample = `Examples:
+const (
+	DIFF_EXAMPLE = `Examples:
   $ curveadm config diff /path/to/topology.yaml  # Display difference for topology`
 )
 
@@ -44,7 +47,7 @@ func NewDiffCommand(curveadm *cli.CurveAdm) *cobra.Command {
 		Use:     "diff TOPOLOGY",
 		Short:   "Display difference for topology",
 		Args:    utils.ExactArgs(1),
-		Example: diffExample,
+		Example: DIFF_EXAMPLE,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			options.filename = args[0]
 			return runDiff(curveadm, options)
@@ -56,12 +59,20 @@ func NewDiffCommand(curveadm *cli.CurveAdm) *cobra.Command {
 }
 
 func runDiff(curveadm *cli.CurveAdm, options diffOptions) error {
+	// 1) data1: current cluster topology data
 	data1 := curveadm.ClusterTopologyData()
+
+	// 2) data2: topology in file
+	if !utils.PathExist(options.filename) {
+		return errno.ERR_TOPOLOGY_FILE_NOT_FOUND.
+			F("%s: no such file", utils.AbsPath(options.filename))
+	}
 	data2, err := utils.ReadFile(options.filename)
 	if err != nil {
-		return err
+		return errno.ERR_READ_TOPOLOGY_FILE_FAILED.E(err)
 	}
 
+	// 3) print difference
 	diff := utils.Diff(data1, data2)
 	curveadm.Out().Write([]byte(diff))
 	return nil

@@ -34,14 +34,14 @@ import (
 func Execute() {
 	curveadm, err := cli.NewCurveAdm()
 	if err != nil {
-		fmt.Printf("New curveadm failed: %s", err)
+		fmt.Printf("%s\n", err)
 		os.Exit(1)
 	}
 
-	now := time.Now()
-	defer curveadm.Audit(now, os.Args[1:], &err)
+	id := curveadm.PreAudit(time.Now(), os.Args[1:])
 	cmd := command.NewCurveAdmCommand(curveadm)
 	err = cmd.Execute()
+	curveadm.PostAudit(id, err)
 	if err != nil {
 		os.Exit(1)
 	}

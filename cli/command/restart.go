@@ -20,16 +20,25 @@
  * Author: Jingli Chen (Wine93)
  */
 
+// __SIGN_BY_WINE93__
+
 package command
 
 import (
-	"fmt"
-
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/configure/topology"
-	"github.com/opencurve/curveadm/internal/task/tasks"
+	"github.com/opencurve/curveadm/internal/errno"
+	"github.com/opencurve/curveadm/internal/playbook"
+	tui "github.com/opencurve/curveadm/internal/tui/common"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/cobra"
+)
+
+
+var (
+	RESTART_PLAYBOOK_STEPS = []int{
+		playbook.RESTART_SERVICE,
+	}
 )
 
 type restartOptions struct {
@@ -42,9 +51,12 @@ func NewRestartCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	var options restartOptions
 
 	cmd := &cobra.Command{
-		Use:   "restart",
+		Use:   "restart [OPTIONS]",
 		Short: "Restart service",
 		Args:  cliutil.NoArgs,
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			return checkCommonOptions(curveadm, options.id, options.role, options.host)
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runRestart(curveadm, options)
 		},
@@ -52,29 +64,55 @@ func NewRestartCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	}
 
 	flags := cmd.Flags()
-	flags.StringVarP(&options.id, "id", "", "*", "Specify service id")
-	flags.StringVarP(&options.role, "role", "", "*", "Specify service role")
-	flags.StringVarP(&options.host, "host", "", "*", "Specify service host")
+	flags.StringVar(&options.id, "id", "*", "Specify service id")
+	flags.StringVar(&options.role, "role", "*", "Specify service role")
+	flags.StringVar(&options.host, "host", "*", "Specify service host")
 
 	return cmd
 }
 
-func runRestart(curveadm *cli.CurveAdm, options restartOptions) error {
-	dcs, err := topology.ParseTopology(curveadm.ClusterTopologyData())
-	if err != nil {
-		return err
-	}
-
+func genRestartPlaybook(curveadm *cli.CurveAdm,
+	dcs []*topology.DeployConfig,
+	options restartOptions) (*playbook.Playbook, error) {
 	dcs = curveadm.FilterDeployConfig(dcs, topology.FilterOption{
 		Id:   options.id,
 		Role: options.role,
 		Host: options.host,
 	})
-
 	if len(dcs) == 0 {
-		return fmt.Errorf("service not found")
-	} else if err := tasks.ExecTasks(tasks.RESTART_SERVICE, curveadm, dcs); err != nil {
-		return curveadm.NewPromptError(err, "")
+		return nil, errno.ERR_NO_SERVICES_MATCHED
 	}
-	return nil
+
+	steps := RESTART_PLAYBOOK_STEPS
+	pb := playbook.NewPlaybook(curveadm)
+	for _, step := range steps {
+		pb.AddStep(&playbook.PlaybookStep{
+			Type:    step,
+			Configs: dcs,
+		})
+	}
+	return pb, nil
+}
+
+func runRestart(curveadm *cli.CurveAdm, options restartOptions) error {
+	// 1) parse cluster topology
+	dcs, err := curveadm.ParseTopology()
+	if err != nil {
+		return err
+	}
+
+	// 2) generate restart playbook
+	pb, err := genRestartPlaybook(curveadm, dcs, options)
+	if err != nil {
+		return err
+	}
+
+	// 3) confirm by user
+	if pass := tui.ConfirmYes(tui.PromptRestartService(options.id, options.role, options.host)); !pass {
+		curveadm.WriteOut(tui.PromptCancelOpetation("restart service"))
+		return errno.ERR_CANCEL_OPERATION
+	}
+
+	// 4) run playground
+	return pb.Run()
 }

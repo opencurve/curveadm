@@ -20,14 +20,15 @@
  * Author: Jingli Chen (Wine93)
  */
 
+// __SIGN_BY_WINE93__
+
 package cluster
 
 import (
-	"fmt"
-
 	"github.com/opencurve/curveadm/cli/cli"
+	"github.com/opencurve/curveadm/internal/errno"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
-	"github.com/opencurve/curveadm/pkg/log"
+	log "github.com/opencurve/curveadm/pkg/log/glg"
 	"github.com/spf13/cobra"
 )
 
@@ -53,20 +54,26 @@ func NewCheckoutCommand(curveadm *cli.CurveAdm) *cobra.Command {
 }
 
 func runCheckout(curveadm *cli.CurveAdm, options checkoutOptions) error {
+	// 1) get cluster by name
 	clusterName := options.clusterName
 	storage := curveadm.Storage()
 	clusters, err := storage.GetClusters(clusterName)
 	if err != nil {
-		log.Error("GetClusters", log.Field("error", err))
-		return err
+		log.Error("Get clusters failed",
+			log.Field("error", err))
+		return errno.ERR_GET_ALL_CLUSTERS_FAILED.E(err)
 	} else if len(clusters) == 0 {
-		return fmt.Errorf("cluster '%s' not found", clusterName)
+		return errno.ERR_CLUSTER_NOT_FOUND.
+			F("cluster name: %s", clusterName)
 	}
 
-	if err = storage.CheckoutCluster(clusterName); err != nil {
-		return err
+	// 2) switch current cluster in database
+	err = storage.CheckoutCluster(clusterName)
+	if err != nil {
+		return errno.ERR_CHECKOUT_CLUSTER_FAILED.E(err)
 	}
 
-	curveadm.WriteOut("Switched to cluster '%s'\n", clusterName)
+	// 3) print success prompt
+	curveadm.WriteOutln("Switched to cluster '%s'", clusterName)
 	return nil
 }

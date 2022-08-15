@@ -24,16 +24,22 @@ package target
 
 import (
 	"github.com/opencurve/curveadm/cli/cli"
-	client "github.com/opencurve/curveadm/internal/configure/client/bs"
-	task "github.com/opencurve/curveadm/internal/task/task/bs"
-	"github.com/opencurve/curveadm/internal/task/tasks"
-	tui "github.com/opencurve/curveadm/internal/tui"
+	comm "github.com/opencurve/curveadm/internal/common"
+	"github.com/opencurve/curveadm/internal/playbook"
+	"github.com/opencurve/curveadm/internal/task/task/bs"
+	"github.com/opencurve/curveadm/internal/tui"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/cobra"
 )
 
+var (
+	LIST_PLAYBOOK_STEPS = []int{
+		playbook.LIST_TARGETS,
+	}
+)
+
 type listOptions struct {
-	filename string
+	host string
 }
 
 func NewListCommand(curveadm *cli.CurveAdm) *cobra.Command {
@@ -51,33 +57,57 @@ func NewListCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	}
 
 	flags := cmd.Flags()
-	flags.StringVarP(&options.filename, "conf", "c", "client.yaml", "Specify client configuration file")
+	flags.StringVar(&options.host, "host", "localhost", "Specify target host")
 
 	return cmd
 }
 
+func genListPlaybook(curveadm *cli.CurveAdm, options listOptions) (*playbook.Playbook, error) {
+	steps := LIST_PLAYBOOK_STEPS
+	pb := playbook.NewPlaybook(curveadm)
+	for _, step := range steps {
+		pb.AddStep(&playbook.PlaybookStep{
+			Type:    step,
+			Configs: nil,
+			Options: map[string]interface{}{
+				comm.KEY_TARGET_OPTIONS: bs.TargetOption{
+					Host: options.host,
+				},
+			},
+		})
+	}
+	return pb, nil
+}
+
+func displayTargets(curveadm *cli.CurveAdm) {
+	targets := []bs.Target{}
+	value := curveadm.MemStorage().Get(comm.KEY_ALL_TARGETS)
+	if value != nil {
+		m := value.(map[string]*bs.Target)
+		for _, target := range m {
+			targets = append(targets, *target)
+		}
+	}
+
+	output := tui.FormatTargets(targets)
+	curveadm.WriteOutln("")
+	curveadm.WriteOut(output)
+}
+
 func runList(curveadm *cli.CurveAdm, options listOptions) error {
-	// config
-	cc, err := client.ParseClientConfig(options.filename)
+	// 1) generate list playbook
+	pb, err := genListPlaybook(curveadm, options)
 	if err != nil {
 		return err
 	}
 
-	err = tasks.ExecTasks(tasks.LIST_TARGETS, curveadm, cc)
+	// 2) run playground
+	err = pb.Run()
 	if err != nil {
-		return curveadm.NewPromptError(err, "")
+		return err
 	}
 
-	// display target
-	targets := []task.Target{}
-	m := curveadm.MemStorage().Map
-	for _, v := range m {
-		target := v.(*task.Target)
-		targets = append(targets, *target)
-	}
-
-	output := tui.FormatTargets(targets)
-	curveadm.WriteOut("\n")
-	curveadm.WriteOut("%s", output)
+	// 3) print targets
+	displayTargets(curveadm)
 	return nil
 }

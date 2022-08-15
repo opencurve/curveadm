@@ -24,15 +24,15 @@ package bs
 
 import (
 	"fmt"
-	"github.com/opencurve/curveadm/internal/utils"
 	"regexp"
 	"strings"
 
 	"github.com/opencurve/curveadm/cli/cli"
-	client "github.com/opencurve/curveadm/internal/configure/client/bs"
+	comm "github.com/opencurve/curveadm/internal/common"
 	"github.com/opencurve/curveadm/internal/task/context"
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
+	"github.com/opencurve/curveadm/internal/utils"
 )
 
 const (
@@ -41,18 +41,33 @@ const (
 
 type (
 	step2FormatTarget struct {
+		host       string
+		hostname   string
 		output     *string
-		config     *client.ClientConfig
 		memStorage *utils.SafeMap
 	}
 
 	Target struct {
+		Host   string
 		Tid    string
 		Name   string
 		Store  string
 		Portal string
 	}
 )
+
+func addTarget(memStorage *utils.SafeMap, id string, target *Target) {
+	memStorage.TX(func(kv *utils.SafeMap) error {
+		m := map[string]*Target{}
+		v := kv.Get(comm.KEY_ALL_TARGETS)
+		if v != nil {
+			m = v.(map[string]*Target)
+		}
+		m[id] = target
+		kv.Set(comm.KEY_ALL_TARGETS, m)
+		return nil
+	})
+}
 
 /*
 Output Example:
@@ -76,12 +91,13 @@ func (s *step2FormatTarget) Execute(ctx *context.Context) error {
 		mu := titlePattern.FindStringSubmatch(line)
 		if len(mu) > 0 {
 			target = &Target{
+				Host: s.host,
 				Tid:    mu[1],
 				Name:   mu[2],
 				Store:  "-",
-				Portal: fmt.Sprintf("%s:%d", s.config.GetHost(), DEFAULT_TGTD_LISTEN_PORT),
+				Portal: fmt.Sprintf("%s:%d", s.hostname, DEFAULT_TGTD_LISTEN_PORT),
 			}
-			s.memStorage.Set(mu[1], target)
+			addTarget(s.memStorage, mu[1], target)
 			continue
 		}
 
@@ -94,38 +110,41 @@ func (s *step2FormatTarget) Execute(ctx *context.Context) error {
 	return nil
 }
 
-func NewListTargetsTask(curveadm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task, error) {
-	subname := fmt.Sprintf("hostname=%s", cc.GetHost())
-	t := task.NewTask("List Targets", subname, cc.GetSSHConfig())
+func NewListTargetsTask(curveadm *cli.CurveAdm, v interface{}) (*task.Task, error) {
+	options := curveadm.MemStorage().Get(comm.KEY_TARGET_OPTIONS).(TargetOption)
+	hc, err := curveadm.GetHost(options.Host)
+	if err != nil {
+		return nil, err
+	}
+
+	subname := fmt.Sprintf("host=%s", hc.GetHostname())
+	t := task.NewTask("List Targets", subname, hc.GetSSHConfig())
 
 	// add step
 	var output string
 	containerId := DEFAULT_TGTD_CONTAINER_NAME
 
 	t.AddStep(&step.ListContainers{
-		ShowAll:       true,
-		Format:        "'{{.ID}} {{.Status}}'",
-		Quiet:         true,
-		Filter:        fmt.Sprintf("name=%s", DEFAULT_TGTD_CONTAINER_NAME),
-		Out:           &output,
-		ExecWithSudo:  true,
-		ExecInLocal:   false,
-		ExecSudoAlias: curveadm.SudoAlias(),
+		ShowAll:     true,
+		Format:      "'{{.ID}} {{.Status}}'",
+		Quiet:       true,
+		Filter:      fmt.Sprintf("name=%s", DEFAULT_TGTD_CONTAINER_NAME),
+		Out:         &output,
+		ExecOptions: curveadm.ExecOptions(),
 	})
 	t.AddStep(&step2CheckTgtdStatus{
 		output: &output,
 	})
 	t.AddStep(&step.ContainerExec{
-		ContainerId:   &containerId,
-		Command:       fmt.Sprintf("tgtadm --lld iscsi --mode target --op show"),
-		Out:           &output,
-		ExecWithSudo:  true,
-		ExecInLocal:   false,
-		ExecSudoAlias: curveadm.SudoAlias(),
+		ContainerId: &containerId,
+		Command:     fmt.Sprintf("tgtadm --lld iscsi --mode target --op show"),
+		Out:         &output,
+		ExecOptions: curveadm.ExecOptions(),
 	})
 	t.AddStep(&step2FormatTarget{
+		host:       options.Host,
+		hostname:   hc.GetHostname(),
 		output:     &output,
-		config:     cc,
 		memStorage: curveadm.MemStorage(),
 	})
 

@@ -24,9 +24,9 @@ package playground
 
 import (
 	"github.com/opencurve/curveadm/cli/cli"
+	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/tui"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
-	"github.com/opencurve/curveadm/pkg/log"
 	"github.com/spf13/cobra"
 )
 
@@ -50,12 +50,13 @@ func NewListCommand(curveadm *cli.CurveAdm) *cobra.Command {
 }
 
 func runList(curveadm *cli.CurveAdm, options listOptions) error {
+	// 1) get playgrounds
 	playgrounds, err := curveadm.Storage().GetPlaygrounds("%")
 	if err != nil {
-		log.Error("GetPlayground", log.Field("error", err))
-		return err
+		return errno.ERR_GET_ALL_PLAYGROUND_FAILED.E(err)
 	}
 
+	// 2) print playgrounds
 	output := tui.FormatPlayground(playgrounds)
 	curveadm.WriteOut(output)
 	return nil

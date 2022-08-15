@@ -23,46 +23,58 @@
 package target
 
 import (
-	"fmt"
-	"strconv"
-	"strings"
-
+	"github.com/fatih/color"
 	"github.com/opencurve/curveadm/cli/cli"
-	client "github.com/opencurve/curveadm/internal/configure/client/bs"
+	"github.com/opencurve/curveadm/cli/command/client"
+	comm "github.com/opencurve/curveadm/internal/common"
+	"github.com/opencurve/curveadm/internal/configure"
+	"github.com/opencurve/curveadm/internal/configure/topology"
+	"github.com/opencurve/curveadm/internal/errno"
+	"github.com/opencurve/curveadm/internal/playbook"
 	"github.com/opencurve/curveadm/internal/task/task/bs"
-	"github.com/opencurve/curveadm/internal/task/tasks"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
+	utils "github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/cobra"
 )
 
-const (
-	START_NEBD_SERVICE  = tasks.START_NEBD_SERVICE
-	START_TARGET_DAEMON = tasks.START_TARGET_DAEMON
-	ADD_TARGET          = tasks.ADD_TARGET
-)
-
 var (
-	ADD_TARGET_STEPS = []int{
-		START_NEBD_SERVICE,
-		START_TARGET_DAEMON,
-		ADD_TARGET,
+	ADD_PLAYBOOK_STEPS = []int{
+		//playbook.CREATE_VOLUME,
+		playbook.ADD_TARGET,
 	}
 )
 
 type addOptions struct {
 	image    string
-	filename string
+	host     string
 	size     string
 	create   bool
+	filename string
+}
+
+func checkAddOptions(curveadm *cli.CurveAdm, options addOptions) error {
+	if _, _, err := client.ParseImage(options.image); err != nil {
+		return err
+	} else if _, err = client.ParseSize(options.size); err != nil {
+		return err
+	} else if !utils.PathExist(options.filename) {
+		return errno.ERR_CLIENT_CONFIGURE_FILE_NOT_EXIST.
+			F("file path: %s", utils.AbsPath(options.filename))
+	}
+	return nil
 }
 
 func NewAddCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	var options addOptions
 
 	cmd := &cobra.Command{
-		Use:   "add USER:VOLUME [OPTION]",
+		Use:   "add USER:VOLUME [OPTIONS]",
 		Short: "Add a target of CurveBS",
 		Args:  cliutil.ExactArgs(1),
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			options.image = args[0]
+			return checkAddOptions(curveadm, options)
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			options.image = args[0]
 			return runAdd(curveadm, options)
@@ -71,65 +83,64 @@ func NewAddCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	}
 
 	flags := cmd.Flags()
+	flags.StringVar(&options.host, "host", "localhost", "Specify target host")
+	flags.BoolVar(&options.create, "create", false, "Create volume iff not exist")
+	flags.StringVar(&options.size, "size", "10GB", "Specify volume size")
 	flags.StringVarP(&options.filename, "conf", "c", "client.yaml", "Specify client configuration file")
-	flags.BoolVarP(&options.create, "create", "", false, "Create volume iff not exist")
-	flags.StringVarP(&options.size, "size", "", "10GB", "Specify volume size")
 
 	return cmd
 }
 
-func parseImage(image string) (user, volume string, err error) {
-	items := strings.Split(image, ":")
-	if len(items) != 2 || len(items[0]) == 0 || len(items[1]) == 0 {
-		return "", "", fmt.Errorf("invalid volume format, please run --help to get example")
+func genAddPlaybook(curveadm *cli.CurveAdm,
+	ccs []*configure.ClientConfig,
+	options addOptions) (*playbook.Playbook, error) {
+	user, name, _ := client.ParseImage(options.image)
+	size, _ := client.ParseSize(options.size)
+	steps := ADD_PLAYBOOK_STEPS
+	pb := playbook.NewPlaybook(curveadm)
+	for _, step := range steps {
+		pb.AddStep(&playbook.PlaybookStep{
+			Type:    step,
+			Configs: ccs,
+			Options: map[string]interface{}{
+				comm.KEY_TARGET_OPTIONS: bs.TargetOption{
+					Host:   options.host,
+					User:   user,
+					Volume: name,
+					Size:   size,
+					Create: options.create,
+				},
+			},
+		})
 	}
-	if !strings.HasPrefix(items[1], "/") {
-		return "", "", fmt.Errorf("invalid volume format, image name must start with /")
-	}
-	return items[0], items[1], nil
-}
-
-func parseSize(size string) (int, error) {
-	if !strings.HasSuffix(size, "GB") {
-		return 0, fmt.Errorf("invalid size")
-	}
-
-	size = strings.TrimSuffix(size, "GB")
-	return strconv.Atoi(size)
+	return pb, nil
 }
 
 func runAdd(curveadm *cli.CurveAdm, options addOptions) error {
-	user, volume, err := parseImage(options.image)
+	// 1) parse client configure
+	cc, err := configure.ParseClientConfig(options.filename)
+	if err != nil {
+		return err
+	} else if cc.GetKind() != topology.KIND_CURVEBS {
+		return errno.ERR_REQUIRE_CURVEBS_KIND_CLIENT_CONFIGURE_FILE.
+			F("kind: %s", cc.GetKind())
+	}
+
+	// 2) generate map playbook
+	pb, err := genAddPlaybook(curveadm, []*configure.ClientConfig{cc}, options)
 	if err != nil {
 		return err
 	}
 
-	size, err := parseSize(options.size)
+	// 3) run playground
+	err = pb.Run()
 	if err != nil {
 		return err
 	}
 
-	// config
-	cc, err := client.ParseClientConfig(options.filename)
-	if err != nil {
-		return err
-	}
-
-	// mount file system
-	curveadm.MemStorage().Set(bs.KEY_ADD_TARGET_OPTION, bs.AddTargetOption{
-		User:   user,
-		Volume: volume,
-		Create: options.create,
-		Size:   size,
-	})
-
-	for _, step := range ADD_TARGET_STEPS {
-		err := tasks.ExecTasks(step, curveadm, cc)
-		if err != nil {
-			fmt.Println("use `docker logs curvebs-target-daemon` for detail")
-			return curveadm.NewPromptError(err, "")
-		}
-	}
-
+	// 4) print success prompt
+	curveadm.WriteOutln("")
+	curveadm.WriteOutln(color.GreenString("Add target (%s) to %s success ^_^"),
+		options.image, options.host)
 	return nil
 }

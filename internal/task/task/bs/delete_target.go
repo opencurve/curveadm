@@ -27,14 +27,12 @@ import (
 	"strings"
 
 	"github.com/opencurve/curveadm/cli/cli"
-	client "github.com/opencurve/curveadm/internal/configure/client/bs"
+	"github.com/opencurve/curveadm/internal/common"
+	client "github.com/opencurve/curveadm/internal/configure"
+	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/task/context"
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
-)
-
-const (
-	KEY_DELETE_TID = "DELETE_TID"
 )
 
 type (
@@ -46,40 +44,41 @@ func (s *step2CheckTgtdStatus) Execute(ctx *context.Context) error {
 	output := *s.output
 	items := strings.Split(output, " ")
 	if len(items) < 2 || !strings.HasPrefix(items[1], "Up") {
-		return fmt.Errorf("Target daemon not running")
+		return errno.ERR_TARGET_DAEMON_IS_ABNORMAL
 	}
 
 	return nil
 }
 
 func NewDeleteTargetTask(curveadm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task, error) {
-	tid := curveadm.MemStorage().Get(KEY_DELETE_TID).(string)
-	subname := fmt.Sprintf("hostname=%s tid=%s", cc.GetHost(), tid)
-	t := task.NewTask("Delete Target", subname, cc.GetSSHConfig())
+	options := curveadm.MemStorage().Get(common.KEY_TARGET_OPTIONS).(TargetOption)
+	hc, err := curveadm.GetHost(options.Host)
+	if err != nil {
+		return nil, err
+	}
+
+	subname := fmt.Sprintf("hostname=%s tid=%s", hc.GetHostname(), options.Tid)
+	t := task.NewTask("Delete Target", subname, hc.GetSSHConfig())
 
 	// add step
 	var output string
 	containerId := DEFAULT_TGTD_CONTAINER_NAME
-
+	tid := options.Tid
 	t.AddStep(&step.ListContainers{
-		ShowAll:       true,
-		Format:        "'{{.ID}} {{.Status}}'",
-		Quiet:         true,
-		Filter:        fmt.Sprintf("name=%s", DEFAULT_TGTD_CONTAINER_NAME),
-		Out:           &output,
-		ExecWithSudo:  true,
-		ExecInLocal:   false,
-		ExecSudoAlias: curveadm.SudoAlias(),
+		ShowAll:     true,
+		Format:      "'{{.ID}} {{.Status}}'",
+		Quiet:       true,
+		Filter:      fmt.Sprintf("name=%s", DEFAULT_TGTD_CONTAINER_NAME),
+		Out:         &output,
+		ExecOptions: curveadm.ExecOptions(),
 	})
 	t.AddStep(&step2CheckTgtdStatus{
 		output: &output,
 	})
 	t.AddStep(&step.ContainerExec{
-		ContainerId:   &containerId,
-		Command:       fmt.Sprintf("tgtadm --lld iscsi --mode target --op delete --tid %s", tid),
-		ExecWithSudo:  true,
-		ExecInLocal:   false,
-		ExecSudoAlias: curveadm.SudoAlias(),
+		ContainerId: &containerId,
+		Command:     fmt.Sprintf("tgtadm --lld iscsi --mode target --op delete --tid %s", tid),
+		ExecOptions: curveadm.ExecOptions(),
 	})
 
 	return t, nil

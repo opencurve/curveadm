@@ -20,25 +20,39 @@
  * Author: Jingli Chen (Wine93)
  */
 
+// __SIGN_BY_WINE93__
+
 package module
 
 import (
 	"errors"
-	"fmt"
 	"net"
+	"time"
 
 	"github.com/melbahja/goph"
-	"github.com/opencurve/curveadm/pkg/log"
+	log "github.com/opencurve/curveadm/pkg/log/glg"
 	"golang.org/x/crypto/ssh"
 )
 
-type SSHConfig struct {
-	User           string
-	Host           string
-	Port           uint
-	PrivateKeyPath string
-	Timeout        int
-}
+type (
+	SSHConfig struct {
+		User              string
+		Host              string
+		Port              uint
+		ForwardAgent      bool // ForwardAgent > PrivateKeyPath > Password
+		BecomeMethod string
+		BecomeFlags string
+		BecomeUser        string
+		PrivateKeyPath    string
+		ConnectRetries    int
+		ConnectTimeoutSec int
+	}
+
+	SSHClient struct {
+		client *goph.Client
+		config SSHConfig
+	}
+)
 
 func askIsHostTrusted(host string, key ssh.PublicKey) bool {
 	//	format := "Unknown Host: %s \\nFingerprint: %s \\nWould you likt to add it?[y/N]: "
@@ -67,33 +81,73 @@ func VerifyHost(host string, remote net.Addr, key ssh.PublicKey) error {
 	return goph.AddKnownHost(host, remote, key, "")
 }
 
-func NewSshClient(sshConfig SSHConfig) (*goph.Client, error) {
-	user := sshConfig.User
-	host := sshConfig.Host
-	port := sshConfig.Port
-	privateKeyPath := sshConfig.PrivateKeyPath
+func (client *SSHClient) Client() *goph.Client {
+	return client.client
+}
 
-	auth, err := goph.Key(privateKeyPath, "")
+func (client *SSHClient) Config() SSHConfig {
+	return client.config
+}
+
+func NewSSHClient(config SSHConfig) (*SSHClient, error) {
+	user := config.User
+	host := config.Host
+	port := config.Port
+	forwardAgent := config.ForwardAgent
+	privateKeyPath := config.PrivateKeyPath
+	connTimeoutSec := config.ConnectTimeoutSec
+	maxRetries := config.ConnectRetries
+
+	var auth goph.Auth
+	var err error
+	if forwardAgent {
+		auth, err = goph.UseAgent()
+	} else {
+		auth, err = goph.Key(privateKeyPath, "")
+	}
+
 	if err != nil {
-		log.Error("SSHAuth",
-			log.Field("PrivateKeyPath", privateKeyPath),
+		log.Error("Create SSH auth",
+			log.Field("user", user),
+			log.Field("host", host),
+			log.Field("port", port),
+			log.Field("forwardAgent", forwardAgent),
+			log.Field("privateKeyPath", privateKeyPath),
 			log.Field("error", err))
 		return nil, err
 	}
 
+	tries := 0
+connect:
+	tries++
 	client, err := goph.NewConn(&goph.Config{
 		User:     user,
 		Addr:     host,
 		Port:     port,
 		Auth:     auth,
+		Timeout:  time.Duration(connTimeoutSec) * time.Second,
 		Callback: VerifyHost,
 	})
 
-	log.SwitchLevel(err)("SSHConnect",
+	log.SwitchLevel(err)("Connect remote SSH",
 		log.Field("user", user),
-		log.Field("addr", fmt.Sprintf("%s:%d", host, port)),
-		log.Field("PrivateKeyPath", privateKeyPath),
+		log.Field("host", host),
+		log.Field("port", port),
+		log.Field("forwardAgent", forwardAgent),
+		log.Field("privateKeyPath", privateKeyPath),
+		log.Field("timeoutSec", connTimeoutSec),
+		log.Field("maxRetries", maxRetries),
+		log.Field("tries", tries),
 		log.Field("error", err))
 
-	return client, err
+	if err != nil {
+		if tries < maxRetries {
+			goto connect
+		}
+	}
+
+	return &SSHClient{
+		client: client,
+		config: config,
+	}, err
 }

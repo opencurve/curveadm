@@ -20,6 +20,8 @@
  * Author: Jingli Chen (Wine93)
  */
 
+// __SIGN_BY_WINE93__
+
 package common
 
 import (
@@ -32,37 +34,62 @@ import (
 )
 
 const (
-	PROMPT_REMOVE_CLUSTER = `{{.warning}}
-Do you want to continue?`
+	PROMPT_WARNING = `{{.warning}}
+`
 
-	PROMPT_STOP_SERVICE = `{{.warning}}
-Do you want to continue?`
+	PROMPT_COMMON_WARNING = `{{.warning}} 
+  - Service id: {{.id}} ("*" means all id)
+  - Service role: {{.role}} ("*" means all roles)
+  - Service host: {{.host}} ("*" means all hosts)
+`
 
 	PROMPT_CLEAN_SERVICE = `{{.warning}}
   - Service role: {{.role}} ("*" means all roles)
   - Service host: {{.host}} ("*" means all hosts)
   - Clean items : [{{.items}}]
-Do you want to continue?`
+`
 
-	PROMPT_COLLECT_SERVICE = `
-FYI:
-  > We have collected logs for troubleshooting,
-  > and now we will send these logs to the curve center.
+	PROMPT_COLLECT_SERVICE = `FYI:
+  > We will collect service logs for troubleshooting, 
+  > and send these logs to the curve center.
   > Please don't worry about the data security,
   > we guarantee that all logs are encrypted
   > and only you have the secret key.
 `
 
 	PROMPT_TOPOLOGY_CHANGE_NOTICE = `
-NOTICE: We noticed that you have modified the configuration of 
-some services while {{.operation}}. If you want make these 
-configurations effect, you should reload the corresponding 
-services after the scale out success.
+NOTICE: If you have modified the configuration of some services while 
+{{.operation}} and you want make these configurations effect, you 
+should reload the corresponding services after the {{.operation}} success.
+`
+
+	PROMPT_FORMAT = `
+NOTICE: Now we run all formating container successfully and it will
+format disk in the background, please make sure that the formatting 
+all done before deploy cluster, you can use the "curveadm format --status" 
+to watch the formatting progress.
 `
 
 	PROMPT_CANCEL_OPERATION = `[x] {{.operation}} canceled`
 
 	DEFAULT_CONFIRM_PROMPT = "Do you want to continue?"
+)
+
+var (
+	PROMPT_ERROR_CODE = strings.Join([]string{
+		color.CyanString("---"),
+		color.CyanString("Error-Code: ") + "{{.code}}",
+		color.CyanString("Error-Description: ") + "{{.description}}",
+		"{{- if .clue}}",
+		color.CyanString("Error-Clue: ") + "{{.clue}}",
+		"{{- end}}",
+		color.CyanString("How to Solve:"),
+		color.CyanString("  * Website: ") + "{{.website}}",
+		"{{- if .logpath}}",
+		color.CyanString("  * Log: ") + "{{.logpath}}",
+		"{{- end}}",
+		color.CyanString("  * WeChat: ") + "{{.wechat}}",
+	}, "\n")
 )
 
 type Prompt struct {
@@ -87,20 +114,66 @@ func (p *Prompt) Build() string {
 }
 
 func PromptRemoveCluster(clusterName string) string {
-	prompt := NewPrompt(PROMPT_REMOVE_CLUSTER)
+	prompt := NewPrompt(color.YellowString(PROMPT_WARNING) + DEFAULT_CONFIRM_PROMPT)
 	prompt.data["warning"] = fmt.Sprintf("WARNING: cluster '%s' will be removed,\n"+
 		"and all data in it will be cleaned up", clusterName)
 	return prompt.Build()
 }
 
-func PromptStopService() string {
-	prompt := NewPrompt(PROMPT_STOP_SERVICE)
+func PromptFormat() string {
+	return color.YellowString(PROMPT_FORMAT)
+}
+
+func PromptScaleOut() string {
+	prompt := NewPrompt(color.YellowString(PROMPT_TOPOLOGY_CHANGE_NOTICE) + DEFAULT_CONFIRM_PROMPT)
+	prompt.data["operation"] = "scale out cluster"
+	return prompt.Build()
+}
+
+func PromptMigrate() string {
+	prompt := NewPrompt(color.YellowString(PROMPT_TOPOLOGY_CHANGE_NOTICE) + DEFAULT_CONFIRM_PROMPT)
+	prompt.data["operation"] = "migrate services"
+	return prompt.Build()
+}
+
+func PromptStartService(id, role, host string) string {
+	prompt := NewPrompt(color.YellowString(PROMPT_COMMON_WARNING) + DEFAULT_CONFIRM_PROMPT)
+	prompt.data["warning"] = "WARNING: service items which matched will start"
+	prompt.data["id"] = id
+	prompt.data["role"] = role
+	prompt.data["host"] = host
+	return prompt.Build()
+}
+
+func PromptStopService(id, role, host string) string {
+	prompt := NewPrompt(color.YellowString(PROMPT_COMMON_WARNING) + DEFAULT_CONFIRM_PROMPT)
 	prompt.data["warning"] = "WARNING: stop service may cause client IO be hang"
+	prompt.data["id"] = id
+	prompt.data["role"] = role
+	prompt.data["host"] = host
+	return prompt.Build()
+}
+
+func PromptRestartService(id, role, host string) string {
+	prompt := NewPrompt(color.YellowString(PROMPT_COMMON_WARNING) + DEFAULT_CONFIRM_PROMPT)
+	prompt.data["warning"] = "WARNING: service items which matched will restart"
+	prompt.data["id"] = id
+	prompt.data["role"] = role
+	prompt.data["host"] = host
+	return prompt.Build()
+}
+
+func PromptReloadService(id, role, host string) string {
+	prompt := NewPrompt(color.YellowString(PROMPT_COMMON_WARNING) + DEFAULT_CONFIRM_PROMPT)
+	prompt.data["warning"] = "WARNING: service items which matched will reload"
+	prompt.data["id"] = id
+	prompt.data["role"] = role
+	prompt.data["host"] = host
 	return prompt.Build()
 }
 
 func PromptCleanService(role, host string, items []string) string {
-	prompt := NewPrompt(PROMPT_CLEAN_SERVICE)
+	prompt := NewPrompt(color.YellowString(PROMPT_CLEAN_SERVICE) + DEFAULT_CONFIRM_PROMPT)
 	prompt.data["warning"] = "WARNING: service items which matched will be cleaned up"
 	prompt.data["role"] = role
 	prompt.data["host"] = host
@@ -113,26 +186,37 @@ func PromptCollectService() string {
 	return prompt.Build()
 }
 
-func PromptScaleOut(warning bool) string {
-	prompt := NewPrompt(DEFAULT_CONFIRM_PROMPT)
-	if warning {
-		prompt = NewPrompt(color.YellowString(PROMPT_TOPOLOGY_CHANGE_NOTICE) + DEFAULT_CONFIRM_PROMPT)
+func prettyClue(clue string) string {
+	items := strings.Split(clue, "\n")
+	for {
+		n := len(items)
+		if len(items[n-1]) > 0 || n == 0 {
+			break
+		}
+		items = items[:n-1]
 	}
-	prompt.data["operation"] = "scale out cluster"
-	return prompt.Build()
+	sep := fmt.Sprintf("\n%s", strings.Repeat(" ", len("Error-Clue: ")))
+	return strings.Join(items, sep)
 }
 
-func PromptMigrate(warning bool) string {
-	prompt := NewPrompt(DEFAULT_CONFIRM_PROMPT)
-	if warning {
-		prompt = NewPrompt(color.YellowString(PROMPT_TOPOLOGY_CHANGE_NOTICE) + DEFAULT_CONFIRM_PROMPT)
+func PromptErrorCode(code int, description, clue, logpath string) string {
+	prompt := NewPrompt(color.CyanString(PROMPT_ERROR_CODE))
+	prompt.data["code"] = fmt.Sprintf("%06d", code)
+	prompt.data["description"] = description
+	if len(clue) > 0 {
+		prompt.data["clue"] = prettyClue(clue)
 	}
-	prompt.data["operation"] = "migrate services"
+	prompt.data["website"] = fmt.Sprintf("https://github.com/opencurve/curveadm/wiki/errno#%06d", code)
+	if len(logpath) > 0 {
+		prompt.data["logpath"] = logpath
+	}
+	prompt.data["wechat"] = "opencurve_bot"
+
 	return prompt.Build()
 }
 
 func PromptCancelOpetation(operation string) string {
-	prompt := NewPrompt(color.RedString(PROMPT_CANCEL_OPERATION))
+	prompt := NewPrompt(color.YellowString(PROMPT_CANCEL_OPERATION))
 	prompt.data["operation"] = operation
 	return prompt.Build()
 }

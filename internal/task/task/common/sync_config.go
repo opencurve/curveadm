@@ -20,6 +20,8 @@
  * Author: Jingli Chen (Wine93)
  */
 
+// __SIGN_BY_WINE93__
+
 package common
 
 import (
@@ -86,18 +88,22 @@ func newCrontab(uuid string, dc *topology.DeployConfig, reportScriptPath string)
 
 func NewSyncConfigTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task.Task, error) {
 	serviceId := curveadm.GetServiceId(dc.GetId())
-	containerId, err := curveadm.Storage().GetContainerId(serviceId)
+	containerId, err := curveadm.GetContainerId(serviceId)
 	if err != nil {
 		return nil, err
-	} else if containerId == "" {
-		return nil, fmt.Errorf("service(id=%s) not found", serviceId)
+	}
+	hc, err := curveadm.GetHost(dc.GetHost())
+	if err != nil {
+		return nil, err
 	}
 
+	// new task
 	subname := fmt.Sprintf("host=%s role=%s containerId=%s",
 		dc.GetHost(), dc.GetRole(), tui.TrimContainerId(containerId))
-	t := task.NewTask("Sync Config", subname, dc.GetSSHConfig())
+	t := task.NewTask("Sync Config", subname, hc.GetSSHConfig())
 
-	// add step
+	// add step to task
+	var out string
 	layout := dc.GetProjectLayout()
 	role := dc.GetRole()
 	reportScript := scripts.SCRIPT_REPORT
@@ -108,6 +114,16 @@ func NewSyncConfigTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task
 		delimiter = ETCD_CONFIG_DELIMITER
 	}
 
+	t.AddStep(&step.ListContainers{ // gurantee container exist
+		ShowAll:     true,
+		Format:      `"{{.ID}}"`,
+		Filter:      fmt.Sprintf("id=%s", containerId),
+		Out:         &out,
+		ExecOptions: curveadm.ExecOptions(),
+	})
+	t.AddStep(&step.Lambda{
+		Lambda: checkContainerExist(dc.GetHost(), dc.GetRole(), containerId, &out),
+	})
 	for _, conf := range layout.ServiceConfFiles {
 		t.AddStep(&step.SyncFile{ // sync service config
 			ContainerSrcId:    &containerId,
@@ -116,9 +132,7 @@ func NewSyncConfigTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task
 			ContainerDestPath: conf.Path,
 			KVFieldSplit:      delimiter,
 			Mutate:            newMutate(dc, delimiter, conf.Name == "nginx.conf"),
-			ExecWithSudo:      true,
-			ExecInLocal:       false,
-			ExecSudoAlias:     curveadm.SudoAlias(),
+			ExecOptions:       curveadm.ExecOptions(),
 		})
 	}
 	t.AddStep(&step.SyncFile{ // sync tools config
@@ -128,25 +142,19 @@ func NewSyncConfigTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task
 		ContainerDestPath: layout.ToolsConfSystemPath,
 		KVFieldSplit:      DEFAULT_CONFIG_DELIMITER,
 		Mutate:            newMutate(dc, DEFAULT_CONFIG_DELIMITER, false),
-		ExecWithSudo:      true,
-		ExecInLocal:       false,
-		ExecSudoAlias:     curveadm.SudoAlias(),
+		ExecOptions:       curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.InstallFile{ // install report script
 		ContainerId:       &containerId,
 		ContainerDestPath: reportScriptPath,
 		Content:           &reportScript,
-		ExecWithSudo:      true,
-		ExecInLocal:       false,
-		ExecSudoAlias:     curveadm.SudoAlias(),
+		ExecOptions:       curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.InstallFile{ // install crontab file
 		ContainerId:       &containerId,
 		ContainerDestPath: CURVE_CRONTAB_FILE,
 		Content:           &crontab,
-		ExecWithSudo:      true,
-		ExecInLocal:       false,
-		ExecSudoAlias:     curveadm.SudoAlias(),
+		ExecOptions:       curveadm.ExecOptions(),
 	})
 
 	return t, nil

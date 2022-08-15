@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2021 NetEase Inc.
+ *  Copyright (c) 2022 NetEase Inc.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -24,9 +24,12 @@ package bs
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/opencurve/curveadm/cli/cli"
-	client "github.com/opencurve/curveadm/internal/configure/client/bs"
+	comm "github.com/opencurve/curveadm/internal/common"
+	"github.com/opencurve/curveadm/internal/configure"
+	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/task/context"
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
@@ -37,56 +40,79 @@ const (
 )
 
 type (
-	step2CheckTargetDaemon struct{ containerId *string }
+	step2CheckTargetDaemonStatus struct {
+		host   string
+		status *string
+	}
 )
 
-func (s *step2CheckTargetDaemon) Execute(ctx *context.Context) error {
-	if len(*s.containerId) > 0 {
+func (s *step2CheckTargetDaemonStatus) Execute(ctx *context.Context) error {
+	if strings.HasPrefix(*s.status, "Up") {
 		return task.ERR_SKIP_TASK
+	} else if len(*s.status) == 0 {
+		return nil
 	}
-	return nil
+
+	return errno.ERR_OLD_TARGET_DAEMON_IS_ABNORMAL.
+		F("host=%s, containerId=%s")
 }
 
-func NewStartTargetDaemonTask(curveadm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task, error) {
-	subname := fmt.Sprintf("hostname=%s image=%s", cc.GetHost(), cc.GetContainerImage())
-	t := task.NewTask("Start Target Daemon", subname, cc.GetSSHConfig())
+func NewStartTargetDaemonTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.Task, error) {
+	options := curveadm.MemStorage().Get(comm.KEY_TARGET_OPTIONS).(TargetOption)
+	hc, err := curveadm.GetHost(options.Host)
+	if err != nil {
+		return nil, err
+	}
 
-	// add step
-	var containerId string
+	// new task
+	subname := fmt.Sprintf("host=%s image=%s", options.Host, cc.GetContainerImage())
+	t := task.NewTask("Start Target Daemon", subname, hc.GetSSHConfig())
+
+	// add step to task
+	var status, containerId, out string
+	containerName := DEFAULT_TGTD_CONTAINER_NAME
+	hostname := containerName
+	host2addr := fmt.Sprintf("%s:%s", hostname, hc.GetHostname())
+
 	t.AddStep(&step.ListContainers{
-		ShowAll:       true,
-		Format:        "'{{.ID}}'",
-		Quiet:         true,
-		Filter:        fmt.Sprintf("name=%s", DEFAULT_TGTD_CONTAINER_NAME),
-		Out:           &containerId,
-		ExecWithSudo:  true,
-		ExecInLocal:   false,
-		ExecSudoAlias: curveadm.SudoAlias(),
+		ShowAll:     true,
+		Format:      "'{{.Status}}'",
+		Quiet:       true,
+		Filter:      fmt.Sprintf("name=%s", DEFAULT_TGTD_CONTAINER_NAME),
+		Out:         &status,
+		ExecOptions: curveadm.ExecOptions(),
 	})
-	t.AddStep(&step2CheckTargetDaemon{ // skip if target-daemon exist
-		containerId: &containerId,
+	t.AddStep(&step2CheckTargetDaemonStatus{ // skip if target-daemon exist and healthy
+		status: &status,
 	})
 	t.AddStep(&step.PullImage{
-		Image:         cc.GetContainerImage(),
-		ExecWithSudo:  true,
-		ExecInLocal:   false,
-		ExecSudoAlias: curveadm.SudoAlias(),
+		Image:       cc.GetContainerImage(),
+		ExecOptions: curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.CreateContainer{
-		Image:         cc.GetContainerImage(),
-		Command:       "-f",
-		Entrypoint:    "tgtd",
-		Envs:          []string{"LD_PRELOAD=/usr/local/lib/libjemalloc.so"},
-		Init:          true,
-		Name:          DEFAULT_TGTD_CONTAINER_NAME,
-		Pid:           "host",
-		Privileged:    true,
-		Volumes:       getVolumes(cc),
-		Out:           &containerId,
-		ExecWithSudo:  true,
-		ExecInLocal:   false,
-		ExecSudoAlias: curveadm.SudoAlias(),
+		Image:       cc.GetContainerImage(),
+		AddHost:     []string{host2addr},
+		Envs:        []string{"LD_PRELOAD=/usr/local/lib/libjemalloc.so"},
+		Hostname:    hostname,
+		Command:     fmt.Sprintf("--role nebd"),
+		Name:        containerName,
+		Pid:         "host",
+		Privileged:  true,
+		Volumes:     getVolumes(cc),
+		Out:         &containerId,
+		ExecOptions: curveadm.ExecOptions(),
 	})
+	for _, filename := range []string{"client.conf", "nebd-server.conf"} {
+		t.AddStep(&step.SyncFile{
+			ContainerSrcId:    &containerId,
+			ContainerSrcPath:  "/curvebs/conf/" + filename,
+			ContainerDestId:   &containerId,
+			ContainerDestPath: "/curvebs/nebd/conf/" + filename,
+			KVFieldSplit:      CLIENT_CONFIG_DELIMITER,
+			Mutate:            newMutate(cc, CLIENT_CONFIG_DELIMITER),
+			ExecOptions:       curveadm.ExecOptions(),
+		})
+	}
 	t.AddStep(&step.SyncFile{ // sync nebd-client config
 		ContainerSrcId:    &containerId,
 		ContainerSrcPath:  "/curvebs/conf/nebd-client.conf",
@@ -94,15 +120,17 @@ func NewStartTargetDaemonTask(curveadm *cli.CurveAdm, cc *client.ClientConfig) (
 		ContainerDestPath: "/etc/nebd/nebd-client.conf",
 		KVFieldSplit:      CLIENT_CONFIG_DELIMITER,
 		Mutate:            newMutate(cc, CLIENT_CONFIG_DELIMITER),
-		ExecWithSudo:      true,
-		ExecInLocal:       false,
-		ExecSudoAlias:     curveadm.SudoAlias(),
+		ExecOptions:       curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.StartContainer{
-		ContainerId:   &containerId,
-		ExecWithSudo:  true,
-		ExecInLocal:   false,
-		ExecSudoAlias: curveadm.SudoAlias(),
+		ContainerId: &containerId,
+		Out:         &out,
+		ExecOptions: curveadm.ExecOptions(),
+	})
+	t.AddStep(&step.ContainerExec{
+		Command:     "tgtd -f &",
+		ContainerId: &containerId,
+		ExecOptions: curveadm.ExecOptions(),
 	})
 
 	return t, nil
