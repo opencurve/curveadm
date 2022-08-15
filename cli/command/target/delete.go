@@ -23,27 +23,34 @@
 package target
 
 import (
+	"github.com/fatih/color"
 	"github.com/opencurve/curveadm/cli/cli"
-	client "github.com/opencurve/curveadm/internal/configure/client/bs"
+	comm "github.com/opencurve/curveadm/internal/common"
+	"github.com/opencurve/curveadm/internal/playbook"
 	"github.com/opencurve/curveadm/internal/task/task/bs"
-	"github.com/opencurve/curveadm/internal/task/tasks"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/cobra"
 )
 
+var (
+	DELETE_PLAYBOOK_STEPS = []int{
+		playbook.DELETE_TARGET,
+	}
+)
+
 type deleteOptions struct {
-	tid      string
-	filename string
+	host string
+	tid  string
 }
 
 func NewDeleteCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	var options deleteOptions
 
 	cmd := &cobra.Command{
-		Use:   "rm TID [OPTION]",
+		Use:     "rm TID [OPTIONS]",
 		Aliases: []string{"delete"},
-		Short: "Delete a target of CurveBS",
-		Args:  cliutil.ExactArgs(1),
+		Short:   "Delete a target of CurveBS",
+		Args:    cliutil.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			options.tid = args[0]
 			return runDelete(curveadm, options)
@@ -52,23 +59,45 @@ func NewDeleteCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	}
 
 	flags := cmd.Flags()
-	flags.StringVarP(&options.filename, "conf", "c", "client.yaml", "Specify client configuration file")
+	flags.StringVar(&options.host, "host", "localhost", "Specify target host")
 
 	return cmd
 }
 
+func genDeletePlaybook(curveadm *cli.CurveAdm, options deleteOptions) (*playbook.Playbook, error) {
+	steps := DELETE_PLAYBOOK_STEPS
+	pb := playbook.NewPlaybook(curveadm)
+	for _, step := range steps {
+		pb.AddStep(&playbook.PlaybookStep{
+			Type:    step,
+			Configs: nil,
+			Options: map[string]interface{}{
+				comm.KEY_TARGET_OPTIONS: bs.TargetOption{
+					Host: options.host,
+					Tid:  options.tid,
+				},
+			},
+		})
+	}
+	return pb, nil
+}
+
 func runDelete(curveadm *cli.CurveAdm, options deleteOptions) error {
-	// config
-	cc, err := client.ParseClientConfig(options.filename)
+	// 1) generate list playbook
+	pb, err := genDeletePlaybook(curveadm, options)
 	if err != nil {
 		return err
 	}
 
-	curveadm.MemStorage().Set(bs.KEY_DELETE_TID, options.tid)
-	err = tasks.ExecTasks(tasks.DELETE_TARGET, curveadm, cc)
+	// 2) run playground
+	err = pb.Run()
 	if err != nil {
-		return curveadm.NewPromptError(err, "")
+		return err
 	}
 
+	// 3) print targets
+	curveadm.WriteOutln("")
+	curveadm.WriteOutln(color.GreenString("Delete target (tid=%s) on %s success ^_^"),
+		options.tid, options.host)
 	return nil
 }

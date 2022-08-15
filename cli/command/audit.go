@@ -20,23 +20,29 @@
  * Author: Jingli Chen (Wine93)
  */
 
+// __SIGN_BY_WINE93__
+
 package command
 
 import (
 	"github.com/opencurve/curveadm/cli/cli"
+	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/tui"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/cobra"
 )
 
-type auditOptions struct{}
+type auditOptions struct {
+	tail    int
+	verbose bool
+}
 
 func NewAuditCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	var options auditOptions
 
 	cmd := &cobra.Command{
-		Use:   "audit",
-		Short: "Audit",
+		Use:   "audit [OPTIONS]",
+		Short: "Show audit log of operation",
 		Args:  cliutil.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runAudit(curveadm, options)
@@ -44,16 +50,24 @@ func NewAuditCommand(curveadm *cli.CurveAdm) *cobra.Command {
 		DisableFlagsInUseLine: true,
 	}
 
+	flags := cmd.Flags()
+	flags.IntVarP(&options.tail, "tail", "n", 20, "Number of lines to show from the end of the logs (0 means all)")
+	flags.BoolVarP(&options.verbose, "verbose", "v", false, "Verbose output for clusters")
+
 	return cmd
 }
 
 func runAudit(curveadm *cli.CurveAdm, options auditOptions) error {
 	auditLogs, err := curveadm.Storage().GetAuditLogs()
 	if err != nil {
-		return err
+		return errno.ERR_GET_AUDIT_LOGS_FAILE.E(err)
 	}
 
-	output := tui.FormatAuditLogs(auditLogs)
+	tail := options.tail
+	if tail != 0 && tail > 0 && tail < len(auditLogs) {
+		auditLogs = auditLogs[len(auditLogs)-tail:]
+	}
+	output := tui.FormatAuditLogs(auditLogs, options.verbose)
 	curveadm.WriteOut(output)
 	return nil
 }

@@ -20,30 +20,46 @@
  * Author: Jingli Chen (Wine93)
  */
 
+// __SIGN_BY_WINE93__
+
 package module
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os/exec"
 	"strings"
 	"text/template"
+	"time"
 
-	ssh "github.com/melbahja/goph"
-	"github.com/opencurve/curveadm/pkg/log"
+	"github.com/melbahja/goph"
+	log "github.com/opencurve/curveadm/pkg/log/glg"
 )
 
-type ExecOption struct {
-	ExecWithSudo  bool
-	ExecInLocal   bool
-	ExecSudoAlias string
+type (
+	Module struct {
+		sshClient *SSHClient
+	}
+
+	ExecOptions struct {
+		ExecWithSudo   bool
+		ExecInLocal    bool
+		ExecSudoAlias  string
+		ExecTimeoutSec int
+	}
+
+	TimeoutError struct {
+		timeout int
+	}
+)
+
+func (e *TimeoutError) Error() string {
+	return fmt.Sprintf("execute command timed out (timeout: %d seconds)",
+		e.timeout)
 }
 
-type Module struct {
-	sshClient *ssh.Client
-}
-
-func NewModule(sshClient *ssh.Client) *Module {
+func NewModule(sshClient *SSHClient) *Module {
 	return &Module{sshClient: sshClient}
 }
 
@@ -60,46 +76,79 @@ func (m *Module) DockerCli() *DockerCli {
 }
 
 // common utils
-func remoteAddr(client *ssh.Client) string {
+func remoteAddr(client *SSHClient) string {
 	if client == nil {
 		return "-"
 	}
 
-	config := client.Config
-	return fmt.Sprintf("%s@%s:%d", config.User, config.Addr, config.Port)
+	config := client.Config()
+	return fmt.Sprintf("%s@%s:%d", config.User, config.Host, config.Port)
 }
 
-func execCommand(sshClient *ssh.Client,
+func execCommand(sshClient *SSHClient,
 	tmpl *template.Template,
 	data map[string]interface{},
-	options ExecOption) (string, error) {
+	options ExecOptions) (string, error) {
+	// (1) rendering command template
 	buffer := bytes.NewBufferString("")
-	err := tmpl.Execute(buffer, data)
-	if err != nil {
+	if err := tmpl.Execute(buffer, data); err != nil {
 		return "", err
 	}
 
-	cmd := buffer.String()
+	// (2) handle 'sudo_alias'
+	command := buffer.String()
 	if options.ExecWithSudo {
 		sudo := "sudo"
 		if len(options.ExecSudoAlias) > 0 {
 			sudo = options.ExecSudoAlias
 		}
-		cmd = strings.Join([]string{sudo, cmd}, " ")
+		command = strings.Join([]string{sudo, command}, " ")
 	}
-	cmd = strings.TrimLeft(cmd, " ")
+	command = strings.TrimLeft(command, " ")
 
+	// (3) handle 'become_user'
+	if sshClient != nil {
+	becomeMethod := sshClient.Config().BecomeMethod
+	becomeFlags := sshClient.Config().BecomeFlags
+	becomeUser := sshClient.Config().BecomeUser
+	if len(becomeUser) > 0 {
+		become := strings.Join([]string{becomeMethod, becomeFlags, becomeUser}, " ")
+		command = strings.Join([]string{become, command}, " ")
+	}
+	}
+
+	// (4) create context for timeout
+	ctx := context.Background()
+	if options.ExecTimeoutSec > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, time.Duration(options.ExecTimeoutSec)*time.Second)
+		defer cancel()
+	}
+
+	// (5) execute command
 	var out []byte
+	var err error
 	if options.ExecInLocal {
-		out, err = exec.Command("bash", "-c", cmd).CombinedOutput()
+		cmd := exec.CommandContext(ctx, "bash", "-c", command)
+		cmd.Env = []string{"LANG="}
+		out, err = cmd.CombinedOutput()
 	} else {
-		out, err = sshClient.Run(cmd)
+		var cmd *goph.Cmd
+		cmd, err = sshClient.Client().CommandContext(ctx, command)
+		if err == nil {
+			cmd.Env = []string{"LANG="}
+			out, err = cmd.CombinedOutput()
+		}
 	}
 
-	log.SwitchLevel(err)("execCommand",
+	if ctx.Err() == context.DeadlineExceeded {
+		err = &TimeoutError{options.ExecTimeoutSec}
+	}
+
+	log.SwitchLevel(err)("Execute command",
 		log.Field("remoteAddr", remoteAddr(sshClient)),
-		log.Field("command", cmd),
-		log.Field("error", err),
-		log.Field("output", string(out)))
+		log.Field("command", command),
+		log.Field("output", strings.TrimSuffix(string(out), "\n")),
+		log.Field("error", err))
 	return string(out), err
 }

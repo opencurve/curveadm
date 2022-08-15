@@ -20,13 +20,15 @@
  * Author: Jingli Chen (Wine93)
  */
 
+// __SIGN_BY_WINE93__
+
 package command
 
 import (
-	"fmt"
-
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/configure/topology"
+	"github.com/opencurve/curveadm/internal/errno"
+	"github.com/opencurve/curveadm/internal/tools"
 	"github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/cobra"
 )
@@ -35,11 +37,6 @@ type enterOptions struct {
 	id string
 }
 
-const (
-	FORMAT_ENTER_CMD = "ssh -tt %s@%s -p %d -i %s " +
-		"sudo docker exec -it %s /bin/bash -c \"cd %s; /bin/bash\""
-)
-
 func NewEnterCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	var options enterOptions
 
@@ -47,8 +44,11 @@ func NewEnterCommand(curveadm *cli.CurveAdm) *cobra.Command {
 		Use:   "enter ID",
 		Short: "Enter service container",
 		Args:  utils.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
+		PreRunE: func(cmd *cobra.Command, args []string) error {
 			options.id = args[0]
+			return curveadm.CheckId(options.id)
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
 			return runEnter(curveadm, options)
 		},
 		DisableFlagsInUseLine: true,
@@ -57,38 +57,32 @@ func NewEnterCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	return cmd
 }
 
-func connectContainer(curveadm *cli.CurveAdm, dc *topology.DeployConfig, containerId string) error {
-	user := dc.GetUser()
-	host := dc.GetHost()
-	sshPort := dc.GetSSHPort()
-	privateKeyFile := dc.GetPrivateKeyFile()
-
-	cmd := utils.NewCommand(FORMAT_ENTER_CMD, user, host, sshPort, privateKeyFile,
-		containerId, dc.GetProjectLayout().ServiceRootDir)
-	cmd.Stdout = curveadm.Out()
-	cmd.Stderr = curveadm.Err()
-	cmd.Stdin = curveadm.In()
-	return cmd.Run()
-}
-
 func runEnter(curveadm *cli.CurveAdm, options enterOptions) error {
-	dcs, err := topology.ParseTopology(curveadm.ClusterTopologyData())
+	// 1) parse cluster topology
+	dcs, err := curveadm.ParseTopology()
 	if err != nil {
 		return err
 	}
 
+	// 2) filter service
 	dcs = curveadm.FilterDeployConfig(dcs, topology.FilterOption{
 		Id:   options.id,
-		Host: "*",
 		Role: "*",
+		Host: "*",
 	})
+	if len(dcs) == 0 {
+		return errno.ERR_NO_SERVICES_MATCHED
+	}
 
-	if len(dcs) != 1 {
-		return fmt.Errorf("invalid service id")
-	} else if containerId, err := curveadm.Storage().GetContainerId(options.id); err != nil {
-		return curveadm.NewPromptError(err, "")
-	} else if err := connectContainer(curveadm, dcs[0], containerId); err != nil {
+	// 3) get container id
+	dc := dcs[0]
+	serviceId := curveadm.GetServiceId(dc.GetId())
+	containerId, err := curveadm.GetContainerId(serviceId)
+	if err != nil {
 		return err
 	}
-	return nil
+
+	// 4) attch remote container
+	home := dc.GetProjectLayout().ServiceRootDir
+	return tools.AttachRemoteContainer(curveadm, dc.GetHost(), containerId, home)
 }

@@ -20,17 +20,24 @@
  * Author: Jingli Chen (Wine93)
  */
 
+// __SIGN_BY_WINE93__
+
 package command
 
 import (
-	"fmt"
-
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/configure/topology"
-	"github.com/opencurve/curveadm/internal/task/tasks"
+	"github.com/opencurve/curveadm/internal/errno"
+	"github.com/opencurve/curveadm/internal/playbook"
 	tui "github.com/opencurve/curveadm/internal/tui/common"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/cobra"
+)
+
+var (
+	STOP_PLAYBOOK_STEPS = []int{
+		playbook.STOP_SERVICE,
+	}
 )
 
 type stopOptions struct {
@@ -43,9 +50,12 @@ func NewStopCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	var options stopOptions
 
 	cmd := &cobra.Command{
-		Use:   "stop",
+		Use:   "stop [OPTIONS]",
 		Short: "Stop service",
 		Args:  cliutil.NoArgs,
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			return checkCommonOptions(curveadm, options.id, options.role, options.host)
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runStop(curveadm, options)
 		},
@@ -53,36 +63,56 @@ func NewStopCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	}
 
 	flags := cmd.Flags()
-	flags.StringVarP(&options.id, "id", "", "*", "Specify service id")
-	flags.StringVarP(&options.role, "role", "", "*", "Specify service role")
-	flags.StringVarP(&options.host, "host", "", "*", "Specify service host")
+	flags.StringVar(&options.id, "id", "*", "Specify service id")
+	flags.StringVar(&options.role, "role", "*", "Specify service role")
+	flags.StringVar(&options.host, "host", "*", "Specify service host")
 
 	return cmd
 }
 
-func runStop(curveadm *cli.CurveAdm, options stopOptions) error {
-	dcs, err := topology.ParseTopology(curveadm.ClusterTopologyData())
-	if err != nil {
-		return err
-	}
-
+func genStopPlaybook(curveadm *cli.CurveAdm,
+	dcs []*topology.DeployConfig,
+	options stopOptions) (*playbook.Playbook, error) {
 	dcs = curveadm.FilterDeployConfig(dcs, topology.FilterOption{
 		Id:   options.id,
 		Role: options.role,
 		Host: options.host,
 	})
-
 	if len(dcs) == 0 {
-		return fmt.Errorf("service not found")
+		return nil, errno.ERR_NO_SERVICES_MATCHED
 	}
 
-	if pass := tui.ConfirmYes(tui.PromptStopService()); !pass {
-		curveadm.WriteOut("Stop canceled\n")
-		return nil
+	steps := STOP_PLAYBOOK_STEPS
+	pb := playbook.NewPlaybook(curveadm)
+	for _, step := range steps {
+		pb.AddStep(&playbook.PlaybookStep{
+			Type:    step,
+			Configs: dcs,
+		})
+	}
+	return pb, nil
+}
+
+func runStop(curveadm *cli.CurveAdm, options stopOptions) error {
+	// 1) parse cluster topology
+	dcs, err := curveadm.ParseTopology()
+	if err != nil {
+		return err
 	}
 
-	if err := tasks.ExecTasks(tasks.STOP_SERVICE, curveadm, dcs); err != nil {
-		return curveadm.NewPromptError(err, "")
+	// 2) generate stop playbook
+	pb, err := genStopPlaybook(curveadm, dcs, options)
+	if err != nil {
+		return err
 	}
-	return nil
+
+	// 3) confirm by user
+	pass := tui.ConfirmYes(tui.PromptStopService(options.id, options.role, options.host));
+	if !pass {
+		curveadm.WriteOut(tui.PromptCancelOpetation("stop service"))
+		return errno.ERR_CANCEL_OPERATION
+	}
+
+	// 4) run playground
+	return pb.Run()
 }

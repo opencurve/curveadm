@@ -20,16 +20,23 @@
  * Author: Jingli Chen (Wine93)
  */
 
+// __SIGN_BY_WINE93__
+
 package utils
 
 import (
 	"errors"
 	"fmt"
+	"io"
 
 	"github.com/docker/cli/cli"
 	"github.com/docker/cli/cli/command"
 	"github.com/moby/term"
 	"github.com/spf13/cobra"
+)
+
+const (
+	PREFIX_COBRA_COMMAND_ERROR = "Error:\n"
 )
 
 var (
@@ -154,4 +161,8 @@ func SetUsageTemplate(cmd *cobra.Command) {
 	cobra.AddTemplateFunc("hasOperationSubCommands", hasOperationSubCommands)
 	cobra.AddTemplateFunc("wrappedFlagUsages", wrappedFlagUsages)
 	cmd.SetUsageTemplate(usageTemplate)
+}
+
+func SetErr(cmd *cobra.Command, writer io.Writer) {
+	cmd.SetErr(writer)
 }

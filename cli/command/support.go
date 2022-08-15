@@ -23,30 +23,41 @@
 package command
 
 import (
-	"fmt"
-	"os"
-	"path/filepath"
-
 	"github.com/fatih/color"
 	"github.com/opencurve/curveadm/cli/cli"
+	comm "github.com/opencurve/curveadm/internal/common"
 	"github.com/opencurve/curveadm/internal/configure/topology"
-	task "github.com/opencurve/curveadm/internal/task/task/common"
-	"github.com/opencurve/curveadm/internal/task/tasks"
-	"github.com/opencurve/curveadm/internal/tools"
+	"github.com/opencurve/curveadm/internal/errno"
+	"github.com/opencurve/curveadm/internal/playbook"
+	"github.com/opencurve/curveadm/internal/storage"
 	tui "github.com/opencurve/curveadm/internal/tui/common"
 	"github.com/opencurve/curveadm/internal/utils"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/cobra"
 )
 
+const (
+	SUPPORT_UPLOAD_URL_FORMAT = "http://curveadm.aspirer.wang:19301/upload?path=%s"
+)
+
+var (
+	SUPPORT_PLAYBOOK_STEPS = []int{
+		playbook.INIT_SUPPORT,
+		//playbook.COLLECT_REPORT,
+		playbook.COLLECT_CURVEADM,
+		playbook.COLLECT_SERVICE,
+	}
+)
+
 type supportOptions struct {
+	ids []string
 }
 
 func NewSupportCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	var options supportOptions
 
 	cmd := &cobra.Command{
-		Use:   "support",
+		Use:   "support [OPTIONS]",
 		Short: "Get support from Curve team",
 		Args:  cliutil.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -55,90 +66,105 @@ func NewSupportCommand(curveadm *cli.CurveAdm) *cobra.Command {
 		DisableFlagsInUseLine: true,
 	}
 
+	flags := cmd.Flags()
+	flags.StringSliceVarP(&options.ids, "client", "c", []string{}, "Specify client id")
+
 	return cmd
 }
 
-func collectService(curveadm *cli.CurveAdm, saveDir string) error {
-	dcs, err := topology.ParseTopology(curveadm.ClusterTopologyData())
+func getClients(curveadm *cli.CurveAdm,
+	options supportOptions) ([]storage.Client, error) {
+	out := []storage.Client{}
+	for _, id := range options.ids {
+		clients, err := curveadm.Storage().GetClient(id)
+		if err != nil {
+			return nil, errno.ERR_GET_CLIENT_BY_ID_FAILED.E(err)
+		} else if len(clients) == 0 {
+			return nil, errno.ERR_CLIENT_ID_NOT_FOUND.
+				F("client id: %s", id)
+		}
+		out = append(out, clients[0])
+	}
+	return out, nil
+}
+
+func genSupportPlaybook(curveadm *cli.CurveAdm,
+	dcs []*topology.DeployConfig,
+	options supportOptions) (*playbook.Playbook, error) {
+	clients, err := getClients(curveadm, options)
+	if err != nil {
+		return nil, err
+	}
+	cconfig := []interface{}{}
+	for _, client := range clients {
+		cconfig = append(cconfig, client)
+	}
+
+	steps := SUPPORT_PLAYBOOK_STEPS
+	pb := playbook.NewPlaybook(curveadm)
+	if len(clients) > 0 {
+		steps = append(steps, playbook.COLLECT_CLIENT)
+	}
+	for _, step := range steps {
+		config := dcs
+		switch step {
+		case playbook.INIT_SUPPORT:
+			config = config[:1]
+		case playbook.COLLECT_REPORT:
+			config = config[:1]
+		case playbook.COLLECT_CURVEADM:
+			config = config[:1]
+		}
+
+		if step == playbook.COLLECT_CLIENT {
+			pb.AddStep(&playbook.PlaybookStep{
+				Type:    step,
+				Configs: cconfig,
+			})
+		} else {
+			pb.AddStep(&playbook.PlaybookStep{
+				Type:    step,
+				Configs: config,
+			})
+		}
+	}
+	return pb, nil
+}
+
+func runSupport(curveadm *cli.CurveAdm, options supportOptions) error {
+	// 1) parse cluster topology
+	dcs, err := curveadm.ParseTopology()
 	if err != nil {
 		return err
 	}
 
-	memStorage := curveadm.MemStorage()
-	memStorage.Set(task.KEY_COLLECT_SAVE_DIR, saveDir)
-	if err := tasks.ExecTasks(tasks.COLLECT_SERVICE, curveadm, dcs); err != nil {
-		return curveadm.NewPromptError(err, "")
-	}
-	return nil
-}
+	// 2) generate secret
+	secret := utils.RandString(32)
+	curveadm.MemStorage().Set(comm.KEY_SECRET, secret)
+	curveadm.MemStorage().Set(comm.KEY_ALL_CLIENT_IDS, options.ids)
+	curveadm.MemStorage().Set(comm.KEY_SUPPORT_UPLOAD_URL_FORMAT, SUPPORT_UPLOAD_URL_FORMAT)
 
-func collectCurveadm(curveadm *cli.CurveAdm, saveDir string) error {
-	saveCurveAdmDir := fmt.Sprintf("%s/curveadm", saveDir)
-	if _, err := utils.ExecShell("mkdir -p %s", saveCurveAdmDir); err != nil {
+	// 3) generate support playbook
+	pb, err := genSupportPlaybook(curveadm, dcs, options)
+	if err != nil {
 		return err
 	}
 
-	for _, item := range []string{curveadm.DataDir(), curveadm.LogDir()} {
-		if _, err := utils.ExecShell("cp -r %s %s", item, saveCurveAdmDir); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func upload2CurveTeam(saveDir, secretKey string) error {
-	rootDir := filepath.Dir(saveDir)                   // ~/.curveadm/temp/curveadm-support-8589bddc3c2c56eedfdb0fc2194b3ecd
-	filename := filepath.Base(saveDir)                 // curveadm-support-8589bddc3c2c56eedfdb0fc2194b3ecd
-	tarball := filename + ".tar.gz"                    // curveadm-support-8589bddc3c2c56eedfdb0fc2194b3ecd.tar.gz
-	encryptedTarball := filename + "-encrypted.tar.gz" //curveadm-support-8589bddc3c2c56eedfdb0fc2194b3ecd-encrypted.tar.gz
-	srcfile := fmt.Sprintf("%s/%s", rootDir, tarball)
-	dstfile := fmt.Sprintf("%s/%s", rootDir, encryptedTarball)
-	cmd := fmt.Sprintf("cd %s; tar -zcvf %s %s", rootDir, tarball, filename)
-	if _, err := utils.ExecShell(cmd); err != nil {
-		return err
-	} else if err := utils.EncryptFile(srcfile, dstfile, secretKey); err != nil {
-		return err
-	} else if err := tools.Upload(dstfile); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-/*
- * curveadm-support-8589bddc3c2c56eedfdb0fc2194b3ecd
- *   1_etcd_10.0.0.1_1
- *     logs/
- *     bin/
- *     conf/
- *     core/
- *   curveadm
- *     logs/
- *     data/
- */
-func runSupport(curveadm *cli.CurveAdm, options supportOptions) error {
-	secretKey := utils.RandString(32)
-	saveDir := fmt.Sprintf("%s/curveadm-support-%s", curveadm.TempDir(), utils.MD5Sum(secretKey))
-	if err := os.Mkdir(saveDir, 0755); err != nil {
-		return err
-	}
-	defer func() {
-		utils.ExecShell("rm -rf %s*", saveDir)
-	}()
-
-	if err := collectService(curveadm, saveDir); err != nil {
-		return err
-	} else if err := collectCurveadm(curveadm, saveDir); err != nil {
-		return err
-	}
-
+	// 4) confirm by user
 	if pass := tui.ConfirmYes(tui.PromptCollectService()); !pass {
 		return nil
 	}
 
-	if err := upload2CurveTeam(saveDir, secretKey); err != nil {
+	// 5) run playbook
+	err = pb.Run()
+	if err != nil {
 		return err
 	}
-	curveadm.WriteOut("Secret Key: %s\n", color.GreenString(secretKey))
+
+	// 6) print secret
+	curveadm.WriteOutln("")
+	curveadm.WriteOutln(color.GreenString("Upload success, please tell the below secret key to curve team :)"))
+	curveadm.WriteOut(color.GreenString("secret key: "))
+	curveadm.WriteOutln(color.YellowString(secret))
 	return nil
 }

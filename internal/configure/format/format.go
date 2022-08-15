@@ -24,6 +24,7 @@ package format
 
 import (
 	"fmt"
+	"github.com/opencurve/curveadm/pkg/module"
 	"strings"
 
 	"github.com/opencurve/curveadm/internal/utils"
@@ -33,9 +34,21 @@ import (
 const (
 	LATEST_CURVBS_VERSION  = "v1.2"
 	FORMAT_CONTAINER_IMAGE = "opencurvedocker/curvebs:%s"
+	DEFAULT_SSH_TIMEOUT    = 10 // seconds
 )
 
 type (
+	FormatConfig struct {
+		Host           string
+		User           string
+		SSHPort        int
+		PrivateKeyFile string
+		ContainerIamge string
+		Device         string
+		MountPoint     string
+		UsagePercent   int
+	}
+
 	Format struct {
 		User           string   `mapstructure:"user"`
 		SSHPort        int      `mapstructure:"ssh_port"`
@@ -167,4 +180,20 @@ func ParseFormat(filename string) ([]*FormatConfig, error) {
 		}
 	}
 	return fcs, nil
+}
+
+func (fc *FormatConfig) GetHost() string           { return fc.Host }
+func (fc *FormatConfig) GetContainerIamge() string { return fc.ContainerIamge }
+func (fc *FormatConfig) GetDevice() string         { return fc.Device }
+func (fc *FormatConfig) GetMountPoint() string     { return fc.MountPoint }
+func (fc *FormatConfig) GetUsagePercent() int      { return fc.UsagePercent }
+
+func (fc *FormatConfig) GetSSHConfig() *module.SSHConfig {
+	return &module.SSHConfig{
+		User:           fc.User,
+		Host:           fc.Host,
+		Port:           uint(fc.SSHPort),
+		PrivateKeyPath: fc.PrivateKeyFile,
+		Timeout:        DEFAULT_SSH_TIMEOUT,
+	}
 }

@@ -23,28 +23,45 @@
 package tui
 
 import (
-	"strconv"
+	"sort"
 
-	"github.com/opencurve/curveadm/internal/storage"
+	"github.com/fatih/color"
+	comm "github.com/opencurve/curveadm/internal/common"
+	pg "github.com/opencurve/curveadm/internal/task/task/playground"
 	"github.com/opencurve/curveadm/internal/tui/common"
 	tuicommon "github.com/opencurve/curveadm/internal/tui/common"
 )
 
-func FormatPlayground(playgrounds []storage.Playground) string {
+func playgroundStatusDecorate(status string) string {
+	switch status {
+	case comm.PLAYGROUDN_STATUS_LOSED:
+		return color.RedString(status)
+	}
+	return status
+}
+
+func sortStatues(statuses []pg.PlaygroundStatus) {
+	sort.Slice(statuses, func(i, j int) bool {
+		s1, s2 := statuses[i], statuses[j]
+		return s1.Id < s2.Id
+	})
+}
+
+func FormatPlayground(statuses []pg.PlaygroundStatus) string {
 	lines := [][]interface{}{}
-	title := []string{"Id", "Nmae", "Create Time", "Status"}
+	title := []string{"Id", "Name", "Create Time", "Status"}
 	first, second := tuicommon.FormatTitle(title)
 	lines = append(lines, first)
 	lines = append(lines, second)
 
-	for _, playground := range playgrounds {
-		line := []interface{}{}
-		line = append(line, strconv.Itoa(playground.Id))
-		line = append(line, playground.Name)
-		line = append(line, playground.CreateTime.Format("2006-01-02 15:04:05"))
-		line = append(line, playground.Status)
-
-		lines = append(lines, line)
+	sortStatues(statuses)
+	for _, status := range statuses {
+		lines = append(lines, []interface{}{
+			status.Id,
+			status.Name,
+			status.CreateTime,
+			tuicommon.DecorateMessage{Message: status.Status, Decorate: playgroundStatusDecorate},
+		})
 	}
 
 	output := common.FixedFormat(lines, 2)

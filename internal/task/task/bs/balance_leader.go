@@ -32,30 +32,26 @@ import (
 	tui "github.com/opencurve/curveadm/internal/tui/common"
 )
 
-// balance leader rapidly.
 func NewBalanceTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task.Task, error) {
-	// get id of service and container.
 	serviceId := curveadm.GetServiceId(dc.GetId())
-	containerId, err := curveadm.Storage().GetContainerId(serviceId)
+	containerId, err := curveadm.GetContainerId(serviceId)
 	if err != nil {
 		return nil, err
-	} else if containerId == "" {
-		return nil, fmt.Errorf("service(id=%s) not found", serviceId)
+	}
+	hc, err := curveadm.GetHost(dc.GetHost())
+	if err != nil {
+		return nil, err
 	}
 
-	// define a task.
-	name := "Balance Leader"
 	subname := fmt.Sprintf("host=%s role=%s containerId=%s",
 		dc.GetHost(), dc.GetRole(), tui.TrimContainerId(containerId))
-	t := task.NewTask(name, subname, dc.GetSSHConfig())
+	t := task.NewTask("Balance Leader", subname, hc.GetSSHConfig())
 
-	// balance leader.
+	// add step
 	t.AddStep(&step.ContainerExec{
-		ContainerId:   &containerId,
-		Command:       "curve_ops_tool rapid-leader-schedule",
-		ExecWithSudo:  true,
-		ExecInLocal:   false,
-		ExecSudoAlias: curveadm.SudoAlias(),
+		ContainerId: &containerId,
+		Command:     "curve_ops_tool rapid-leader-schedule",
+		ExecOptions: curveadm.ExecOptions(),
 	})
 
 	return t, nil

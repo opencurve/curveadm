@@ -20,6 +20,8 @@
  * Author: Jingli Chen (Wine93)
  */
 
+// __SIGN_BY_WINE93__
+
 package topology
 
 import (
@@ -28,6 +30,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/utils"
 	"github.com/opencurve/curveadm/pkg/variable"
 )
@@ -43,6 +46,7 @@ type Var struct {
 	name     string
 	kind     []string // kind limit for register variable
 	role     []string // role limit for register variable
+	lookup   bool     // whether need to lookup host
 	resolved bool
 }
 
@@ -50,24 +54,23 @@ type Var struct {
  * built-in variables:
  *
  * service:
- *   ${user}                      "curve"
- *   ${prefix}                    "/curvebs/{etcd,mds,chunkserver}"
- *   ${service_id}                "c690bde11d1a"
- *   ${service_role}              "mds"
- *   ${service_host}              "10.0.0.1"
- *   ${service_host_sequence}     "1"
- *   ${service_replica_sequence}  "1"
- *   ${format_replica_sequence}   "01"
- *   ${service_addr}              "10.0.0.1"
- *   ${service_port}              "6666"
- *   ${service_client_port}       "2379" (etcd)
- *   ${service_dummy_port}        "6667" (snapshotclone/mds)
- *   ${service_proxy_port}        "8080" (snapshotclone)
- *   ${service_external_addr}     "10.0.10.1" (chunkserver/metaserver)
- *   ${service_external_port}     "7800" (metaserver)
- *   ${log_dir}                   "/data/logs"
- *   ${data_dir}                  "/data"
- *   ${random_uuid}               "6fa8f01c411d7655d0354125c36847bb"
+ *   ${prefix}                     "/curvebs/{etcd,mds,chunkserver}"
+ *   ${service_id}                 "c690bde11d1a"
+ *   ${service_role}               "mds"
+ *   ${service_host}               "10.0.0.1"
+ *   ${service_host_sequence}      "1"
+ *   ${service_replicas_sequence}  "1"
+ *   ${format_replicas_sequence}   "01"
+ *   ${service_addr}               "10.0.0.1"
+ *   ${service_port}               "6666"
+ *   ${service_client_port}        "2379" (etcd)
+ *   ${service_dummy_port}         "6667" (snapshotclone/mds)
+ *   ${service_proxy_port}         "8080" (snapshotclone)
+ *   ${service_external_addr}      "10.0.10.1" (chunkserver/metaserver)
+ *   ${service_external_port}      "7800" (metaserver)
+ *   ${log_dir}                    "/data/logs"
+ *   ${data_dir}                   "/data"
+ *   ${random_uuid}                "6fa8f01c411d7655d0354125c36847bb"
  *
  * cluster:
  *   ${cluster_etcd_http_addr}                "etcd1=http://10.0.10.1:2380,etcd2=http://10.0.10.2:2380,etcd3=http://10.0.10.3:2380"
@@ -84,20 +87,21 @@ type Var struct {
  */
 var (
 	serviceVars = []Var{
-		{name: "user"},
 		{name: "prefix"},
 		{name: "service_id"},
 		{name: "service_role"},
-		{name: "service_host"},
+		{name: "service_host", lookup: true},
 		{name: "service_host_sequence"},
 		{name: "service_replica_sequence"},
+		{name: "service_replicas_sequence"},
 		{name: "format_replica_sequence"},
-		{name: "service_addr"},
+		{name: "format_replicas_sequence"},
+		{name: "service_addr", lookup: true},
 		{name: "service_port"},
 		{name: "service_client_port", role: []string{ROLE_ETCD}},
 		{name: "service_dummy_port", role: []string{ROLE_SNAPSHOTCLONE, ROLE_MDS}},
 		{name: "service_proxy_port", role: []string{ROLE_SNAPSHOTCLONE}},
-		{name: "service_external_addr", role: []string{ROLE_CHUNKSERVER, ROLE_METASERVER}},
+		{name: "service_external_addr", role: []string{ROLE_CHUNKSERVER, ROLE_METASERVER}, lookup: true},
 		{name: "service_external_port", role: []string{ROLE_METASERVER}},
 		{name: "log_dir"},
 		{name: "data_dir"},
@@ -144,7 +148,7 @@ func addVariables(dcs []*DeployConfig, idx int, vars []Var) error {
 			Value: getValue(v.name, dcs, idx),
 		})
 		if err != nil {
-			return err
+			return errno.ERR_REGISTER_VARIABLE_FAILED.E(err)
 		}
 	}
 
@@ -170,7 +174,7 @@ func joinEtcdPeer(dcs []*DeployConfig) string {
 		}
 
 		hostSequence := dc.GetHostSequence()
-		replicaSquence := dc.GetReplicaSequence()
+		replicaSquence := dc.GetReplicasSequence()
 		peerHost := dc.GetListenIp()
 		peerPort := dc.GetListenPort()
 		peer := fmt.Sprintf("etcd%d%d=http://%s:%d", hostSequence, replicaSquence, peerHost, peerPort)
@@ -230,8 +234,6 @@ func joinNginxUpstreamServer(dcs []*DeployConfig) string {
 func getValue(name string, dcs []*DeployConfig, idx int) string {
 	dc := dcs[idx]
 	switch name {
-	case "user":
-		return dc.GetUser()
 	case "prefix":
 		return dc.GetProjectLayout().ServiceRootDir
 	case "service_id":
@@ -239,13 +241,17 @@ func getValue(name string, dcs []*DeployConfig, idx int) string {
 	case "service_role":
 		return dc.GetRole()
 	case "service_host":
-		return dc.GetHost()
+		return dc.GetHostname()
 	case "service_host_sequence":
 		return strconv.Itoa(dc.GetHostSequence())
 	case "service_replica_sequence":
-		return strconv.Itoa(dc.GetReplicaSequence())
+		return strconv.Itoa(dc.GetReplicasSequence())
+	case "service_replicas_sequence":
+		return strconv.Itoa(dc.GetReplicasSequence())
 	case "format_replica_sequence":
-		return fmt.Sprintf("%02d", dc.GetReplicaSequence())
+		return fmt.Sprintf("%02d", dc.GetReplicasSequence())
+	case "format_replicas_sequence":
+		return fmt.Sprintf("%02d", dc.GetReplicasSequence())
 	case "service_addr":
 		return utils.Atoa(dc.get(CONFIG_LISTEN_IP))
 	case "service_port":

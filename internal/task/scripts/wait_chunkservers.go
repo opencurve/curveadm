@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2021 NetEase Inc.
+ *  Copyright (c) 2022 NetEase Inc.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -25,19 +25,21 @@ package scripts
 /*
  * Usage: no args, just run it in bash
  */
+// FIXME(P0): wait not works, return -12
 var WAIT_CHUNKSERVERS = `
 wait=0
-while ((wait<20))
+while ((wait<60))
 do
     status=$(curve_ops_tool chunkserver-status |grep "offline")
     total=$(echo ${status} | grep -c "total num = 0")
     offline=$(echo ${status} | grep -c "offline = 0")
     if [ ${total} -eq 0 ] && [ ${offline} -eq 1 ]; then
+        echo "CURVEADM_SUCCESS"
         exit 0
     fi
     sleep 0.5s
     wait=$(expr ${wait} + 1)
 done
-echo "wait chunkservers online timeout"
+echo "CURVEADM_TIMEOUT"
 exit 1
 `

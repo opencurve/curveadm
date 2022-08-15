@@ -20,6 +20,8 @@
  * Author: Jingli Chen (Wine93)
  */
 
+// __SIGN_BY_WINE93__
+
 package step
 
 import (
@@ -29,6 +31,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/task/context"
 	"github.com/opencurve/curveadm/internal/task/task"
 	"github.com/opencurve/curveadm/internal/utils"
@@ -46,9 +49,7 @@ type (
 		ContainerId      string
 		ContainerSrcPath string
 		Content          *string
-		ExecWithSudo     bool
-		ExecInLocal      bool
-		ExecSudoAlias    string
+		module.ExecOptions
 	}
 
 	InstallFile struct {
@@ -56,10 +57,8 @@ type (
 		HostDestPath      string
 		ContainerId       *string
 		ContainerDestPath string
-		Mode              string
-		ExecWithSudo      bool
-		ExecInLocal       bool
-		ExecSudoAlias     string
+		Mode              int
+		module.ExecOptions
 	}
 
 	Mutate func(string, string, string) (string, error)
@@ -78,9 +77,13 @@ type (
 		ContainerDestPath string
 		KVFieldSplit      string
 		Mutate            func(string, string, string) (string, error)
-		ExecWithSudo      bool
-		ExecInLocal       bool
-		ExecSudoAlias     string
+		module.ExecOptions
+	}
+
+	DownloadFile struct {
+		RemotePath string
+		LocalPath  string
+		module.ExecOptions
 	}
 )
 
@@ -91,15 +94,11 @@ func (s *ReadFile) Execute(ctx *context.Context) error {
 		// do nothing
 	} else {
 		remotePath = utils.RandFilename(TEMP_DIR)
-		// defer ctx.Module().Shell().Remove(remotePath).Execute(module.ExecOption{})
+		// defer ctx.Module().Shell().Remove(remotePath).Execute(module.ExecOptions{})
 		dockerCli := ctx.Module().DockerCli().CopyFromContainer(s.ContainerId, s.ContainerSrcPath, remotePath)
-		_, err := dockerCli.Execute(module.ExecOption{
-			ExecWithSudo:  s.ExecWithSudo,
-			ExecInLocal:   s.ExecInLocal,
-			ExecSudoAlias: s.ExecSudoAlias,
-		})
+		_, err := dockerCli.Execute(s.ExecOptions)
 		if err != nil {
-			return err
+			return errno.ERR_COPY_FROM_CONTAINER_FAILED.E(err)
 		}
 	}
 
@@ -109,85 +108,76 @@ func (s *ReadFile) Execute(ctx *context.Context) error {
 	if !s.ExecInLocal {
 		err := ctx.Module().File().Download(remotePath, localPath)
 		if err != nil {
-			return err
+			return errno.ERR_DOWNLOAD_FILE_FROM_REMOTE_BY_SSH_FAILED.E(err)
 		}
 	} else {
 		cmd := ctx.Module().Shell().Rename(remotePath, localPath)
-		_, err := cmd.Execute(module.ExecOption{
-			ExecWithSudo:  s.ExecWithSudo,
-			ExecInLocal:   s.ExecInLocal,
-			ExecSudoAlias: s.ExecSudoAlias,
-		})
+		_, err := cmd.Execute(s.ExecOptions)
 		if err != nil {
-			return err
+			return errno.ERR_RENAME_FILE_OR_DIRECTORY_FAILED.E(err)
 		}
 	}
 
 	data, err := utils.ReadFile(localPath)
 	*s.Content = data
-	return err
+	if err != nil {
+		return errno.ERR_READ_FILE_FAILED.E(err)
+	}
+	return nil
 }
 
 func (s *InstallFile) Execute(ctx *context.Context) error {
 	localPath := utils.RandFilename(TEMP_DIR)
 	defer os.Remove(localPath)
-	err := utils.WriteFile(localPath, *s.Content)
+	mode := 0644
+	if s.Mode > 0 {
+		mode = s.Mode
+	}
+	err := utils.WriteFile(localPath, *s.Content, mode)
 	if err != nil {
-		return err
+		return errno.ERR_WRITE_FILE_FAILED.E(err)
 	}
 
 	remotePath := utils.RandFilename(TEMP_DIR)
 	if !s.ExecInLocal {
-		// defer ctx.Module().Shell().Remove(remotePath).Execute(module.ExecOption{})
+		// defer ctx.Module().Shell().Remove(remotePath).Execute(module.ExecOptions{})
 		err = ctx.Module().File().Upload(localPath, remotePath)
 		if err != nil {
-			return err
+			return errno.ERR_UPLOAD_FILE_TO_REMOTE_BY_SSH_FAILED.E(err)
 		}
 	} else {
 		cmd := ctx.Module().Shell().Rename(localPath, remotePath)
-		_, err := cmd.Execute(module.ExecOption{
+		_, err := cmd.Execute(module.ExecOptions{
+			ExecWithSudo:  false, // NOTE: file owner is me
 			ExecInLocal:   s.ExecInLocal,
 			ExecSudoAlias: s.ExecSudoAlias,
 		})
 		if err != nil {
-			return err
-		}
-	}
-
-	if len(s.Mode) > 0 {
-		cmd := ctx.Module().Shell().Chmod(s.Mode, remotePath)
-		_, err = cmd.Execute(module.ExecOption{
-			ExecInLocal:   s.ExecInLocal,
-			ExecSudoAlias: s.ExecSudoAlias,
-		})
-		if err != nil {
-			return err
+			return errno.ERR_RENAME_FILE_OR_DIRECTORY_FAILED.E(err)
 		}
 	}
 
 	if len(s.HostDestPath) > 0 {
 		cmd := ctx.Module().Shell().Rename(remotePath, s.HostDestPath)
-		_, err = cmd.Execute(module.ExecOption{
-			ExecWithSudo:  s.ExecWithSudo,
-			ExecInLocal:   s.ExecInLocal,
-			ExecSudoAlias: s.ExecSudoAlias,
-		})
+		_, err = cmd.Execute(s.ExecOptions)
+		if err != nil {
+			return errno.ERR_RENAME_FILE_OR_DIRECTORY_FAILED.E(err)
+		}
 	} else {
 		cli := ctx.Module().DockerCli().CopyIntoContainer(remotePath, *s.ContainerId, s.ContainerDestPath)
-		_, err = cli.Execute(module.ExecOption{
-			ExecWithSudo:  s.ExecWithSudo,
-			ExecInLocal:   s.ExecInLocal,
-			ExecSudoAlias: s.ExecSudoAlias,
-		})
+		_, err = cli.Execute(s.ExecOptions)
+		if err != nil {
+			return errno.ERR_COPY_INTO_CONTAINER_FAILED.E(err)
+		}
 	}
-	return err
+	return nil
 }
 
 func (s *Filter) kvSplit(line string, key, value *string) error {
 	pattern := fmt.Sprintf(REGEX_KV_SPLIT, s.KVFieldSplit, s.KVFieldSplit)
 	regex, err := regexp.Compile(pattern)
 	if err != nil {
-		return err
+		return errno.ERR_BUILD_REGEX_FAILED.E(err)
 	}
 
 	mu := regex.FindStringSubmatch(line)
@@ -232,9 +222,7 @@ func (s *SyncFile) Execute(ctx *context.Context) error {
 		ContainerId:      *s.ContainerSrcId,
 		ContainerSrcPath: s.ContainerSrcPath,
 		Content:          &input,
-		ExecWithSudo:     s.ExecWithSudo,
-		ExecInLocal:      s.ExecInLocal,
-		ExecSudoAlias:    s.ExecSudoAlias,
+		ExecOptions:      s.ExecOptions,
 	})
 	steps = append(steps, &Filter{
 		KVFieldSplit: s.KVFieldSplit,
@@ -246,9 +234,7 @@ func (s *SyncFile) Execute(ctx *context.Context) error {
 		ContainerId:       s.ContainerDestId,
 		ContainerDestPath: s.ContainerDestPath,
 		Content:           &output,
-		ExecWithSudo:      s.ExecWithSudo,
-		ExecInLocal:       s.ExecInLocal,
-		ExecSudoAlias:     s.ExecSudoAlias,
+		ExecOptions:       s.ExecOptions,
 	})
 
 	for _, step := range steps {
@@ -258,4 +244,8 @@ func (s *SyncFile) Execute(ctx *context.Context) error {
 		}
 	}
 	return nil
+}
+
+func (s *DownloadFile) Execute(ctx *context.Context) error {
+	return ctx.Module().File().Download(s.RemotePath, s.LocalPath)
 }

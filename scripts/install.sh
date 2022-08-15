@@ -9,7 +9,7 @@ g_bin_dir="$g_curveadm_home/bin"
 g_profile="${HOME}/.profile"
 g_root_url="https://curveadm.nos-eastchina1.126.net/release"
 g_latest_url="${g_root_url}/__version"
-g_latest_version=$(curl -Is $g_latest_url | awk 'BEGIN {FS=": "}; /^x-nos-meta-curveadm-version/{print $2}')
+g_latest_version=$(curl -Is $g_latest_url | awk 'BEGIN {FS=": "}; /^x-nos-meta-curveadm-latest-version/{print $2}')
 g_latest_version=${g_latest_version//[$'\t\r\n ']}
 g_upgrade="$CURVEADM_UPGRADE"
 g_version="${CURVEADM_VERSION:=$g_latest_version}"
@@ -42,6 +42,12 @@ program_must_exist() {
 }
 
 ############################ FUNCTIONS
+backup() {
+    if [[ $g_version == v0.1.0* && -d "$g_curveadm_home" ]]; then
+        mv $g_curveadm_home "${g_curveadm_home}-$(date +%s).backup"
+    fi
+}
+
 setup() {
     mkdir -p $g_curveadm_home/{bin,data,plugins,logs,temp}
 
@@ -52,23 +58,12 @@ setup() {
 [defaults]
 log_level = error
 sudo_alias = "sudo"
+timeout = 300
+auto_upgrade = true
 
-[ssh_connection]
+[ssh_connections]
 retries = 3
 timeout = 10
-__EOF__
-    fi
-
-    # generate inventory file
-    local inventory_path="$g_curveadm_home/server.yaml"
-    if [ ! -f $inventory_path ]; then
-      cat << __EOF__ > $inventory_path
-servers:
-  - name: localhost
-    ssh_user: root
-    ssh_host: 127.0.0.1
-    ssh_port: 22
-    ssh_private_key: ~/.ssh/id_rsa
 __EOF__
     fi
 }
@@ -136,6 +131,7 @@ print_upgrade_success() {
 }
 
 install() {
+    backup
     setup
     install_binray
     set_profile
@@ -143,7 +139,6 @@ install() {
 }
 
 upgrade() {
-    setup
     install_binray
     print_upgrade_success
 }

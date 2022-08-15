@@ -20,48 +20,69 @@
  * Author: Jingli Chen (Wine93)
  */
 
+// __SIGN_BY_WINE93__
+
 package module
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
 	"text/template"
-
-	ssh "github.com/melbahja/goph"
 )
 
-// mkdir [OPTION]... DIRECTORY...
-// rmdir [OPTION]... DIRECTORY...
-// rm [OPTION]... [FILE]...
-// mv [OPTION]... SOURCE DEST
-// umount [options] <directory>
 const (
-	TEMPLATE_MKDIR       = "mkdir {{.options}} {{.directorys}}"
-	TEMPLATE_RMDIR       = "rmdir {{.options}} {{.directorys}}"
-	TEMPLATE_REMOVE      = "rm {{.options}} {{.files}}"
-	TEMPLATE_RENAME      = "mv {{.options}} {{.source}} {{.dest}}"
-	TEMPLATE_COPY        = "cp {{.options}} {{.source}} {{.dest}}"
-	TEMPLATE_CHMOD       = "chmod {{.options}} {{.mode}} {{.file}}"
-	TEMPLATE_SED         = "sed {{.options}} {{.files}}"
-	TEMPLATE_MKFS        = "mkfs.ext4 {{.options}} {{.device}}"
-	TEMPLATE_MOUNT       = "mount {{.options}} {{.source}} {{.directory}}"
-	TEMPLATE_UMOUNT      = "umount {{.options}} {{.directory}}"
-	TEMPLATE_DISKFREE    = "df {{.options}} {{.files}}"
-	TEMPLATE_FUSER       = "fuser {{.options}} {{.names}}"
-	TEMPLATE_LSBLK       = "lsblk {{.options}} {{.devices}}"
-	TEMPLATE_MODPROBE    = "modprobe {{.options}} {{.modulename}} {{.arguments}}"
+	// text
+	TEMPLATE_SED = "sed {{.options}} {{.files}}"
+
+	// storage (filesystem/block)
+	TEMPLATE_LIST     = "ls {{.options}} {{.files}}"
+	TEMPLATE_MKDIR    = "mkdir {{.options}} {{.directorys}}"
+	TEMPLATE_RMDIR    = "rmdir {{.options}} {{.directorys}}"
+	TEMPLATE_REMOVE   = "rm {{.options}} {{.files}}"
+	TEMPLATE_RENAME   = "mv {{.options}} {{.source}} {{.dest}}"
+	TEMPLATE_COPY     = "cp {{.options}} {{.source}} {{.dest}}"
+	TEMPLATE_CHMOD    = "chmod {{.options}} {{.mode}} {{.file}}"
+	TEMPLATE_STAT     = "stat {{.options}} {{.files}}"
+	TEMPLATE_CAT      = "cat {{.options}} {{.files}}"
+	TEMPLATE_MKFS     = "mkfs.ext4 {{.options}} {{.device}}"
+	TEMPLATE_MOUNT    = "mount {{.options}} {{.source}} {{.directory}}"
+	TEMPLATE_UMOUNT   = "umount {{.options}} {{.directory}}"
+	TEMPLATE_FUSER    = "fuser {{.options}} {{.names}}"
+	TEMPLATE_DISKFREE = "df {{.options}} {{.files}}"
+	TEMPLATE_LSBLK    = "lsblk {{.options}} {{.devices}}"
+
+	// network
+	TEMPLATE_SS   = "ss {{.options}} '{{.filter}}'"
+	TEMPLATE_PING = "ping {{.options}} {{.destination}}"
+	TEMPLATE_CURL = "curl {{.options}} {{.url}}"
+
+	// kernel
+	TEMPLATE_WHOAMI   = "whoami"
+	TEMPLATE_DATE     = "date {{.options}} {{.format}}"
+	TEMPLATE_UNAME    = "uname {{.options}}"
+	TEMPLATE_MODPROBE = "modprobe {{.options}} {{.modulename}} {{.arguments}}"
+	TEMPLATE_MODINFO  = "modinfo {{.modulename}}"
+
+	// others
+	TEMPLATE_TAR  = "tar {{.options}} {{.file}}"
+	TEMPLATE_DPKG = "dpkg {{.options}}"
+	TEMPLATE_RPM  = "rpm {{.options}}"
+
+	// bash
 	TEMPLATE_COMMAND     = "{{.command}}"
 	TEMPLATE_BASH_SCEIPT = "{{.scriptPath}} {{.arguments}}"
 )
 
+// TODO(P1): support command pipe
 type Shell struct {
-	sshClient *ssh.Client
+	sshClient *SSHClient
 	options   []string
 	tmpl      *template.Template
 	data      map[string]interface{}
 }
 
-func NewShell(sshClient *ssh.Client) *Shell {
+func NewShell(sshClient *SSHClient) *Shell {
 	return &Shell{
 		sshClient: sshClient,
 		options:   []string{},
@@ -72,6 +93,35 @@ func NewShell(sshClient *ssh.Client) *Shell {
 
 func (s *Shell) AddOption(format string, args ...interface{}) *Shell {
 	s.options = append(s.options, fmt.Sprintf(format, args...))
+	return s
+}
+
+func (s *Shell) String() (string, error) {
+	buffer := bytes.NewBufferString("")
+	s.data["options"] = strings.Join(s.options, " ")
+	err := s.tmpl.Execute(buffer, s.data)
+	if err != nil {
+		return "", err
+	}
+	return buffer.String(), nil
+}
+
+func (s *Shell) Execute(options ExecOptions) (string, error) {
+	s.data["options"] = strings.Join(s.options, " ")
+	return execCommand(s.sshClient, s.tmpl, s.data, options)
+}
+
+// text
+func (s *Shell) Sed(file ...string) *Shell {
+	s.tmpl = template.Must(template.New("sed").Parse(TEMPLATE_SED))
+	s.data["files"] = strings.Join(file, " ")
+	return s
+}
+
+// storage(filesystem/block)
+func (s *Shell) List(files ...string) *Shell {
+	s.tmpl = template.Must(template.New("list").Parse(TEMPLATE_LIST))
+	s.data["files"] = strings.Join(files, " ")
 	return s
 }
 
@@ -107,12 +157,6 @@ func (s *Shell) Copy(source, dest string) *Shell {
 	return s
 }
 
-func (s *Shell) Mkfs(device string) *Shell {
-	s.tmpl = template.Must(template.New("mkfs").Parse(TEMPLATE_MKFS))
-	s.data["device"] = device
-	return s
-}
-
 func (s *Shell) Chmod(mode, file string) *Shell {
 	s.tmpl = template.Must(template.New("chmod").Parse(TEMPLATE_CHMOD))
 	s.data["mode"] = mode
@@ -120,9 +164,21 @@ func (s *Shell) Chmod(mode, file string) *Shell {
 	return s
 }
 
-func (s *Shell) Sed(file ...string) *Shell {
-	s.tmpl = template.Must(template.New("sed").Parse(TEMPLATE_SED))
-	s.data["files"] = strings.Join(file, " ")
+func (s *Shell) Stat(files ...string) *Shell {
+	s.tmpl = template.Must(template.New("stat").Parse(TEMPLATE_STAT))
+	s.data["files"] = strings.Join(files, " ")
+	return s
+}
+
+func (s *Shell) Cat(files ...string) *Shell {
+	s.tmpl = template.Must(template.New("cat").Parse(TEMPLATE_CAT))
+	s.data["files"] = strings.Join(files, " ")
+	return s
+}
+
+func (s *Shell) Mkfs(device string) *Shell {
+	s.tmpl = template.Must(template.New("mkfs").Parse(TEMPLATE_MKFS))
+	s.data["device"] = device
 	return s
 }
 
@@ -139,15 +195,57 @@ func (s *Shell) Umount(directory string) *Shell {
 	return s
 }
 
+func (s *Shell) Fuser(name ...string) *Shell {
+	s.tmpl = template.Must(template.New("fuser").Parse(TEMPLATE_FUSER))
+	s.data["names"] = strings.Join(name, " ")
+	return s
+}
+
 func (s *Shell) DiskFree(file ...string) *Shell {
 	s.tmpl = template.Must(template.New("diskfree").Parse(TEMPLATE_DISKFREE))
 	s.data["files"] = strings.Join(file, " ")
 	return s
 }
 
-func (s *Shell) Fuser(name ...string) *Shell {
-	s.tmpl = template.Must(template.New("fuser").Parse(TEMPLATE_FUSER))
-	s.data["names"] = strings.Join(name, " ")
+func (s *Shell) LsBlk(device ...string) *Shell {
+	s.tmpl = template.Must(template.New("lsblk").Parse(TEMPLATE_LSBLK))
+	s.data["devices"] = strings.Join(device, " ")
+	return s
+}
+
+// network
+func (s *Shell) SocketStatistics(filter string) *Shell {
+	s.tmpl = template.Must(template.New("ss").Parse(TEMPLATE_SS))
+	s.data["filter"] = filter
+	return s
+}
+
+func (s *Shell) Ping(destination string) *Shell {
+	s.tmpl = template.Must(template.New("ping").Parse(TEMPLATE_PING))
+	s.data["destination"] = destination
+	return s
+}
+
+func (s *Shell) Curl(url string) *Shell {
+	s.tmpl = template.Must(template.New("curl").Parse(TEMPLATE_CURL))
+	s.data["url"] = url
+	return s
+}
+
+// kernel
+func (s *Shell) Whoami() *Shell {
+	s.tmpl = template.Must(template.New("whoami").Parse(TEMPLATE_WHOAMI))
+	return s
+}
+
+func (s *Shell) Date(format string) *Shell {
+	s.tmpl = template.Must(template.New("date").Parse(TEMPLATE_DATE))
+	s.data["format"] = format
+	return s
+}
+
+func (s *Shell) UnixName() *Shell {
+	s.tmpl = template.Must(template.New("uname").Parse(TEMPLATE_UNAME))
 	return s
 }
 
@@ -158,9 +256,26 @@ func (s *Shell) ModProbe(modulename string, args ...string) *Shell {
 	return s
 }
 
-func (s *Shell) LsBlk(device ...string) *Shell {
-	s.tmpl = template.Must(template.New("lsblk").Parse(TEMPLATE_LSBLK))
-	s.data["devices"] = strings.Join(device, " ")
+func (s *Shell) ModInfo(modulename string) *Shell {
+	s.tmpl = template.Must(template.New("modinfo").Parse(TEMPLATE_MODINFO))
+	s.data["modulename"] = modulename
+	return s
+}
+
+// other
+func (s *Shell) Tar(file string) *Shell {
+	s.tmpl = template.Must(template.New("tar").Parse(TEMPLATE_TAR))
+	s.data["file"] = file
+	return s
+}
+
+func (s *Shell) Dpkg() *Shell {
+	s.tmpl = template.Must(template.New("tar").Parse(TEMPLATE_DPKG))
+	return s
+}
+
+func (s *Shell) Rpm() *Shell {
+	s.tmpl = template.Must(template.New("tar").Parse(TEMPLATE_RPM))
 	return s
 }
 
@@ -175,9 +290,4 @@ func (s *Shell) BashScript(scriptPath string, args ...string) *Shell {
 	s.data["scriptPath"] = scriptPath
 	s.data["arguments"] = strings.Join(args, " ")
 	return s
-}
-
-func (s *Shell) Execute(options ExecOption) (string, error) {
-	s.data["options"] = strings.Join(s.options, " ")
-	return execCommand(s.sshClient, s.tmpl, s.data, options)
 }

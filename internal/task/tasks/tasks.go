@@ -35,7 +35,7 @@ import (
 )
 
 type (
-	ExecOption struct {
+	ExecOptions struct {
 		Concurrency   uint
 		SilentMainBar bool
 		SilentSubBar  bool
@@ -65,8 +65,8 @@ func NewTasks() *Tasks {
 	}
 }
 
-func (ts *Tasks) AddTask(t *task.Task) {
-	ts.tasks = append(ts.tasks, t)
+func (ts *Tasks) AddTask(t ...*task.Task) {
+	ts.tasks = append(ts.tasks, t...)
 }
 
 func (ts *Tasks) CountPtid(ptid string) int64 {
@@ -163,7 +163,7 @@ func (ts *Tasks) getSubBar(t *task.Task) *mpb.Bar {
 	return ts.subBar[t.Ptid()]
 }
 
-func (ts *Tasks) initOption(option ExecOption) {
+func (ts *Tasks) initOption(option ExecOptions) {
 	if option.Concurrency <= 0 {
 		option.Concurrency = 3
 	}
@@ -198,7 +198,7 @@ func (ts *Tasks) setMainBarStatus() {
  *   + host=10.0.0.2  image=opencurvedocker/curvefs [10/10] [OK]
  *   + host=10.0.0.3  image=opencurvedocker/curvefs [1/10] [OK]
  */
-func (ts *Tasks) Execute(option ExecOption) error {
+func (ts *Tasks) Execute(option ExecOptions) error {
 	if len(ts.tasks) == 0 {
 		return nil
 	}

@@ -23,27 +23,40 @@
 package tasks
 
 import (
-	"fmt"
-
 	"github.com/opencurve/curveadm/cli/cli"
-	bs_client "github.com/opencurve/curveadm/internal/configure/client/bs"
-	fs_client "github.com/opencurve/curveadm/internal/configure/client/fs"
-	"github.com/opencurve/curveadm/internal/configure/format"
-	"github.com/opencurve/curveadm/internal/configure/playground"
+	"github.com/opencurve/curveadm/internal/configure"
 	"github.com/opencurve/curveadm/internal/configure/plugin"
 	"github.com/opencurve/curveadm/internal/configure/topology"
+	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/task/task"
 	"github.com/opencurve/curveadm/internal/task/task/bs"
+	"github.com/opencurve/curveadm/internal/task/task/checker"
 	comm "github.com/opencurve/curveadm/internal/task/task/common"
 	"github.com/opencurve/curveadm/internal/task/task/fs"
 	pg "github.com/opencurve/curveadm/internal/task/task/playground"
 	plg "github.com/opencurve/curveadm/internal/task/task/plugin"
 )
 
+/*
+ * playbook
+ * ├── tasks1 (e.g.: pull image)
+ * ├── tasks2 (e.g.: create container)
+ * ├── ...
+ * └── tasksn (e.g.: start container)
+ *     ├── task1 (e.g.: start container in host1)
+ *     ├── task2 (e.g.: start container in host2)
+ *     ├── ...
+ *     └── taskn (e.g.: start container in host3)
+ *         ├── step1 (e.g: start container)
+ *         ├── step2 (e.g: check container status)
+ *         ├── ...
+ *         └── stepn (e.g: start crotab iff status is ok)
+ *
+ * tasks are made up of many same type tasks which only executed in different hosts or roles
+ */
 const (
 	TYPE_CONFIG_DEPLOY int = iota
-	TYPE_CONFIG_BS_CLIENT
-	TYPE_CONFIG_FS_CLIENT
+	TYPE_CONFIG_CLIENT
 	TYPE_CONFIG_FORMAT
 	TYPE_CONFIG_PLUGIN
 	TYPE_CONFIG_PLAYGROUND
@@ -54,16 +67,28 @@ type configs struct {
 	ctype  int
 	length int
 	dcs    []*topology.DeployConfig
-	bccs   []*bs_client.ClientConfig
-	fccs   []*fs_client.ClientConfig
-	fcs    []*format.FormatConfig
+	ccs    []*configure.ClientConfig
+	fcs    []*configure.FormatConfig
 	pcs    []*plugin.PluginConfig
-	pgcs   []*playground.PlaygroundConfig
+	pgcs   []*configure.PlaygroundConfig
 }
 
 const (
+	// checker
+	CHECK_TOPOLOGY int = iota
+	CHECK_SSH_CONNECT
+	CHECK_PERMISSION
+	CHECK_KERNEL_VERSION
+	CHECK_PORT_IN_USE
+	CHECK_DESTINATION_REACHABLE
+	CHECK_NETWORK_FIREWALL
+	GET_HOST_DATE
+	CHECK_DATE
+	CHECK_CHUNKFILE_POOL
+	CHECK_S3
+
 	// common
-	PULL_IMAGE int = iota
+	PULL_IMAGE
 	CREATE_CONTAINER
 	SYNC_CONFIG
 	START_SERVICE
@@ -72,56 +97,58 @@ const (
 	CREATE_POOL
 	GET_SERVICE_STATUS
 	CLEAN_SERVICE
-	SYNC_BINARY
 	COLLECT_SERVICE
 	BACKUP_ETCD_DATA
+
 	// bs
+	BALANCE_LEADER
 	START_NEBD_SERVICE
-	START_TARGET_DAEMON
 	MAP_IMAGE
 	UNMAP_IMAGE
+
+	// bs/target
+	START_TARGET_DAEMON
 	ADD_TARGET
 	DELETE_TARGET
 	LIST_TARGETS
-	BALANCE_LEADER
+
 	// fs
 	MOUNT_FILESYSTEM
 	UMOUNT_FILESYSTEM
 	CHECK_MOUNT_STATUS
 	FORMAT_CHUNKFILE_POOL
 	GET_FORMAT_STATUS
+
 	// plugin
 	RUN_PLUGIN
+
 	// playground
 	RUN_PLAYGROUND
 	REMOVE_PLAYGROUND
-	UNKNOWN // unknown
+
+	// unknown
+	UNKNOWN
 )
 
 func newConfigs(configSlice interface{}) (*configs, error) {
 	configs := &configs{
-		dcs:  []*topology.DeployConfig{},
-		bccs: []*bs_client.ClientConfig{},
-		fccs: []*fs_client.ClientConfig{},
-		fcs:  []*format.FormatConfig{},
-		pcs:  []*plugin.PluginConfig{},
+		dcs: []*topology.DeployConfig{},
+		ccs: []*configure.ClientConfig{},
+		fcs: []*configure.FormatConfig{},
+		pcs: []*plugin.PluginConfig{},
 	}
 	switch configSlice.(type) {
 	case []*topology.DeployConfig:
 		configs.ctype = TYPE_CONFIG_DEPLOY
 		configs.dcs = configSlice.([]*topology.DeployConfig)
 		configs.length = len(configs.dcs)
-	case []*bs_client.ClientConfig:
-		configs.ctype = TYPE_CONFIG_BS_CLIENT
-		configs.bccs = configSlice.([]*bs_client.ClientConfig)
-		configs.length = len(configs.bccs)
-	case []*fs_client.ClientConfig:
-		configs.ctype = TYPE_CONFIG_FS_CLIENT
-		configs.fccs = configSlice.([]*fs_client.ClientConfig)
-		configs.length = len(configs.fccs)
-	case []*format.FormatConfig:
+	case []*configure.ClientConfig:
+		configs.ctype = TYPE_CONFIG_CLIENT
+		configs.ccs = configSlice.([]*configure.ClientConfig)
+		configs.length = len(configs.ccs)
+	case []*configure.FormatConfig:
 		configs.ctype = TYPE_CONFIG_FORMAT
-		configs.fcs = configSlice.([]*format.FormatConfig)
+		configs.fcs = configSlice.([]*configure.FormatConfig)
 		configs.length = len(configs.fcs)
 	case []*plugin.PluginConfig:
 		configs.ctype = TYPE_CONFIG_PLUGIN
@@ -131,27 +158,23 @@ func newConfigs(configSlice interface{}) (*configs, error) {
 		configs.ctype = TYPE_CONFIG_DEPLOY
 		configs.dcs = append(configs.dcs, configSlice.(*topology.DeployConfig))
 		configs.length = 1
-	case *bs_client.ClientConfig:
-		configs.ctype = TYPE_CONFIG_BS_CLIENT
-		configs.bccs = append(configs.bccs, configSlice.(*bs_client.ClientConfig))
+	case *configure.ClientConfig:
+		configs.ctype = TYPE_CONFIG_CLIENT
+		configs.ccs = append(configs.ccs, configSlice.(*configure.ClientConfig))
 		configs.length = 1
-	case *fs_client.ClientConfig:
-		configs.ctype = TYPE_CONFIG_FS_CLIENT
-		configs.fccs = append(configs.fccs, configSlice.(*fs_client.ClientConfig))
-		configs.length = 1
-	case *format.FormatConfig:
+	case *configure.FormatConfig:
 		configs.ctype = TYPE_CONFIG_FORMAT
-		configs.fcs = append(configs.fcs, configSlice.(*format.FormatConfig))
+		configs.fcs = append(configs.fcs, configSlice.(*configure.FormatConfig))
 		configs.length = 1
-	case *playground.PlaygroundConfig:
+	case *configure.PlaygroundConfig:
 		configs.ctype = TYPE_CONFIG_PLAYGROUND
-		configs.pgcs = append(configs.pgcs, configSlice.(*playground.PlaygroundConfig))
+		configs.pgcs = append(configs.pgcs, configSlice.(*configure.PlaygroundConfig))
 		configs.length = 1
 	case nil:
 		configs.ctype = TYPE_CONFIG_NULL
 		configs.length = 1
 	default:
-		return nil, fmt.Errorf("unknown config type")
+		return nil, errno.ERR_UNSUPPORT_CONFIG_TYPE
 	}
 	return configs, nil
 }
@@ -159,11 +182,10 @@ func newConfigs(configSlice interface{}) (*configs, error) {
 func ExecTasks(taskType int, curveadm *cli.CurveAdm, configSlice interface{}) error {
 	var t *task.Task
 	var dc *topology.DeployConfig
-	var bcc *bs_client.ClientConfig
-	var fcc *fs_client.ClientConfig
-	var fc *format.FormatConfig
+	var cc *configure.ClientConfig
+	var fc *configure.FormatConfig
 	var pc *plugin.PluginConfig
-	var pgc *playground.PlaygroundConfig
+	var pgc *configure.PlaygroundConfig
 
 	configs, err := newConfigs(configSlice)
 	if err != nil {
@@ -180,16 +202,15 @@ func ExecTasks(taskType int, curveadm *cli.CurveAdm, configSlice interface{}) er
 
 	// add task into tasks
 	pullImage := map[string]bool{}
+	breakLoop := false
 	ctype := configs.ctype
 	for i := 0; i < configs.length; i++ {
 		// config type
 		switch ctype {
 		case TYPE_CONFIG_DEPLOY:
 			dc = configs.dcs[i]
-		case TYPE_CONFIG_BS_CLIENT:
-			bcc = configs.bccs[i]
-		case TYPE_CONFIG_FS_CLIENT:
-			fcc = configs.fccs[i]
+		case TYPE_CONFIG_CLIENT:
+			cc = configs.ccs[i]
 		case TYPE_CONFIG_FORMAT:
 			fc = configs.fcs[i]
 		case TYPE_CONFIG_PLUGIN:
@@ -201,13 +222,39 @@ func ExecTasks(taskType int, curveadm *cli.CurveAdm, configSlice interface{}) er
 
 		// task type
 		switch taskType {
+		// checker
+		case CHECK_TOPOLOGY:
+			t, err = checker.NewCheckTopologyTask(curveadm, configs.dcs)
+			breakLoop = true
+		case CHECK_SSH_CONNECT:
+			t, err = checker.NewCheckSSHConnectTask(curveadm, dc)
+		case CHECK_PERMISSION:
+			t, err = checker.NewCheckPermissionTask(curveadm, dc)
+		case CHECK_KERNEL_VERSION:
+			t, err = checker.NewCheckKernelVersionTask(curveadm, dc)
+		case CHECK_PORT_IN_USE:
+			t, err = checker.NewCheckPortInUseTask(curveadm, dc)
+		case CHECK_DESTINATION_REACHABLE:
+			t, err = checker.NewCheckDestinationReachableTask(curveadm, dc)
+		case CHECK_NETWORK_FIREWALL:
+			t, err = checker.NewCheckNetworkFirewall(curveadm, dc)
+		case GET_HOST_DATE:
+			t, err = checker.NewGetHostDate(curveadm, dc)
+		case CHECK_DATE:
+			t, err = checker.NewCheckDate(curveadm, dc)
+		case CHECK_CHUNKFILE_POOL:
+			t, err = checker.NewCheckChunkfilePoolTask(curveadm, dc)
+		case CHECK_S3:
+			t, err = checker.NewCheckS3Task(curveadm, dc)
+
+		// common
 		case PULL_IMAGE:
 			// prevent reacheing docker hub pull rate limit
-			if pullImage[dc.GetParentId()] == true {
+			if pullImage[dc.GetHost()] == true {
 				continue
 			}
 			t, err = comm.NewPullImageTask(curveadm, dc)
-			pullImage[dc.GetParentId()] = true
+			pullImage[dc.GetHost()] = true
 		case CREATE_CONTAINER:
 			t, err = comm.NewCreateContainerTask(curveadm, dc)
 		case SYNC_CONFIG:
@@ -220,8 +267,6 @@ func ExecTasks(taskType int, curveadm *cli.CurveAdm, configSlice interface{}) er
 			t, err = comm.NewRestartServiceTask(curveadm, dc)
 		case CREATE_POOL:
 			t, err = comm.NewCreateTopologyTask(curveadm, dc)
-		case BALANCE_LEADER:
-			t, err = bs.NewBalanceTask(curveadm, dc)
 		case GET_SERVICE_STATUS:
 			option.SilentSubBar = true
 			option.SkipError = true
@@ -232,63 +277,81 @@ func ExecTasks(taskType int, curveadm *cli.CurveAdm, configSlice interface{}) er
 			t, err = comm.NewCollectServiceTask(curveadm, dc)
 		case BACKUP_ETCD_DATA:
 			t, err = comm.NewBackupEtcdDataTask(curveadm, dc)
-		case MOUNT_FILESYSTEM:
-			option.SilentSubBar = true
-			t, err = fs.NewMountFSTask(curveadm, fcc)
-		case UMOUNT_FILESYSTEM:
-			option.SilentSubBar = true
-			t, err = fs.NewUmountFSTask(curveadm, fcc)
-		case CHECK_MOUNT_STATUS:
-			option.SilentMainBar = true
-			option.SilentSubBar = true
-			t, err = fs.NewGetMountStatusTask(curveadm, fcc)
+
+		// bs
 		case FORMAT_CHUNKFILE_POOL:
 			t, err = bs.NewFormatChunkfilePoolTask(curveadm, fc)
 		case GET_FORMAT_STATUS:
 			option.SilentSubBar = true
 			option.SkipError = true
 			t, err = bs.NewGetFormatStatusTask(curveadm, fc)
+		case BALANCE_LEADER:
+			t, err = bs.NewBalanceTask(curveadm, dc)
 		case START_NEBD_SERVICE:
 			option.SilentSubBar = true
-			t, err = bs.NewStartNEBDServiceTask(curveadm, bcc)
-		case START_TARGET_DAEMON:
-			option.SilentSubBar = true
-			t, err = bs.NewStartTargetDaemonTask(curveadm, bcc)
+			t, err = bs.NewStartNEBDServiceTask(curveadm, cc)
 		case MAP_IMAGE:
 			option.SilentSubBar = true
-			t, err = bs.NewMapTask(curveadm, bcc)
+			t, err = bs.NewMapTask(curveadm, cc)
 		case UNMAP_IMAGE:
 			option.SilentSubBar = true
-			t, err = bs.NewUnmapTask(curveadm, bcc)
+			t, err = bs.NewUnmapTask(curveadm, cc)
+
+		// bs/target
+		case START_TARGET_DAEMON:
+			option.SilentSubBar = true
+			t, err = bs.NewStartTargetDaemonTask(curveadm, cc)
 		case ADD_TARGET:
 			option.SilentSubBar = true
-			t, err = bs.NewAddTargetTask(curveadm, bcc)
+			t, err = bs.NewAddTargetTask(curveadm, cc)
 		case DELETE_TARGET:
 			option.SilentSubBar = true
-			t, err = bs.NewDeleteTargetTask(curveadm, bcc)
+			t, err = bs.NewDeleteTargetTask(curveadm, cc)
 		case LIST_TARGETS:
 			option.SilentSubBar = true
-			t, err = bs.NewListTargetsTask(curveadm, bcc)
+			t, err = bs.NewListTargetsTask(curveadm, cc)
+
+		// fs
+		case MOUNT_FILESYSTEM:
+			option.SilentSubBar = true
+			t, err = fs.NewMountFSTask(curveadm, cc)
+		case UMOUNT_FILESYSTEM:
+			option.SilentSubBar = true
+			t, err = fs.NewUmountFSTask(curveadm, cc)
+		case CHECK_MOUNT_STATUS:
+			option.SilentMainBar = true
+			option.SilentSubBar = true
+			t, err = fs.NewGetMountStatusTask(curveadm, cc)
+
+		// plugin
 		case RUN_PLUGIN:
 			t, err = plg.NewRunPluginTask(curveadm, pc)
+
+		// playground
 		case RUN_PLAYGROUND:
 			option.SilentSubBar = true
 			t, err = pg.NewRunPlaygroundTask(curveadm, pgc)
 		case REMOVE_PLAYGROUND:
 			option.SilentSubBar = true
 			t, err = pg.NewRemovePlaygroundTask(curveadm, pgc)
+
 		default:
-			return fmt.Errorf("unknown task type %d", taskType)
+			return errno.ERR_UNKNOWN_TASK_TYPE.F("task type: %s", taskType)
 		}
 
 		if err != nil {
-			return err
+			return err // error code
 		}
+
 		if ctype == TYPE_CONFIG_DEPLOY { // merge task status into one
 			t.SetTid(dc.GetId())
 			t.SetPtid(dc.GetParentId())
 		}
 		tasks.AddTask(t)
+
+		if breakLoop {
+			break
+		}
 	}
 
 	return tasks.Execute(option)

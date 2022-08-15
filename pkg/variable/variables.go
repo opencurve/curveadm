@@ -20,13 +20,15 @@
  * Author: Jingli Chen (Wine93)
  */
 
+// __SIGN_BY_WINE93__
+
 package variable
 
 import (
 	"fmt"
 	"regexp"
 
-	"github.com/opencurve/curveadm/pkg/log"
+	log "github.com/opencurve/curveadm/pkg/log/glg"
 )
 
 const (
@@ -70,6 +72,17 @@ func (vars *Variables) Get(name string) (string, error) {
 	}
 
 	return v.Value, nil
+}
+
+func (vars *Variables) Set(name, value string) error {
+	v, ok := vars.m[name]
+	if !ok {
+		return fmt.Errorf("variable '%s' not found", name)
+	}
+
+	v.Value = value
+	v.Resolved = true
+	return nil
 }
 
 func (vars *Variables) resolve(name string, marked map[string]bool) (string, error) {
@@ -128,9 +141,9 @@ func (vars *Variables) Rendering(s string) (string, error) {
 
 	var err error
 	value := vars.r.ReplaceAllStringFunc(s, func(name string) string {
-		var val string
-		if val, err = vars.Get(name[2 : len(name)-1]); err != nil {
-			return ""
+		val, e := vars.Get(name[2 : len(name)-1])
+		if e != nil && err == nil {
+			err = e
 		}
 		return val
 	})

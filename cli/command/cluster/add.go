@@ -20,22 +20,32 @@
  * Author: Jingli Chen (Wine93)
  */
 
+// __SIGN_BY_WINE93__
+
 package cluster
 
 import (
-	"fmt"
-
 	"github.com/opencurve/curveadm/cli/cli"
+	comm "github.com/opencurve/curveadm/internal/common"
+	"github.com/opencurve/curveadm/internal/configure/topology"
+	"github.com/opencurve/curveadm/internal/errno"
+	"github.com/opencurve/curveadm/internal/playbook"
 	"github.com/opencurve/curveadm/internal/utils"
-	"github.com/opencurve/curveadm/pkg/log"
+	log "github.com/opencurve/curveadm/pkg/log/glg"
 	"github.com/spf13/cobra"
 )
 
-var (
-	addExample = `Examples:
+const (
+	ADD_EXAMPLE = `Examples:
   $ curveadm add my-cluster                            # Add a cluster named 'my-cluster'
   $ curveadm add my-cluster -m "deploy for test"       # Add a cluster with description
   $ curveadm add my-cluster -f /path/to/topology.yaml  # Add a cluster with specified topology`
+)
+
+var (
+	CHECK_TOPOLOGY_PLAYBOOK_STEPS = []int{
+		playbook.CHECK_TOPOLOGY,
+	}
 )
 
 type addOptions struct {
@@ -51,7 +61,7 @@ func NewAddCommand(curveadm *cli.CurveAdm) *cobra.Command {
 		Use:     "add CLUSTER [OPTIONS]",
 		Short:   "Add cluster",
 		Args:    utils.ExactArgs(1),
-		Example: addExample,
+		Example: ADD_EXAMPLE,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			options.name = args[0]
 			return runAdd(curveadm, options)
@@ -67,27 +77,96 @@ func NewAddCommand(curveadm *cli.CurveAdm) *cobra.Command {
 }
 
 func readTopology(filename string) (string, error) {
-	if filename == "" {
+	if len(filename) == 0 {
 		return "", nil
+	} else if !utils.PathExist(filename) {
+		return "", errno.ERR_TOPOLOGY_FILE_NOT_FOUND.
+			F("%s: no such file", utils.AbsPath(filename))
 	}
-	return utils.ReadFile(filename)
+
+	data, err := utils.ReadFile(filename)
+	if err != nil {
+		return "", errno.ERR_READ_TOPOLOGY_FILE_FAILED.E(err)
+	}
+	return data, nil
+}
+
+func genCheckTopologyPlaybook(curveadm *cli.CurveAdm,
+	dcs []*topology.DeployConfig,
+	options addOptions) (*playbook.Playbook, error) {
+	steps := CHECK_TOPOLOGY_PLAYBOOK_STEPS
+	pb := playbook.NewPlaybook(curveadm)
+	for _, step := range steps {
+		pb.AddStep(&playbook.PlaybookStep{
+			Type:    step,
+			Configs: nil,
+			Options: map[string]interface{}{
+				comm.KEY_ALL_DEPLOY_CONFIGS:       dcs,
+				comm.KEY_CHECK_SKIP_SNAPSHOECLONE: false,
+				comm.KEY_CHECK_WITH_WEAK:          true,
+			},
+			ExecOptions: playbook.ExecOptions{
+				Concurrency:   100,
+				SilentSubBar:  true,
+				SilentMainBar: true,
+				SkipError:     false,
+			},
+		})
+	}
+	return pb, nil
+}
+
+func checkTopology(curveadm *cli.CurveAdm, data string, options addOptions) error {
+	if len(options.filename) == 0 {
+		return nil
+	}
+
+	dcs, err := curveadm.ParseTopologyData(data)
+	if err != nil {
+		return err
+	}
+
+	pb, err := genCheckTopologyPlaybook(curveadm, dcs, options)
+	if err != nil {
+		return err
+	}
+	return pb.Run()
 }
 
 func runAdd(curveadm *cli.CurveAdm, options addOptions) error {
+	// 1) check wether cluster already exist
 	name := options.name
 	storage := curveadm.Storage()
 	clusters, err := storage.GetClusters(name)
 	if err != nil {
-		log.Error("GetClusters", log.Field("error", err))
-		return err
+		log.Error("Get clusters failed",
+			log.Field("cluster name", name),
+			log.Field("error", err))
+		return errno.ERR_GET_ALL_CLUSTERS_FAILED.E(err)
 	} else if len(clusters) > 0 {
-		return fmt.Errorf("cluster %s already exist", name)
+		return errno.ERR_CLUSTER_ALREADY_EXIST.
+			F("cluster name: %s", name)
 	}
 
-	// read topology from file
+	// 2) read topology iff specified and validte it
 	data, err := readTopology(options.filename)
 	if err != nil {
 		return err
 	}
-	return storage.InsertCluster(name, options.descriotion, data)
+
+	// 3) check topology
+	err = checkTopology(curveadm, data, options)
+	if err != nil {
+		return err
+	}
+
+	// 4) insert cluster (with topology) into database
+	err = storage.InsertCluster(name, options.descriotion, data)
+	if err != nil {
+		return errno.ERR_INSERT_CLUSTER_FAILED.E(err)
+	}
+
+	// 5) print success prompt
+	curveadm.WriteOutln("Added cluster '%s'", name)
+	return nil
 }

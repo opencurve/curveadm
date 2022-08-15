@@ -38,7 +38,23 @@
 package storage
 
 var (
-	// tables (clusters/containers/audit)
+	// tables (hosts/clusters/containers(service)/clients/playrgound/audit)
+	CREATE_VERSION_TABLE = `
+		CREATE TABLE IF NOT EXISTS version (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			version TEXT NOT NULL,
+			lastconfirm TEXT NOT NULL
+		)
+	`
+
+	CREATE_HOSTS_TABLE = `
+		CREATE TABLE IF NOT EXISTS hosts (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			data TEXT NOT NULL,
+			lastmodified_time DATE NOT NULL
+		)
+	`
+
 	CREATE_CLUSTERS_TABLE = `
 		CREATE TABLE IF NOT EXISTS clusters (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -61,14 +77,15 @@ var (
 		)
 	`
 
-	CREATE_AUDIT_TABLE = `
-        CREATE TABLE IF NOT EXISTS audit (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-            execute_time DATE NOT NULL,
-			command TEXT NOT NULL,
-			success INTEGER DEFAULT 0
+	CREATE_CLIENTS_TABLE = `
+		CREATE TABLE IF NOT EXISTS clients (
+			id TEXT PRIMARY KEY,
+			kind TEXT NOT NULL,
+			host TEXT NOT NULL,
+			container_id TEXT NOT NULL,
+			aux_info TEXT NOT NULL
 		)
-    `
+	`
 
 	CREATE_PLAYGROUND_TABLE = `
        CREATE TABLE IF NOT EXISTS playgrounds (
@@ -77,6 +94,17 @@ var (
 			create_time DATE NOT NULL,
 			mount_point TEXT NOT NULL,
             status TEXT NOT NULL
+		)
+    `
+
+	CREATE_AUDIT_TABLE = `
+        CREATE TABLE IF NOT EXISTS audit (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+            execute_time DATE NOT NULL,
+            work_directory TEXT NOT NULL,
+			command TEXT NOT NULL,
+			status INTEGER DEFAULT 0,
+            error_code INTEGET DEFAULT 0 
 		)
     `
 
@@ -95,6 +123,20 @@ var (
 	`
 
 	DROP_OLD_CLUSTERS_TABLE = `DROP TABLE clusters_old`
+
+	// version
+	INSERT_VERSION = `INSERT INTO version(version, lastconfirm) VALUES(?, "")`
+
+	SET_VERSION = `UPDATE version SET version = ?, lastconfirm = ? WHERE id = ?`
+
+	SELECT_VERSION = `SELECT * FROM version`
+
+	// hosts
+	INSERT_HOSTS = `INSERT INTO hosts(data, lastmodified_time) VALUES(?, datetime('now','localtime'))`
+
+	SET_HOSTS = `UPDATE hosts SET data = ?, lastmodified_time = datetime('now','localtime') WHERE id = ?`
+
+	SELECT_HOSTS = `SELECT * FROM hosts`
 
 	// cluster
 	INSERT_CLUSTER = `INSERT INTO clusters(uuid, name, description, topology, pool, create_time)
@@ -116,9 +158,9 @@ var (
 
 	SET_CLUSTER_TOPOLOGY = `UPDATE clusters SET topology = ? WHERE id = ?`
 
-	SET_CLUSTER_POOL = `UPDATE clusters SET pool = ? WHERE id = ?`
+	SET_CLUSTER_POOL = `UPDATE clusters SET topology = ?, pool = ? WHERE id = ?`
 
-	// container
+	// service
 	INSERT_SERVICE = `INSERT INTO containers(id, cluster_id, container_id) VALUES(?, ?, ?)`
 
 	SELECT_SERVICE = `SELECT * FROM containers WHERE id = ?`
@@ -127,10 +169,14 @@ var (
 
 	SET_CONTAINER_ID = `UPDATE containers SET container_id = ? WHERE id = ?`
 
-	// audit
-	INSERT_AUDIT_LOG = `INSERT INTO audit(execute_time, command, success) VALUES(?, ?, ?)`
+	// client
+	INSERT_CLIENT = `INSERT INTO clients(id, kind, host, container_id, aux_info) VALUES(?, ?, ?, ?, ?)`
 
-	SELECT_AUDIT_LOG = `SELECT * FROM audit`
+	SELECT_CLIENTS = `SELECT * FROM clients`
+
+	SELECT_CLIENT_BY_ID = `SELECT * FROM clients WHERE id = ?`
+
+	DELETE_CLIENT = `DELETE from clients WHERE id = ?`
 
 	// playground
 	INSERT_PLAYGROUND = `INSERT INTO playgrounds(name, create_time, mount_point, status)
@@ -141,4 +187,14 @@ var (
 	SELECT_PLAYGROUND = `SELECT * FROM playgrounds WHERE name LIKE ?`
 
 	DELETE_PLAYGROUND = `DELETE from playgrounds WHERE name = ?`
+
+	// audit
+	INSERT_AUDIT_LOG = `INSERT INTO audit(execute_time, work_directory, command, status)
+                                    VALUES(?, ?, ?, ?)`
+
+	SET_AUDIT_LOG_STATUS = `UPDATE audit SET status = ?, error_code = ? WHERE id = ?`
+
+	SELECT_AUDIT_LOG = `SELECT * FROM audit`
+
+	SELECT_AUDIT_LOG_BY_ID = `SELECT * FROM audit WHERE id = ?`
 )

@@ -20,147 +20,96 @@
  * Author: Jingli Chen (Wine93)
  */
 
+// __SIGN_BY_WINE93__
+
 package common
 
 import (
-	"fmt"
-	"sort"
-
-	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/configure/topology"
-	"github.com/opencurve/curveadm/internal/errors"
-	task "github.com/opencurve/curveadm/internal/task/task/common"
-	"github.com/opencurve/curveadm/internal/task/tasks"
-)
-
-type DeployStep struct {
-	Type          int
-	DeployConfigs []*topology.DeployConfig
-}
-
-const (
-	// task type
-	PULL_IMAGE = iota
-	CREATE_CONTAINER
-	SYNC_CONFIG
-	START_ETCD
-	START_MDS
-	START_CHUNKSERVER
-	START_SNAPSHOTCLONE
-	START_METASEREVR
-	CREATE_PHYSICAL_POOL
-	CREATE_LOGICAL_POOL
-	BALANCE_LEADER
-	STOP_ETCD
-	STOP_MDS
-	STOP_CHUNKSERVER
-	STOP_SNAPSHOTCLONE
-	STOP_METASEREVR
-	CLEAN_SERVICE_CONTAINER
-	BACKUP_ETCD_DATA
 )
 
 var (
-	ERR_EMPTY_TOPOLOGY = fmt.Errorf("empty topology")
-	ERR_NO_SERVICE     = fmt.Errorf("no service")
+	ROLES = []string{
+		topology.ROLE_ETCD,
+		topology.ROLE_MDS,
+		topology.ROLE_CHUNKSERVER,
+		topology.ROLE_SNAPSHOTCLONE,
+		topology.ROLE_METASERVER,
+	}
 )
 
-func ExecDeploy(curveadm *cli.CurveAdm, steps []DeployStep) error {
-	for _, step := range steps {
-		taskType := tasks.UNKNOWN
-		dcs := step.DeployConfigs
-		switch step.Type {
-		case PULL_IMAGE:
-			taskType = tasks.PULL_IMAGE
-		case CREATE_CONTAINER:
-			taskType = tasks.CREATE_CONTAINER
-		case SYNC_CONFIG:
-			taskType = tasks.SYNC_CONFIG
-		case START_ETCD, START_MDS, START_CHUNKSERVER, START_SNAPSHOTCLONE, START_METASEREVR:
-			taskType = tasks.START_SERVICE
-		case CREATE_PHYSICAL_POOL:
-			curveadm.MemStorage().Set(task.KEY_POOL_TYPE, task.TYPE_PHYSICAL_POOL)
-			taskType = tasks.CREATE_POOL
-		case CREATE_LOGICAL_POOL:
-			curveadm.MemStorage().Set(task.KEY_POOL_TYPE, task.TYPE_LOGICAL_POOL)
-			taskType = tasks.CREATE_POOL
-		case BALANCE_LEADER:
-			taskType = tasks.BALANCE_LEADER
-		case STOP_ETCD, STOP_MDS, STOP_CHUNKSERVER, STOP_SNAPSHOTCLONE, STOP_METASEREVR:
-			taskType = tasks.STOP_SERVICE
-		case CLEAN_SERVICE_CONTAINER:
-			curveadm.MemStorage().Set(task.KEY_RECYCLE, false)
-			curveadm.MemStorage().Set(task.KEY_CLEAN_ITEMS, []string{task.ITEM_CONTAINER})
-			taskType = tasks.CLEAN_SERVICE
-		case BACKUP_ETCD_DATA:
-			taskType = tasks.BACKUP_ETCD_DATA
-		}
+// task options
+const (
+	// common
+	KEY_ALL_DEPLOY_CONFIGS = "ALL_DEPLOY_CONFIGS"
+	KEY_CREATE_POOL_TYPE   = "POOL_TYPE"
+	POOL_TYPE_LOGICAL      = "logicalpool"
+	POOL_TYPE_PHYSICAL     = "physicalpool"
 
-		if len(dcs) == 0 {
-			return errors.ERR_CONFIGURE_NO_SERVICE
-		}
+	// format
+	KEY_ALL_FORMAT_STATUS = "ALL_FORMAT_STATUS"
 
-		err := tasks.ExecTasks(taskType, curveadm, dcs)
-		if err != nil {
-			return err
-		}
+	// check
+	KEY_CHECK_WITH_WEAK          = "CHECK_WITH_WEAK"
+	KEY_CHECK_KERNEL_MODULE_NAME = "CHECK_KERNEL_MODULE_NAME"
+	KEY_CHECK_SKIP_SNAPSHOECLONE = "CHECK_SKIP_SNAPSHOTCLONE"
+	KEY_ALL_HOST_DATE            = "ALL_HOST_DATE"
 
-		// execute tasks success
-		curveadm.WriteOutln("")
-	}
-	return nil
-}
+	// scale-out / migrate
+	KEY_SCALE_OUT_CLUSTER = "SCALE_OUT_CLUSTER"
+	KEY_MIGRATE_SERVERS   = "MIGRATE_SERVERS"
+	KEY_NEW_TOPOLOGY_DATA = "NEW_TOPOLOGY_DATA"
 
-func FilterDeployConfig(curveadm *cli.CurveAdm, dcs []*topology.DeployConfig, role string) []*topology.DeployConfig {
-	options := topology.FilterOption{Id: "*", Role: role, Host: "*"}
-	return curveadm.FilterDeployConfig(dcs, options)
-}
+	// status
+	KEY_ALL_SERVICE_STATUS = "ALL_SERVICE_STATUS"
+	SERVICE_STATUS_CLEANED = "Cleaned"
+	SERVICE_STATUS_LOSED   = "Losed"
+	SERVICE_STATUS_UNKNOWN = "Unknown"
 
-func DiffTopology(oldData, newData string) ([]topology.TopologyDiff, error) {
-	if len(oldData) == 0 {
-		return nil, ERR_EMPTY_TOPOLOGY
-	} else if dcs, err := topology.ParseTopology(oldData); err != nil {
-		return nil, err
-	} else if len(dcs) == 0 {
-		return nil, ERR_NO_SERVICE
-	}
-	return topology.DiffTopology(oldData, newData)
-}
+	// clean
+	KEY_CLEAN_ITEMS      = "CLEAN_ITEMS"
+	KEY_CLEAN_BY_RECYCLE = "CLEAN_BY_RECYCLE"
+	CLEAN_ITEM_LOG       = "log"
+	CLEAN_ITEM_DATA      = "data"
+	CLEAN_ITEM_CONTAINER = "container"
+	CLEANED_CONTAINER_ID = "-"
 
-func ParseDiff(diffs []topology.TopologyDiff) (dcs4add, dcs4del, dcs4change []*topology.DeployConfig) {
-	for _, diff := range diffs {
-		diffType := diff.DiffType
-		if diffType == topology.DIFF_ADD {
-			dcs4add = append(dcs4add, diff.DeployConfig)
-		} else if diffType == topology.DIFF_DELETE {
-			dcs4del = append(dcs4del, diff.DeployConfig)
-		} else if diffType == topology.DIFF_CHANGE {
-			dcs4change = append(dcs4change, diff.DeployConfig)
-		}
-	}
-	return
-}
+	// client
+	KEY_CLIENT_HOST       = "CLIENT_HOST"
+	KEY_CLIENT_KIND       = "CLIENT_KIND"
+	KEY_ALL_CLIENT_STATUS = "ALL_CLIENT_STATUS"
+	KEY_MAP_OPTIONS       = "MAP_OPTIONS"
+	KEY_MOUNT_OPTIONS     = "MOUNT_OPTIONS"
+	CLIENT_STATUS_LOSED   = "Losed"
+	KERNERL_MODULE_NBD    = "nbd"
+	KERNERL_MODULE_FUSE   = "fuse"
 
-func IsSameRole(dcs []*topology.DeployConfig) bool {
-	role := dcs[0].GetRole()
-	for _, dc := range dcs {
-		if dc.GetRole() != role {
-			return false
-		}
-	}
-	return true
-}
+	// polarfs
+	KEY_POLARFS_HOST   = "POLARFS_HOST"
+	KEY_OS_RELEASE     = "OS_RELEASE"
+	OS_RELEASE_DEBIAN  = "debian"
+	OS_RELEASE_UBUNTU  = "ubuntu"
+	OS_RELEASE_CENTOS  = "centos"
+	OS_RELEASE_UNKNOWN = "unknown"
 
-// we should sort the "dcs" for generate correct zone number
-func SortDeployConfigs(dcs []*topology.DeployConfig) {
-	sort.Slice(dcs, func(i, j int) bool {
-		dc1, dc2 := dcs[i], dcs[j]
-		if dc1.GetRole() == dc2.GetRole() {
-			if dc1.GetHostSequence() == dc2.GetHostSequence() {
-				return dc1.GetReplicaSequence() < dc2.GetReplicaSequence()
-			}
-			return dc1.GetHostSequence() < dc2.GetHostSequence()
-		}
-		return dc1.GetRole() < dc2.GetRole()
-	})
-}
+	// collect
+	KEY_SUPPORT_UPLOAD_URL_FORMAT = "SUPPORT_UPLOAD_URL"
+	KEY_SECRET                    = "SECRET"
+	KEY_ALL_CLIENT_IDS            = "ALL_CLIENT_IDS"
+
+	// target
+	KEY_TARGET_OPTIONS = "TARGET_OPTIONS"
+	KEY_ALL_TARGETS    = "ALL_TARGETS"
+
+	// playground
+	KEY_ALL_PLAYGROUNDS_STATUS = "ALL_PLAYGROUNDS_STATUS"
+	PLAYGROUDN_STATUS_LOSED    = "Losed"
+)
+
+// others
+const (
+	AUDIT_STATUS_ABORT = iota
+	AUDIT_STATUS_SUCCESS
+	AUDIT_STATUS_FAIL
+	AUDIT_STATUS_CANCEL
+)

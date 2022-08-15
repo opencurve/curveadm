@@ -23,26 +23,25 @@
 package fs
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
-	"time"
 
 	"github.com/opencurve/curveadm/cli/cli"
-	client "github.com/opencurve/curveadm/internal/configure/client/fs"
+	comm "github.com/opencurve/curveadm/internal/common"
+	"github.com/opencurve/curveadm/internal/configure"
 	"github.com/opencurve/curveadm/internal/configure/topology"
+	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/task/context"
 	"github.com/opencurve/curveadm/internal/task/scripts"
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
+	"github.com/opencurve/curveadm/internal/task/task/checker"
+	"github.com/opencurve/curveadm/internal/utils"
 )
 
 const (
-	KEY_MOUNT_FSNAME = "MOUNT_FSNAME"
-	KEY_MOUNT_FSTYPE = "MOUNT_FSTYPE"
-	KEY_MOUNT_POINT  = "MOUNT_POINT"
-
 	FORMAT_MOUNT_OPTION = "type=bind,source=%s,target=%s,bind-propagation=rshared"
 
 	CLIENT_CONFIG_DELIMITER = "="
@@ -52,7 +51,30 @@ const (
 	CURVEBS_CONF_PATH = "/etc/curve/client.conf"
 )
 
+type (
+	MountOptions struct {
+		Host        string
+		MountFSName string
+		MountFSType string
+		MountPoint  string
+	}
+
+	step2InsertClient struct {
+		curveadm    *cli.CurveAdm
+		options     MountOptions
+		config      *configure.ClientConfig
+		containerId *string
+	}
+
+	AuxInfo struct {
+		FSName     string `json:"fsname"`
+		MountPoint string `json:"mount_point,"`
+		Config     string `json:"config,omitempty"` // TODO(P1)
+	}
+)
+
 var (
+	// TODO(P1): use template
 	FORMAT_FUSE_ARGS = []string{
 		"-f",
 		"-o default_permissions",
@@ -65,62 +87,16 @@ var (
 	}
 )
 
-type (
-	waitMountDone struct {
-		ContainerId    *string
-		ExecWithSudo   bool
-		ExecInLocal    bool
-		ExecTimeoutSec int
-		ExecSudoAlias  string
-	}
-)
-
-var (
-	CONTAINER_ABNORMAL_STATUS = map[string]bool{
-		"dead":   true,
-		"exited": true,
-	}
-)
-
-func (s *waitMountDone) Execute(ctx *context.Context) error {
-	var output string
-	getStatusStep := &step.InspectContainer{
-		ContainerId:   *s.ContainerId,
-		Format:        "'{{.State.ExitCode}} {{.State.Status}}'",
-		Out:           &output,
-		ExecWithSudo:  s.ExecWithSudo,
-		ExecInLocal:   s.ExecInLocal,
-		ExecSudoAlias: s.ExecSudoAlias,
-	}
-	// check status
-	var err error
-	var status string
-	var exitCode int
-	for i := 0; i < s.ExecTimeoutSec; i++ {
-		time.Sleep(time.Second)
-		err = getStatusStep.Execute(ctx)
-		stringSlice := strings.Split(strings.TrimRight(output, "\n"), " ")
-		exitCode, _ = strconv.Atoi(stringSlice[0])
-		status = stringSlice[1]
-		if err != nil || CONTAINER_ABNORMAL_STATUS[status] {
-			break
-		}
-	}
-	if err == nil && exitCode != 0 {
-		return fmt.Errorf("please use `docker logs %s` for details", *s.ContainerId)
-	}
-	return err
-}
-
-func getMountCommand(cc *client.ClientConfig, mountFSName string, mountFSType string, mountPoint string) string {
+func getMountCommand(cc *configure.ClientConfig, mountFSName string, mountFSType string, mountPoint string) string {
 	format := strings.Join(FORMAT_FUSE_ARGS, " ")
-	fuseArgs := fmt.Sprintf(format, mountFSName, mountFSType, cc.GetClientConfPath(), cc.GetClientMountPath(mountPoint))
+	fuseArgs := fmt.Sprintf(format, mountFSName, mountFSType,
+		configure.GetFSClientConfPath(), configure.GetFSClientMountPath(mountPoint))
 	return fmt.Sprintf("/client.sh %s %s --role=client --args='%s'", mountFSName, mountFSType, fuseArgs)
 }
 
-func getMountVolumes(cc *client.ClientConfig) []step.Volume {
+func getMountVolumes(cc *configure.ClientConfig) []step.Volume {
 	volumes := []step.Volume{}
-	prefix := cc.GetClientPrefix()
+	prefix := configure.GetFSClientPrefix()
 	logDir := cc.GetLogDir()
 	dataDir := cc.GetDataDir()
 	coreDir := cc.GetCoreDir()
@@ -149,7 +125,7 @@ func getMountVolumes(cc *client.ClientConfig) []step.Volume {
 	return volumes
 }
 
-func newMutate(cc *client.ClientConfig, delimiter string) step.Mutate {
+func newMutate(cc *configure.ClientConfig, delimiter string) step.Mutate {
 	serviceConfig := cc.GetServiceConfig()
 	return func(in, key, value string) (out string, err error) {
 		if len(key) == 0 {
@@ -168,7 +144,7 @@ func newMutate(cc *client.ClientConfig, delimiter string) step.Mutate {
 	}
 }
 
-func newCurveBSMutate(cc *client.ClientConfig, delimiter string) step.Mutate {
+func newCurveBSMutate(cc *configure.ClientConfig, delimiter string) step.Mutate {
 	serviceConfig := cc.GetServiceConfig()
 
 	// we need `curvebs.cluster` if fstype is volume
@@ -212,7 +188,7 @@ func newCurveBSMutate(cc *client.ClientConfig, delimiter string) step.Mutate {
 	}
 }
 
-func newToolsMutate(cc *client.ClientConfig, delimiter string) step.Mutate {
+func newToolsMutate(cc *configure.ClientConfig, delimiter string) step.Mutate {
 	clientConfig := cc.GetServiceConfig()
 	tools2client := map[string]string{
 		"mdsAddr": "mdsOpt.rpcRetryOpt.addrs",
@@ -235,24 +211,99 @@ func newToolsMutate(cc *client.ClientConfig, delimiter string) step.Mutate {
 	}
 }
 
-func NewMountFSTask(curveadm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task, error) {
-	mountPoint := curveadm.MemStorage().Get(KEY_MOUNT_POINT).(string)
-	mountFSName := curveadm.MemStorage().Get(KEY_MOUNT_FSNAME).(string)
-	mountFSType := curveadm.MemStorage().Get(KEY_MOUNT_FSTYPE).(string)
-	subname := fmt.Sprintf("mountFSName=%s mountFSType=%s mountPoint=%s", mountFSName, mountFSType, mountPoint)
-	t := task.NewTask("Mount FileSystem", subname, nil)
+func mountPoint2ContainerName(mountPoint string) string {
+	return fmt.Sprintf("curvefs-filesystem-%s", utils.MD5Sum(mountPoint))
+}
 
-	// add step
-	var containerId string
-	root := cc.GetCurveFSPrefix()
-	prefix := cc.GetClientPrefix()
-	containerMountPath := cc.GetClientMountPath(mountPoint)
+func checkMountStatus(mountPoint string, out *string) step.LambdaType {
+	return func(ctx *context.Context) error {
+		if len(*out) == 0 {
+			return nil
+		}
+		return errno.ERR_FS_PATH_ALREADY_MOUNTED.F("mountPath: %s", mountPoint)
+	}
+}
+
+func (s *step2InsertClient) Execute(ctx *context.Context) error {
+	config := s.config
+	curveadm := s.curveadm
+	options := s.options
+	fsId := curveadm.GetFilesystemId(options.Host, options.MountPoint)
+
+	auxInfo := &AuxInfo{
+		FSName:     options.MountFSName,
+		MountPoint: options.MountPoint,
+	}
+	bytes, err := json.Marshal(auxInfo)
+	if err != nil {
+		return errno.ERR_ENCODE_VOLUME_INFO_TO_JSON_FAILED.E(err)
+	}
+
+	err = curveadm.Storage().InsertClient(fsId, config.GetKind(),
+		options.Host, *s.containerId, string(bytes))
+	if err != nil {
+		return errno.ERR_INSERT_CLIENT_FAILED.E(err)
+	}
+	return nil
+}
+
+func checkStartContainerStatus(success *bool, out *string) step.LambdaType {
+	return func(ctx *context.Context) error {
+		if *success {
+			return nil
+		} else if strings.Contains(*out, "CREATEFS FAILED") {
+			return errno.ERR_CREATE_FILESYSTEM_FAILED
+		}
+		return errno.ERR_MOUNT_FILESYSTEM_FAILED.S(*out)
+	}
+}
+
+func NewMountFSTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.Task, error) {
+	options := curveadm.MemStorage().Get(comm.KEY_MOUNT_OPTIONS).(MountOptions)
+	hc, err := curveadm.GetHost(options.Host)
+	if err != nil {
+		return nil, err
+	}
+
+	// new task
+	mountPoint := options.MountPoint
+	mountFSName := options.MountFSName
+	mountFSType := options.MountFSType
+	subname := fmt.Sprintf("mountFSName=%s mountFSType=%s mountPoint=%s", mountFSName, mountFSType, mountPoint)
+	t := task.NewTask("Mount FileSystem", subname, hc.GetSSHConfig())
+
+	// add step to task
+	var containerId, out string
+	var success bool
+	root := configure.GetFSProjectRoot()
+	prefix := configure.GetFSClientPrefix()
+	containerMountPath := configure.GetFSClientMountPath(mountPoint)
+	containerName := mountPoint2ContainerName(mountPoint)
 	createfsScript := scripts.SCRIPT_CREATEFS
 	createfsScriptPath := "/client.sh"
+
+	t.AddStep(&step.DockerInfo{
+		Success:     &success,
+		Out:         &out,
+		ExecOptions: curveadm.ExecOptions(),
+	})
+	t.AddStep(&step.Lambda{
+		Lambda: checker.CheckDockerInfo(options.Host, &success, &out),
+	})
+	t.AddStep(&step.ListContainers{
+		ShowAll:     true,
+		Format:      "'{{.Status}}'",
+		Quiet:       true,
+		Filter:      fmt.Sprintf("name=%s", containerName),
+		Out:         &out,
+		ExecOptions: curveadm.ExecOptions(),
+	})
+	t.AddStep(&step.Lambda{
+		Lambda: checkMountStatus(mountPoint, &out),
+	})
 	t.AddStep(&step.PullImage{
-		Image:        cc.GetContainerImage(),
-		ExecWithSudo: false,
-		ExecInLocal:  true,
+		Image:       cc.GetContainerImage(),
+		ExecOptions: curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.CreateContainer{
 		Image:             cc.GetContainerImage(),
@@ -270,9 +321,13 @@ func NewMountFSTask(curveadm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task
 		Pid:               cc.GetContainerPid(),
 		Privileged:        true,
 		Out:               &containerId,
-		ExecWithSudo:      false,
-		ExecInLocal:       true,
-		ExecSudoAlias:     curveadm.SudoAlias(),
+		ExecOptions:       curveadm.ExecOptions(),
+	})
+	t.AddStep(&step2InsertClient{
+		curveadm:    curveadm,
+		options:     options,
+		config:      cc,
+		containerId: &containerId,
 	})
 
 	if mountFSType == "volume" {
@@ -283,9 +338,7 @@ func NewMountFSTask(curveadm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task
 			ContainerDestPath: CURVEBS_CONF_PATH,
 			KVFieldSplit:      CLIENT_CONFIG_DELIMITER,
 			Mutate:            newCurveBSMutate(cc, CLIENT_CONFIG_DELIMITER),
-			ExecWithSudo:      false,
-			ExecInLocal:       true,
-			ExecSudoAlias:     curveadm.SudoAlias(),
+			ExecOptions:       curveadm.ExecOptions(),
 		})
 	}
 
@@ -296,9 +349,7 @@ func NewMountFSTask(curveadm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task
 		ContainerDestPath: fmt.Sprintf("%s/conf/client.conf", prefix),
 		KVFieldSplit:      CLIENT_CONFIG_DELIMITER,
 		Mutate:            newMutate(cc, CLIENT_CONFIG_DELIMITER),
-		ExecWithSudo:      false,
-		ExecInLocal:       true,
-		ExecSudoAlias:     curveadm.SudoAlias(),
+		ExecOptions:       curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.SyncFile{ // sync tools config
 		ContainerSrcId:    &containerId,
@@ -307,31 +358,25 @@ func NewMountFSTask(curveadm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task
 		ContainerDestPath: topology.GetCurveFSProjectLayout().ToolsConfSystemPath,
 		KVFieldSplit:      CLIENT_CONFIG_DELIMITER,
 		Mutate:            newToolsMutate(cc, CLIENT_CONFIG_DELIMITER),
-		ExecWithSudo:      false,
-		ExecInLocal:       true,
-		ExecSudoAlias:     curveadm.SudoAlias(),
+		ExecOptions:       curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.InstallFile{ // install client.sh shell
 		ContainerId:       &containerId,
 		ContainerDestPath: createfsScriptPath,
 		Content:           &createfsScript,
-		ExecWithSudo:      false,
-		ExecInLocal:       true,
-		ExecSudoAlias:     curveadm.SudoAlias(),
+		ExecOptions:       curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.StartContainer{
-		ContainerId:   &containerId,
-		ExecWithSudo:  false,
-		ExecInLocal:   true,
-		ExecSudoAlias: curveadm.SudoAlias(),
+		ContainerId: &containerId,
+		Success:     &success,
+		Out:         &out,
+		ExecOptions: curveadm.ExecOptions(),
 	})
-	t.AddStep(&waitMountDone{
-		ContainerId:    &containerId,
-		ExecWithSudo:   false,
-		ExecInLocal:    true,
-		ExecTimeoutSec: 10,
-		ExecSudoAlias:  curveadm.SudoAlias(),
+	t.AddStep(&step.Lambda{
+		Lambda:checkStartContainerStatus(&success, &out),
 	})
+	// TODO(P0): wait mount done
 
 	return t, nil
+
 }

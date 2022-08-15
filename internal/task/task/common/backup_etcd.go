@@ -28,37 +28,39 @@ import (
 
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/configure/topology"
-	"github.com/opencurve/curveadm/internal/errors"
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
 	tui "github.com/opencurve/curveadm/internal/tui/common"
 )
 
-func NewBackupEtcdDataTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task.Task, error) {
-	serviceId := curveadm.GetServiceId(dc.GetId())
-	containerId, err := curveadm.Storage().GetContainerId(serviceId)
-	if err != nil {
-		return nil, err
-	} else if len(containerId) == 0 {
-		return nil, errors.ERR_SERVICE_NOT_FOUND.Format(serviceId)
-	}
-
-	subname := fmt.Sprintf("host=%s role=%s containerId=%s",
-		dc.GetHost(), dc.GetRole(), tui.TrimContainerId(containerId))
-	t := task.NewTask("Backup Etcd Data", subname, dc.GetSSHConfig())
-
+func genBackupCommand(dc *topology.DeployConfig) string {
 	layout := dc.GetProjectLayout()
 	binaryPath := fmt.Sprintf("%s/etcdctl", layout.ServiceBinDir)
 	endpoint := fmt.Sprintf("%s:%d", dc.GetListenIp(), dc.GetListenPort())
 	savePath := fmt.Sprintf("%s/snapshot.%s.db", layout.ServiceDataDir, time.Now().Format("2006-01-02-15:04:05"))
 	command := fmt.Sprintf("%s --endpoints %s snapshot save %s", binaryPath, endpoint, savePath)
+	return command
+}
+
+func NewBackupEtcdDataTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task.Task, error) {
+	serviceId := curveadm.GetServiceId(dc.GetId())
+	containerId, err := curveadm.GetContainerId(serviceId)
+	if err != nil {
+		return nil, err
+	}
+	hc, err := curveadm.GetHost(dc.GetHost())
+	if err != nil {
+		return nil, err
+	}
+
+	subname := fmt.Sprintf("host=%s role=%s containerId=%s",
+		dc.GetHost(), dc.GetRole(), tui.TrimContainerId(containerId))
+	t := task.NewTask("Backup Etcd Data", subname, hc.GetSSHConfig())
 
 	t.AddStep(&step.ContainerExec{
-		ContainerId:   &containerId,
-		Command:       command,
-		ExecWithSudo:  true,
-		ExecInLocal:   false,
-		ExecSudoAlias: curveadm.SudoAlias(),
+		ContainerId: &containerId,
+		Command:     genBackupCommand(dc),
+		ExecOptions: curveadm.ExecOptions(),
 	})
 	return t, nil
 }

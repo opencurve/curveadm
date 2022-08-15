@@ -20,6 +20,8 @@
  * Author: Jingli Chen (Wine93)
  */
 
+// __SIGN_BY_WINE93__
+
 package service
 
 import (
@@ -29,6 +31,7 @@ import (
 
 	"github.com/fatih/color"
 	longest "github.com/jpillora/longestcommon"
+	comm "github.com/opencurve/curveadm/internal/common"
 	"github.com/opencurve/curveadm/internal/configure/topology"
 	task "github.com/opencurve/curveadm/internal/task/task/common"
 	tui "github.com/opencurve/curveadm/internal/tui/common"
@@ -45,17 +48,17 @@ const (
 	ITEM_ID = iota
 	ITEM_CONTAINER_ID
 	ITEM_STATUS
+	ITEM_PORTS
 	ITEM_LOG_DIR
 	ITEM_DATA_DIR
 
-	STATUS_CLEANED = task.STATUS_CLEANED
-	STATUS_LOSED   = task.STATUS_LOSED
+	STATUS_CLEANED = comm.SERVICE_STATUS_CLEANED
+	STATUS_LOSED   = comm.SERVICE_STATUS_LOSED
+	STATUS_UNKNWON = comm.SERVICE_STATUS_UNKNOWN
 	// for replica merged status
 	STATUS_RUNNING  = "RUNNING"
 	STATUS_STOPPED  = "STOPPED"
 	STATUS_ABNORMAL = "ABNORMAL"
-
-	CLEANED_CONTAINER_ID = task.CLEANED_CONTAINER_ID
 )
 
 var (
@@ -72,7 +75,7 @@ func statusDecorate(status string) string {
 	switch status {
 	case STATUS_CLEANED:
 		return color.BlueString(status)
-	case STATUS_LOSED, STATUS_ABNORMAL:
+	case STATUS_LOSED, STATUS_UNKNWON, STATUS_ABNORMAL:
 		return color.RedString(status)
 	}
 	return status
@@ -81,8 +84,12 @@ func statusDecorate(status string) string {
 func sortStatues(statuses []task.ServiceStatus) {
 	sort.Slice(statuses, func(i, j int) bool {
 		s1, s2 := statuses[i], statuses[j]
+		c1, c2 := s1.Config, s2.Config
 		if s1.Role == s2.Role {
-			return s1.SortedKey < s2.SortedKey
+			if c1.GetHostSequence() == c2.GetHostSequence() {
+				return c1.GetReplicasSequence() < c2.GetReplicasSequence()
+			}
+			return c1.GetHostSequence() < c2.GetHostSequence()
 		}
 		return ROLE_SCORE[s1.Role] < ROLE_SCORE[s2.Role]
 	})
@@ -92,7 +99,7 @@ func id(items []string) string {
 	if len(items) == 1 {
 		return items[0]
 	}
-	return "<replica>"
+	return "<replicas>"
 }
 
 func status(items []string) string {
@@ -141,6 +148,8 @@ func merge(statuses []task.ServiceStatus, item int) string {
 			items = append(items, status.ContainerId)
 		case ITEM_STATUS:
 			items = append(items, status.Status)
+		case ITEM_PORTS:
+			items = append(items, status.Ports)
 		case ITEM_LOG_DIR:
 			items = append(items, status.LogDir)
 		case ITEM_DATA_DIR:
@@ -156,6 +165,8 @@ func merge(statuses []task.ServiceStatus, item int) string {
 		return id(items)
 	case ITEM_STATUS:
 		return status(items)
+	case ITEM_PORTS:
+		return id(items)
 	case ITEM_LOG_DIR:
 		return dir(items)
 	case ITEM_DATA_DIR:
@@ -178,6 +189,7 @@ func mergeStatues(statuses []task.ServiceStatus) []task.ServiceStatus {
 			Replica:     fmt.Sprintf("%d/%s", j-i, strings.Split(status.Replica, "/")[1]),
 			ContainerId: merge(statuses[i:j], ITEM_CONTAINER_ID),
 			Status:      merge(statuses[i:j], ITEM_STATUS),
+			Ports:       merge(statuses[i:j], ITEM_PORTS),
 			LogDir:      merge(statuses[i:j], ITEM_LOG_DIR),
 			DataDir:     merge(statuses[i:j], ITEM_DATA_DIR),
 		})
@@ -186,7 +198,7 @@ func mergeStatues(statuses []task.ServiceStatus) []task.ServiceStatus {
 	return ss
 }
 
-func FormatStatus(statuses []task.ServiceStatus, vebose, expand bool) string {
+func FormatStatus(statuses []task.ServiceStatus, verbose, expand bool) string {
 	lines := [][]interface{}{}
 
 	// title
@@ -194,9 +206,10 @@ func FormatStatus(statuses []task.ServiceStatus, vebose, expand bool) string {
 		"Id",
 		"Role",
 		"Host",
-		"Replica",
+		"Replicas",
 		"Container Id",
 		"Status",
+		"Ports",
 		"Log Dir",
 		"Data Dir",
 	}
@@ -217,6 +230,7 @@ func FormatStatus(statuses []task.ServiceStatus, vebose, expand bool) string {
 			status.Replica,
 			status.ContainerId,
 			tui.DecorateMessage{Message: status.Status, Decorate: statusDecorate},
+			utils.Choose(len(status.Ports) == 0, "-", status.Ports),
 			status.LogDir,
 			status.DataDir,
 		})
@@ -224,7 +238,8 @@ func FormatStatus(statuses []task.ServiceStatus, vebose, expand bool) string {
 
 	// cut column
 	locate := utils.Locate(title)
-	if !vebose {
+	if !verbose {
+		tui.CutColumn(lines, locate["Ports"])    // Data Dir
 		tui.CutColumn(lines, locate["Data Dir"]) // Data Dir
 		tui.CutColumn(lines, locate["Log Dir"])  // Log Dir
 	}

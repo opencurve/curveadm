@@ -39,7 +39,7 @@ func sortTargets(targets []task.Target) {
 
 func FormatTargets(targets []task.Target) string {
 	lines := [][]interface{}{}
-	title := []string{"Tid", "Target Name", "Store", "Portal"}
+	title := []string{"Tid", "Host", "Target Name", "Store", "Portal"}
 	first, second := tuicommon.FormatTitle(title)
 	lines = append(lines, first)
 	lines = append(lines, second)
@@ -48,6 +48,7 @@ func FormatTargets(targets []task.Target) string {
 	for _, target := range targets {
 		lines = append(lines, []interface{}{
 			target.Tid,
+			target.Host,
 			target.Name,
 			target.Store,
 			target.Portal,

@@ -31,6 +31,18 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+type Version struct {
+	Id          int
+	Version     string
+	LastConfirm string
+}
+
+type Hosts struct {
+	Id               int
+	Data             string
+	LastmodifiedTime time.Time
+}
+
 type Cluster struct {
 	Id          int
 	UUId        string
@@ -48,11 +60,12 @@ type Service struct {
 	ContainerId string
 }
 
-type AuditLog struct {
-	Id          int
-	Command     string
-	ExecuteTime time.Time
-	Success     bool
+type Client struct {
+	Id          string
+	Kind        string
+	Host        string
+	ContainerId string
+	AuxInfo     string
 }
 
 type Playground struct {
@@ -61,6 +74,15 @@ type Playground struct {
 	CreateTime time.Time
 	MountPoint string
 	Status     string
+}
+
+type AuditLog struct {
+	Id            int
+	ExecuteTime   time.Time
+	WorkDirectory string
+	Command       string
+	Status        int
+	ErrorCode     int
 }
 
 type Storage struct {
@@ -83,13 +105,21 @@ func NewStorage(dbfile string) (*Storage, error) {
 }
 
 func (s *Storage) init() error {
-	if err := s.execSQL(CREATE_CLUSTERS_TABLE); err != nil {
+	if err := s.execSQL(CREATE_VERSION_TABLE); err != nil {
+		return err
+	} else if err := s.execSQL(CREATE_HOSTS_TABLE); err != nil {
+		return err
+	} else if err := s.execSQL(CREATE_HOSTS_TABLE); err != nil {
+		return err
+	} else if err := s.execSQL(CREATE_CLUSTERS_TABLE); err != nil {
 		return err
 	} else if err := s.execSQL(CREATE_CONTAINERS_TABLE); err != nil {
 		return err
-	} else if err := s.execSQL(CREATE_AUDIT_TABLE); err != nil {
+	} else if err := s.execSQL(CREATE_CLIENTS_TABLE); err != nil {
 		return err
 	} else if err := s.execSQL(CREATE_PLAYGROUND_TABLE); err != nil {
+		return err
+	} else if err := s.execSQL(CREATE_AUDIT_TABLE); err != nil {
 		return err
 	} else if err := s.compatible(); err != nil {
 		return err
@@ -156,6 +186,66 @@ func (s *Storage) Close() error {
 	return s.db.Close()
 }
 
+// version
+func (s *Storage) SetVersion(version, lastConfirm string) error {
+	versions, err := s.GetVersions()
+	if err != nil {
+		return err
+	} else if len(versions) == 0 {
+		return s.execSQL(INSERT_VERSION, version)
+	}
+	return s.execSQL(SET_VERSION, version, lastConfirm, versions[0].Id)
+}
+
+func (s *Storage) GetVersions() ([]Version, error) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	rows, err := s.db.Query(SELECT_VERSION)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+	var versions []Version
+	var version Version
+	for rows.Next() {
+		err = rows.Scan(&version.Id, &version.Version, &version.LastConfirm)
+		versions = append(versions, version)
+		break
+	}
+	return versions, err
+}
+
+// hosts
+func (s *Storage) SetHosts(data string) error {
+	hostses, err := s.GetHostses()
+	if err != nil {
+		return err
+	} else if len(hostses) == 0 {
+		return s.execSQL(INSERT_HOSTS, data)
+	}
+	return s.execSQL(SET_HOSTS, data, hostses[0].Id)
+}
+
+func (s *Storage) GetHostses() ([]Hosts, error) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	rows, err := s.db.Query(SELECT_HOSTS)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+	var hostses []Hosts
+	var hosts Hosts
+	for rows.Next() {
+		err = rows.Scan(&hosts.Id, &hosts.Data, &hosts.LastmodifiedTime)
+		hostses = append(hostses, hosts)
+		break
+	}
+	return hostses, err
+}
+
 // cluster
 func (s *Storage) InsertCluster(name, description, topology string) error {
 	return s.execSQL(INSERT_CLUSTER, name, description, topology)
@@ -212,8 +302,8 @@ func (s *Storage) SetClusterTopology(id int, topology string) error {
 	return s.execSQL(SET_CLUSTER_TOPOLOGY, topology, id)
 }
 
-func (s *Storage) SetClusterPool(id int, pool string) error {
-	return s.execSQL(SET_CLUSTER_POOL, pool, id)
+func (s *Storage) SetClusterPool(id int, topology, pool string) error {
+	return s.execSQL(SET_CLUSTER_POOL, topology, pool, id)
 }
 
 // service
@@ -260,12 +350,12 @@ func (s *Storage) SetContainId(serviceId, containerId string) error {
 	return s.execSQL(SET_CONTAINER_ID, containerId, serviceId)
 }
 
-// audit
-func (s *Storage) InsertAuditLog(time time.Time, command string, success bool) error {
-	return s.execSQL(INSERT_AUDIT_LOG, time, command, success)
+// client
+func (s *Storage) InsertClient(id, kind, host, containerId, auxInfo string) error {
+	return s.execSQL(INSERT_CLIENT, id, kind, host, containerId, auxInfo)
 }
 
-func (s *Storage) getAuditLogs(query string, args ...interface{}) ([]AuditLog, error) {
+func (s *Storage) getClients(query string, args ...interface{}) ([]Client, error) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	rows, err := s.db.Query(query, args...)
@@ -274,26 +364,44 @@ func (s *Storage) getAuditLogs(query string, args ...interface{}) ([]AuditLog, e
 	}
 
 	defer rows.Close()
-	auditLogs := []AuditLog{}
-	var auditLog AuditLog
+	clients := []Client{}
+	var client Client
 	for rows.Next() {
-		err = rows.Scan(&auditLog.Id, &auditLog.ExecuteTime, &auditLog.Command, &auditLog.Success)
+		err = rows.Scan(&client.Id, &client.Kind, &client.Host, &client.ContainerId, &client.AuxInfo)
 		if err != nil {
 			return nil, err
 		}
-		auditLogs = append(auditLogs, auditLog)
+		clients = append(clients, client)
 	}
 
-	return auditLogs, nil
+	return clients, nil
 }
 
-func (s *Storage) GetAuditLogs() ([]AuditLog, error) {
-	return s.getAuditLogs(SELECT_AUDIT_LOG)
+func (s *Storage) GetClientContainerId(id string) (string, error) {
+	clients, err := s.getClients(SELECT_CLIENT_BY_ID, id)
+	if err != nil || len(clients) == 0 {
+		return "", err
+	}
+
+	return clients[0].ContainerId, nil
+}
+
+func (s *Storage) GetClient(id string) ([]Client, error) {
+	return s.getClients(SELECT_CLIENT_BY_ID, id)
+}
+
+func (s *Storage) GetClients() ([]Client, error) {
+	return s.getClients(SELECT_CLIENTS)
+}
+
+func (s *Storage) DeleteClient(id string) error {
+	return s.execSQL(DELETE_CLIENT, id)
 }
 
 // playground
-func (s *Storage) InsertPlayground(name, mountPoint, status string) error {
-	return s.execSQL(INSERT_PLAYGROUND, name, mountPoint, status)
+func (s *Storage) InsertPlayground(name, mountPoint string) error {
+	// FIXME: remove status
+	return s.execSQL(INSERT_PLAYGROUND, name, mountPoint, "")
 }
 
 func (s *Storage) SetPlaygroundStatus(name, status string) error {
@@ -333,4 +441,60 @@ func (s *Storage) getPlaygrounds(query string, args ...interface{}) ([]Playgroun
 
 func (s *Storage) GetPlaygrounds(name string) ([]Playground, error) {
 	return s.getPlaygrounds(SELECT_PLAYGROUND, name)
+}
+
+// audit
+func (s *Storage) InsertAuditLog(time time.Time, workDir, command string, status int) (int64, error) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	stmt, err := s.db.Prepare(INSERT_AUDIT_LOG)
+	if err != nil {
+		return -1, err
+	}
+
+	result, err := stmt.Exec(time, workDir, command, status)
+	if err != nil {
+		return -1, err
+	}
+
+	return result.LastInsertId()
+}
+
+func (s *Storage) SetAuditLogStatus(id int64, status, errorCode int) error {
+	return s.execSQL(SET_AUDIT_LOG_STATUS, status, errorCode, id)
+}
+
+func (s *Storage) getAuditLogs(query string, args ...interface{}) ([]AuditLog, error) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+	auditLogs := []AuditLog{}
+	var auditLog AuditLog
+	for rows.Next() {
+		err = rows.Scan(&auditLog.Id,
+			&auditLog.ExecuteTime,
+			&auditLog.WorkDirectory,
+			&auditLog.Command,
+			&auditLog.Status,
+			&auditLog.ErrorCode)
+		if err != nil {
+			return nil, err
+		}
+		auditLogs = append(auditLogs, auditLog)
+	}
+
+	return auditLogs, nil
+}
+
+func (s *Storage) GetAuditLogs() ([]AuditLog, error) {
+	return s.getAuditLogs(SELECT_AUDIT_LOG)
+}
+
+func (s *Storage) GetAuditLog(id int64) ([]AuditLog, error) {
+	return s.getAuditLogs(SELECT_AUDIT_LOG_BY_ID, id)
 }

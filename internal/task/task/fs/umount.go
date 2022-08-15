@@ -24,83 +24,146 @@ package fs
 
 import (
 	"fmt"
-	"path"
+	"strings"
 
 	"github.com/opencurve/curveadm/cli/cli"
-	client "github.com/opencurve/curveadm/internal/configure/client/fs"
+	comm "github.com/opencurve/curveadm/internal/common"
+	"github.com/opencurve/curveadm/internal/configure"
+	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/task/context"
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
 )
 
+const (
+	SIGNATURE_NOT_MOUNTED = "not mounted"
+)
+
 type (
-	step2CheckMountPoint struct {
-		mountPoint string
+	step2UmountFS struct {
+		containerId string
+		status      *string
+		mountPoint  string
+		curveadm    *cli.CurveAdm
 	}
 
-	step2CheckMountStatus struct {
-		output *string
+	step2RemoveContainer struct {
+		status      *string
+		containerId string
+		curveadm    *cli.CurveAdm
+	}
+
+	step2DeleteClient struct {
+		fsId     string
+		curveadm *cli.CurveAdm
 	}
 )
 
-func (s *step2CheckMountPoint) Execute(ctx *context.Context) error {
-	if !path.IsAbs(s.mountPoint) {
-		return fmt.Errorf("%s: is not an absolute path", s.mountPoint)
+func checkContainerId(containerId string) step.LambdaType {
+	return func(ctx *context.Context) error {
+		if len(containerId) == 0 {
+			return task.ERR_SKIP_TASK
+		}
+		return nil
+	}
+}
+
+func (s *step2UmountFS) Execute(ctx *context.Context) error {
+	if len(*s.status) == 0 {
+		return nil
+	} else if !strings.HasPrefix(*s.status, "Up") {
+		return nil
+	}
+
+	command := fmt.Sprintf("umount %s", configure.GetFSClientMountPath(s.mountPoint))
+	dockerCli := ctx.Module().DockerCli().ContainerExec(s.containerId, command)
+	out, err := dockerCli.Execute(s.curveadm.ExecOptions())
+	if strings.Contains(out, SIGNATURE_NOT_MOUNTED) {
+		return nil
+	} else if err == nil {
+		return nil
+	}
+	return errno.ERR_UMOUNT_FILESYSTEM_FAILED.S(out)
+}
+
+func (s *step2DeleteClient) Execute(ctx *context.Context) error {
+	err := s.curveadm.Storage().DeleteClient(s.fsId)
+	if err != nil {
+		return errno.ERR_DELETE_CLIENT_FAILED.E(err)
 	}
 	return nil
 }
 
-func (s *step2CheckMountStatus) Execute(ctx *context.Context) error {
-	if len(*s.output) == 0 { // not mounted
-		return task.ERR_SKIP_TASK
+func (s *step2RemoveContainer) Execute(ctx *context.Context) error {
+	if len(*s.status) == 0 {
+		return nil
 	}
-	return nil
-}
 
-func NewUmountFSTask(curveadm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task, error) {
-	mountPoint := curveadm.MemStorage().Get(KEY_MOUNT_POINT).(string)
-	subname := fmt.Sprintf("mountPoint=%s", mountPoint)
-	t := task.NewTask("Umount FileSystem", subname, nil)
-
-	// add step
-	var output string
-	containerName := mountPoint2ContainerName(mountPoint)
-	command := fmt.Sprintf("umount %s", cc.GetClientMountPath(mountPoint))
-	t.AddStep(&step2CheckMountPoint{
-		mountPoint: mountPoint,
+	steps := []task.Step{}
+	if strings.HasPrefix(*s.status, "Up") {
+		steps = append(steps, &step.WaitContainer{
+			ContainerId: s.containerId,
+			ExecOptions: s.curveadm.ExecOptions(),
+		})
+	}
+	steps = append(steps, &step.RemoveContainer{
+		ContainerId: s.containerId,
+		ExecOptions: s.curveadm.ExecOptions(),
 	})
-	t.AddStep(&step.ContainerExec{
-		ContainerId:   &containerName,
-		Command:       command,
-		Out:           &output,
-		ExecWithSudo:  false,
-		ExecInLocal:   true,
-		ExecSudoAlias: curveadm.SudoAlias(),
+	for _, step := range steps {
+		err := step.Execute(ctx)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func NewUmountFSTask(curveadm *cli.CurveAdm, v interface{}) (*task.Task, error) {
+	options := curveadm.MemStorage().Get(comm.KEY_MOUNT_OPTIONS).(MountOptions)
+	fsId := curveadm.GetFilesystemId(options.Host, options.MountPoint)
+	containerId, err := curveadm.Storage().GetClientContainerId(fsId)
+	if err != nil {
+		return nil, errno.ERR_GET_CLIENT_CONTAINER_ID_FAILED.E(err)
+	}
+	hc, err := curveadm.GetHost(options.Host)
+	if err != nil {
+		return nil, err
+	}
+
+	// new task
+	mountPoint := options.MountPoint
+	subname := fmt.Sprintf("host=%s mountPoint=%s", options.Host, mountPoint)
+	t := task.NewTask("Umount FileSystem", subname, hc.GetSSHConfig())
+
+	// add step to task
+	var status string
+	t.AddStep(&step.Lambda{
+		Lambda: checkContainerId(containerId),
 	})
 	t.AddStep(&step.ListContainers{
-		ShowAll:       true,
-		Format:        "'{{.Status}}'",
-		Quiet:         true,
-		Filter:        fmt.Sprintf("name=%s", containerName),
-		Out:           &output,
-		ExecWithSudo:  false,
-		ExecInLocal:   true,
-		ExecSudoAlias: curveadm.SudoAlias(),
+		ShowAll:     true,
+		Format:      "'{{.Status}}'",
+		Quiet:       true,
+		Filter:      fmt.Sprintf("id=%s", containerId),
+		Out:         &status,
+		ExecOptions: curveadm.ExecOptions(),
 	})
-	t.AddStep(&step2CheckMountStatus{
-		output: &output,
+	t.AddStep(&step2UmountFS{
+		containerId: containerId,
+		status:      &status,
+		mountPoint:  options.MountPoint,
+		curveadm:    curveadm,
 	})
-	t.AddStep(&step.WaitContainer{
-		ContainerId:   containerName,
-		ExecWithSudo:  false,
-		ExecInLocal:   true,
-		ExecSudoAlias: curveadm.SudoAlias(),
+	t.AddStep(&step2RemoveContainer{
+		status:      &status,
+		containerId: containerId,
+		curveadm:    curveadm,
 	})
-	t.AddStep(&step.RemoveContainer{
-		ContainerId:   containerName,
-		ExecWithSudo:  false,
-		ExecInLocal:   true,
-		ExecSudoAlias: curveadm.SudoAlias(),
+	t.AddStep(&step2DeleteClient{
+		curveadm: curveadm,
+		fsId:     fsId,
 	})
+
 	return t, nil
 }

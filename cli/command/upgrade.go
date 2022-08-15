@@ -20,28 +20,33 @@
  * Author: Jingli Chen (Wine93)
  */
 
+// __SIGN_BY_WINE93__
+
 package command
 
 import (
-	"fmt"
-
+	"github.com/fatih/color"
 	"github.com/opencurve/curveadm/cli/cli"
+	comm "github.com/opencurve/curveadm/internal/common"
 	"github.com/opencurve/curveadm/internal/configure/topology"
-	task "github.com/opencurve/curveadm/internal/task/task/common"
-	"github.com/opencurve/curveadm/internal/task/tasks"
+	"github.com/opencurve/curveadm/internal/errno"
+	"github.com/opencurve/curveadm/internal/playbook"
 	tui "github.com/opencurve/curveadm/internal/tui/common"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/cobra"
 )
 
-var UPGRADE_STEPS = []int{
-	tasks.STOP_SERVICE,
-	tasks.CLEAN_SERVICE,
-	tasks.PULL_IMAGE,
-	tasks.CREATE_CONTAINER,
-	tasks.SYNC_CONFIG,
-	tasks.START_SERVICE,
-}
+var (
+	UPGRADE_PLAYBOOK_STEPS = []int{
+		// TODO(P0): we can skip it for upgrade one service more than once
+		playbook.STOP_SERVICE,
+		playbook.CLEAN_SERVICE,
+		playbook.PULL_IMAGE,
+		playbook.CREATE_CONTAINER,
+		playbook.SYNC_CONFIG,
+		playbook.START_SERVICE,
+	}
+)
 
 type upgradeOptions struct {
 	id    string
@@ -54,9 +59,12 @@ func NewUpgradeCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	var options upgradeOptions
 
 	cmd := &cobra.Command{
-		Use:   "upgrade",
+		Use:   "upgrade [OPTIONS]",
 		Short: "Upgrade service",
 		Args:  cliutil.NoArgs,
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			return checkCommonOptions(curveadm, options.id, options.role, options.host)
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runUpgrade(curveadm, options)
 		},
@@ -64,53 +72,136 @@ func NewUpgradeCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	}
 
 	flags := cmd.Flags()
-	flags.StringVarP(&options.id, "id", "", "*", "Specify service id")
-	flags.StringVarP(&options.role, "role", "", "*", "Specify service role")
-	flags.StringVarP(&options.host, "host", "", "*", "Specify service host")
+	flags.StringVar(&options.id, "id", "*", "Specify service id")
+	flags.StringVar(&options.role, "role", "*", "Specify service role")
+	flags.StringVar(&options.host, "host", "*", "Specify service host")
 	flags.BoolVarP(&options.force, "force", "f", false, "Never prompt")
 
 	return cmd
 }
 
-func runUpgrade(curveadm *cli.CurveAdm, options upgradeOptions) error {
-	dcs, err := topology.ParseTopology(curveadm.ClusterTopologyData())
-	if err != nil {
-		return err
-	}
-
+func genUpgradePlaybook(curveadm *cli.CurveAdm,
+	dcs []*topology.DeployConfig,
+	options upgradeOptions) (*playbook.Playbook, error) {
 	dcs = curveadm.FilterDeployConfig(dcs, topology.FilterOption{
 		Id:   options.id,
 		Role: options.role,
 		Host: options.host,
 	})
-
 	if len(dcs) == 0 {
-		return fmt.Errorf("service not found")
+		return nil, errno.ERR_NO_SERVICES_MATCHED
 	}
 
-	curveadm.WriteOut("Upgrade %d services one by one\n", len(dcs))
-	for i, dc := range dcs {
-		curveadm.WriteOut("\n")
-		curveadm.WriteOut("Upgrade %d/%d service: \n", i+1, len(dcs))
-		curveadm.WriteOut("  + host=%s  role=%s  image=%s\n", dc.GetHost(), dc.GetRole(), dc.GetContainerImage())
-		if !options.force && !tui.ConfirmYes("Do you want to continue?") {
-			curveadm.WriteOut("Upgrade abort\n")
-			break
-		}
+	steps := UPGRADE_PLAYBOOK_STEPS
+	pb := playbook.NewPlaybook(curveadm)
+	for _, step := range steps {
+		pb.AddStep(&playbook.PlaybookStep{
+			Type:    step,
+			Configs: dcs,
+			Options: map[string]interface{}{
+				comm.KEY_CLEAN_ITEMS:      []string{comm.CLEAN_ITEM_CONTAINER},
+				comm.KEY_CLEAN_BY_RECYCLE: true,
+			},
+		})
+	}
+	return pb, nil
+}
 
-		for _, step := range UPGRADE_STEPS {
-			if step == tasks.CLEAN_SERVICE {
-				curveadm.MemStorage().Set(task.KEY_CLEAN_ITEMS, []string{"container"})
-				curveadm.MemStorage().Set(task.KEY_RECYCLE, true)
-			}
-			err := tasks.ExecTasks(step, curveadm, dc)
-			if err != nil {
-				return err
-			}
-		}
+func displayTitle(curveadm *cli.CurveAdm, dcs []*topology.DeployConfig, options upgradeOptions) {
+	total := len(dcs)
+	if options.force {
+		curveadm.WriteOutln(color.YellowString("Upgrade %d services at once", total))
+	} else {
+		curveadm.WriteOutln(color.YellowString("Upgrade %d services one by one", total))
+	}
+	curveadm.WriteOutln(color.YellowString("Upgrade services: %s", serviceStats(dcs)))
+}
 
-		curveadm.WriteOut("Upgrade %d/%d sucess\n", i+1, len(dcs))
+func upgradeAtOnce(curveadm *cli.CurveAdm, dcs []*topology.DeployConfig, options upgradeOptions) error {
+	// 1) display upgrade title
+	displayTitle(curveadm, dcs, options)
+
+	// 2) confirm by user
+	if pass := tui.ConfirmYes(tui.DEFAULT_CONFIRM_PROMPT); !pass {
+		curveadm.WriteOut(tui.PromptCancelOpetation("upgrade service"))
+		return errno.ERR_CANCEL_OPERATION
 	}
 
+	// 3) generate upgrade playbook
+	pb, err := genUpgradePlaybook(curveadm, dcs, options)
+	if err != nil {
+		return err
+	}
+
+	// 4) run playbook
+	err = pb.Run()
+	if err != nil {
+		return err
+	}
+
+	// 5) print success prompt
+	curveadm.WriteOutln("")
+	curveadm.WriteOutln(color.GreenString("Upgrade %d services success :)", len(dcs)))
 	return nil
+}
+
+func upgradeOneByOne(curveadm *cli.CurveAdm, dcs []*topology.DeployConfig, options upgradeOptions) error {
+	// 1) display upgrade title
+	displayTitle(curveadm, dcs, options)
+
+	// 2) upgrade service one by one
+	total := len(dcs)
+	for i, dc := range dcs {
+		// 2.1) confirm by user
+		curveadm.WriteOutln("")
+		curveadm.WriteOutln("Upgrade %s service:", color.BlueString("%d/%d", i+1, total))
+		curveadm.WriteOutln("  + host=%s  role=%s  image=%s", dc.GetHost(), dc.GetRole(), dc.GetContainerImage())
+		if pass := tui.ConfirmYes(tui.DEFAULT_CONFIRM_PROMPT); !pass {
+			curveadm.WriteOut(tui.PromptCancelOpetation("upgrade service"))
+			return errno.ERR_CANCEL_OPERATION
+		}
+
+		// 2.2) generate upgrade playbook
+		pb, err := genUpgradePlaybook(curveadm, []*topology.DeployConfig{dc}, options)
+		if err != nil {
+			return err
+		}
+
+		// 2.3) run playbook
+		err = pb.Run()
+		if err != nil {
+			return err
+		}
+
+		// 2.4) print success prompt
+		curveadm.WriteOutln("")
+		curveadm.WriteOutln(color.GreenString("Upgrade %d/%d sucess :)"), i+1, total)
+	}
+	return nil
+}
+
+func runUpgrade(curveadm *cli.CurveAdm, options upgradeOptions) error {
+	// 1) parse cluster topology
+	dcs, err := curveadm.ParseTopology()
+	if err != nil {
+		return err
+	}
+
+	// 2) filter deploy config
+	dcs = curveadm.FilterDeployConfig(dcs, topology.FilterOption{
+		Id:   options.id,
+		Role: options.role,
+		Host: options.host,
+	})
+	if len(dcs) == 0 {
+		return errno.ERR_NO_SERVICES_MATCHED
+	}
+
+	// 3.1) upgrade service at once
+	if options.force {
+		return upgradeAtOnce(curveadm, dcs, options)
+	}
+
+	// 3.2) OR upgrade service one by one
+	return upgradeOneByOne(curveadm, dcs, options)
 }

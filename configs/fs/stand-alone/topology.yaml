@@ -1,14 +1,12 @@
 kind: curvefs
 global:
-  user: curve
-  ssh_port: 22
-  private_key_file: /home/curve/.ssh/id_rsa
   report_usage: true
-  data_dir: /home/${user}/curvefs/data/${service_role}${service_host_sequence}
-  log_dir: /home/${user}/curvefs/logs/${service_role}${service_host_sequence}
+  data_dir: ${home}/curvefs/data/${service_role}${service_host_sequence}
+  log_dir: ${home}/curvefs/logs/${service_role}${service_host_sequence}
   container_image: opencurvedocker/curvefs:latest
   variable:
-    target: 10.0.1.1
+    home: /tmp
+    target: server-host
 
 etcd_services:
   config:

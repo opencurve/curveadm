@@ -20,20 +20,21 @@
  * Author: Jingli Chen (Wine93)
  */
 
+// __SIGN_BY_WINE93__
+
 package context
 
 import (
-	ssh "github.com/melbahja/goph"
 	"github.com/opencurve/curveadm/pkg/module"
 )
 
 type Context struct {
-	sshClient *ssh.Client
+	sshClient *module.SSHClient
 	module    *module.Module
 	register  *Register
 }
 
-func NewContext(sshClient *ssh.Client) (*Context, error) {
+func NewContext(sshClient *module.SSHClient) (*Context, error) {
 	return &Context{
 		sshClient: sshClient,
 		module:    module.NewModule(sshClient),
@@ -43,7 +44,7 @@ func NewContext(sshClient *ssh.Client) (*Context, error) {
 
 func (ctx *Context) Close() {
 	if ctx.sshClient != nil {
-		ctx.sshClient.Close()
+		ctx.sshClient.Client().Close()
 	}
 }
 

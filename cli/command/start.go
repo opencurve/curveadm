@@ -20,16 +20,24 @@
  * Author: Jingli Chen (Wine93)
  */
 
+// __SIGN_BY_WINE93__
+
 package command
 
 import (
-	"fmt"
-
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/configure/topology"
-	"github.com/opencurve/curveadm/internal/task/tasks"
+	"github.com/opencurve/curveadm/internal/errno"
+	"github.com/opencurve/curveadm/internal/playbook"
+	tui "github.com/opencurve/curveadm/internal/tui/common"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/cobra"
+)
+
+var (
+	START_PLAYBOOK_STEPS = []int{
+		playbook.START_SERVICE,
+	}
 )
 
 type startOptions struct {
@@ -38,13 +46,38 @@ type startOptions struct {
 	host string
 }
 
+func checkCommonOptions(curveadm *cli.CurveAdm, id, role, host string) error {
+	items := []struct {
+		key      string
+		callback func(string) error
+	}{
+		{id, curveadm.CheckId},
+		{role, curveadm.CheckRole},
+		{host, curveadm.CheckHost},
+	}
+
+	for _, item := range items {
+		if item.key == "*" {
+			continue
+		}
+		err := item.callback(item.key)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func NewStartCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	var options startOptions
 
 	cmd := &cobra.Command{
-		Use:   "start",
+		Use:   "start [OPTIONS]",
 		Short: "Start service",
 		Args:  cliutil.NoArgs,
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			return checkCommonOptions(curveadm, options.id, options.role, options.host)
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runStart(curveadm, options)
 		},
@@ -52,29 +85,55 @@ func NewStartCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	}
 
 	flags := cmd.Flags()
-	flags.StringVarP(&options.id, "id", "", "*", "Specify service id")
-	flags.StringVarP(&options.role, "role", "", "*", "Specify service role")
-	flags.StringVarP(&options.host, "host", "", "*", "Specify service host")
+	flags.StringVar(&options.id, "id", "*", "Specify service id")
+	flags.StringVar(&options.role, "role", "*", "Specify service role")
+	flags.StringVar(&options.host, "host", "*", "Specify service host")
 
 	return cmd
 }
 
-func runStart(curveadm *cli.CurveAdm, options startOptions) error {
-	dcs, err := topology.ParseTopology(curveadm.ClusterTopologyData())
-	if err != nil {
-		return err
-	}
-
+func genStartPlaybook(curveadm *cli.CurveAdm,
+	dcs []*topology.DeployConfig,
+	options startOptions) (*playbook.Playbook, error) {
 	dcs = curveadm.FilterDeployConfig(dcs, topology.FilterOption{
 		Id:   options.id,
 		Role: options.role,
 		Host: options.host,
 	})
-
 	if len(dcs) == 0 {
-		return fmt.Errorf("service not found")
-	} else if err := tasks.ExecTasks(tasks.START_SERVICE, curveadm, dcs); err != nil {
-		return curveadm.NewPromptError(err, "")
+		return nil, errno.ERR_NO_SERVICES_MATCHED
 	}
-	return nil
+
+	steps := START_PLAYBOOK_STEPS
+	pb := playbook.NewPlaybook(curveadm)
+	for _, step := range steps {
+		pb.AddStep(&playbook.PlaybookStep{
+			Type:    step,
+			Configs: dcs,
+		})
+	}
+	return pb, nil
+}
+
+func runStart(curveadm *cli.CurveAdm, options startOptions) error {
+	// 1) parse cluster topology
+	dcs, err := curveadm.ParseTopology()
+	if err != nil {
+		return err
+	}
+
+	// 2) generate start playbook
+	pb, err := genStartPlaybook(curveadm, dcs, options)
+	if err != nil {
+		return err
+	}
+
+	// 3) confirm by user
+	if pass := tui.ConfirmYes(tui.PromptStartService(options.id, options.role, options.host)); !pass {
+		curveadm.WriteOut(tui.PromptCancelOpetation("start service"))
+		return errno.ERR_CANCEL_OPERATION
+	}
+
+	// 4) run playground
+	return pb.Run()
 }

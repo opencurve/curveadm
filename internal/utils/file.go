@@ -20,20 +20,54 @@
  * Author: Jingli Chen (Wine93)
  */
 
+// __SIGN_BY_WINE93__
+
 package utils
 
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 )
+
+type VariantName struct {
+	Name                string
+	CompressName        string
+	EncryptCompressName string
+}
+
+func RandFilename(dir string) string {
+	return fmt.Sprintf("%s/%s", dir, RandString(8))
+}
+
+func NewVariantName(name string) VariantName {
+	return VariantName{
+		Name:                name,
+		CompressName:        fmt.Sprintf("%s.tar.gz", name),
+		EncryptCompressName: fmt.Sprintf("%s-encrypted.tar.gz", name),
+	}
+}
 
 func PathExist(path string) bool {
 	_, err := os.Stat(path)
 	return err == nil
 }
 
-func RandFilename(dir string) string {
-	return fmt.Sprintf("%s/%s", dir, RandString(8))
+func AbsPath(path string) string {
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return path
+	}
+	return absPath
+}
+
+func GetFilePermissions(path string) int {
+	info, err := os.Stat(path)
+	if err != nil {
+		return -1
+	}
+
+	return int(info.Mode())
 }
 
 func ReadFile(filename string) (string, error) {
@@ -44,8 +78,8 @@ func ReadFile(filename string) (string, error) {
 	return string(data), nil
 }
 
-func WriteFile(filename, data string) error {
-	file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+func WriteFile(filename, data string, mode int) error {
+	file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, os.FileMode(mode))
 	if err != nil {
 		return err
 	}

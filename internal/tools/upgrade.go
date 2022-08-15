@@ -20,6 +20,8 @@
  * Author: Jingli Chen (Wine93)
  */
 
+// __SIGN_BY_WINE93__
+
 package tools
 
 import (
@@ -30,14 +32,13 @@ import (
 	"strings"
 
 	"github.com/go-resty/resty/v2"
-	"github.com/opencurve/curveadm/cli/cli"
 	tui "github.com/opencurve/curveadm/internal/tui/common"
 )
 
 const (
 	URL_LATEST_VERSION   = "http://curveadm.nos-eastchina1.126.net/release/__version"
 	URL_INSTALL_SCRIPT   = "http://curveadm.nos-eastchina1.126.net/script/install.sh"
-	HEADER_VERSION       = "X-Nos-Meta-Curveadm-Version"
+	HEADER_VERSION       = "X-Nos-Meta-Curveadm-Latest-Version"
 	ENV_CURVEADM_UPGRADE = "CURVEADM_UPGRADE"
 	ENV_CURVEADM_VERSION = "CURVEADM_VERSION"
 )
@@ -66,7 +67,7 @@ func isLatest(currentVersion, remoteVersion string) (error, bool) {
 	return nil, v1 >= v2
 }
 
-func getLatestVersion(curveadm *cli.CurveAdm) (string, error) {
+func GetLatestVersion(currentVersion string) (string, error) {
 	version := os.Getenv(ENV_CURVEADM_VERSION)
 	if len(version) > 0 {
 		return version, nil
@@ -82,20 +83,20 @@ func getLatestVersion(curveadm *cli.CurveAdm) (string, error) {
 	v, ok := resp.Header()[HEADER_VERSION]
 	if !ok {
 		return "", fmt.Errorf("response header '%s' not exist", HEADER_VERSION)
-	} else if err, yes := isLatest(cli.Version, strings.TrimPrefix(v[0], "v")); err != nil {
+	} else if err, yes := isLatest(currentVersion, strings.TrimPrefix(v[0], "v")); err != nil {
 		return "", err
 	} else if yes {
-		curveadm.WriteOut("The current version is up-to-date\n")
 		return "", nil
 	}
 	return v[0], nil
 }
 
-func Upgrade(curveadm *cli.CurveAdm) error {
-	version, err := getLatestVersion(curveadm)
+func Upgrade2Latest(currentVersion string) error {
+	version, err := GetLatestVersion(currentVersion)
 	if err != nil {
 		return err
 	} else if len(version) == 0 {
+		fmt.Println("The current version is up-to-date")
 		return nil
 	} else if pass := tui.ConfirmYes("Upgrade curveadm to %s?", version); !pass {
 		return nil
@@ -104,7 +105,16 @@ func Upgrade(curveadm *cli.CurveAdm) error {
 	cmd := exec.Command("/bin/bash", "-c", fmt.Sprintf("curl -fsSL %s | bash", URL_INSTALL_SCRIPT))
 	cmd.Env = append(os.Environ(), fmt.Sprintf("%s=true", ENV_CURVEADM_UPGRADE))
 	cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", ENV_CURVEADM_VERSION, version))
-	cmd.Stderr = curveadm.Err()
-	cmd.Stdout = curveadm.Out()
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	return cmd.Run()
+}
+
+func Upgrade(version string) error {
+	cmd := exec.Command("/bin/bash", "-c", fmt.Sprintf("curl -fsSL %s | bash", URL_INSTALL_SCRIPT))
+	cmd.Env = append(os.Environ(), fmt.Sprintf("%s=true", ENV_CURVEADM_UPGRADE))
+	cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", ENV_CURVEADM_VERSION, version))
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
 	return cmd.Run()
 }

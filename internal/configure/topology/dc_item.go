@@ -20,13 +20,9 @@
  * Author: Jingli Chen (Wine93)
  */
 
+// __SIGN_BY_WINE93__
+
 package topology
-
-import (
-	"fmt"
-
-	"github.com/opencurve/curveadm/internal/utils"
-)
 
 const (
 	REQUIRE_ANY = iota
@@ -36,8 +32,6 @@ const (
 	REQUIRE_POSITIVE_INTEGER
 
 	// default value
-	DEFAULT_SSH_PORT                        = 22
-	DEFAULT_SSH_TIMEOUT_SECONDS             = 10
 	DEFAULT_REPORT_USAGE                    = true
 	DEFAULT_CURVEBS_CONTAINER_IMAGE         = "opencurvedocker/curvebs:latest"
 	DEFAULT_CURVEFS_CONTAINER_IMAGE         = "opencurvedocker/curvefs:latest"
@@ -80,31 +74,6 @@ var (
 		items:    []*item{},
 		key2item: map[string]*item{},
 	}
-
-	CONFIG_USER = itemset.insert(
-		"user",
-		REQUIRE_STRING,
-		true,
-		func(dc *DeployConfig) interface{} {
-			return utils.GetCurrentUser()
-		},
-	)
-
-	CONFIG_SSH_PORT = itemset.insert(
-		"ssh_port",
-		REQUIRE_POSITIVE_INTEGER,
-		true,
-		DEFAULT_SSH_PORT,
-	)
-
-	CONFIG_PRIVATE_CONFIG_FILE = itemset.insert(
-		"private_key_file",
-		REQUIRE_STRING,
-		true,
-		func(dc *DeployConfig) interface{} {
-			return fmt.Sprintf("/home/%s/.ssh/id_rsa", dc.GetUser())
-		},
-	)
 
 	CONFIG_REPORT_USAGE = itemset.insert(
 		"report_usage",
@@ -151,7 +120,7 @@ var (
 		REQUIRE_STRING,
 		true,
 		func(dc *DeployConfig) interface{} {
-			return dc.GetHost()
+			return dc.GetHostname()
 		},
 	)
 
@@ -210,7 +179,7 @@ var (
 		REQUIRE_STRING,
 		true,
 		func(dc *DeployConfig) interface{} {
-			return dc.GetHost()
+			return dc.GetHostname()
 		},
 	)
 
@@ -243,6 +212,48 @@ var (
 			}
 			return DEFAULT_METASERVER_COPYSETS
 		},
+	)
+
+	CONFIG_S3_ACCESS_KEY = itemset.insert(
+		"s3.ak",
+		REQUIRE_STRING,
+		false,
+		nil,
+	)
+
+	CONFIG_S3_SECRET_KEY = itemset.insert(
+		"s3.sk",
+		REQUIRE_STRING,
+		false,
+		nil,
+	)
+
+	CONFIG_S3_ADDRESS = itemset.insert(
+		"s3.nos_address",
+		REQUIRE_STRING,
+		false,
+		nil,
+	)
+
+	CONFIG_S3_BUCKET_NAME = itemset.insert(
+		"s3.snapshot_bucket_name",
+		REQUIRE_STRING,
+		false,
+		nil,
+	)
+
+	CONFIG_ENABLE_RENAMEAT2 = itemset.insert(
+		"fs.enable_renameat2",
+		REQUIRE_BOOL,
+		false,
+		true,
+	)
+
+	CONFIG_ENABLE_CHUNKFILE_POOL = itemset.insert(
+		"chunkfilepool.enable_get_chunk_from_pool",
+		REQUIRE_BOOL,
+		false,
+		true,
 	)
 
 	CONFIG_VARIABLE = itemset.insert(

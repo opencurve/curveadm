@@ -20,6 +20,8 @@
  * Author: Jingli Chen (Wine93)
  */
 
+// __SIGN_BY_WINE93__
+
 package common
 
 import (
@@ -32,13 +34,20 @@ import (
 )
 
 func NewPullImageTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task.Task, error) {
+	hc, err := curveadm.GetHost(dc.GetHost())
+	if err != nil {
+		return nil, err
+	}
+
+	// new task
 	subname := fmt.Sprintf("host=%s image=%s", dc.GetHost(), dc.GetContainerImage())
-	t := task.NewTask("Pull Image", subname, dc.GetSSHConfig())
+	t := task.NewTask("Pull Image", subname, hc.GetSSHConfig())
+
+	// add step to task
 	t.AddStep(&step.PullImage{
-		Image:         dc.GetContainerImage(),
-		ExecWithSudo:  true,
-		ExecInLocal:   false,
-		ExecSudoAlias: curveadm.SudoAlias(),
+		Image:       dc.GetContainerImage(),
+		ExecOptions: curveadm.ExecOptions(),
 	})
+
 	return t, nil
 }

@@ -20,6 +20,8 @@
  * Author: Jingli Chen (Wine93)
  */
 
+// __SIGN_BY_WINE93__
+
 package common
 
 import (
@@ -132,6 +134,13 @@ func TrimPluginDescription(decscription string) string {
 		return decscription[:47] + "..."
 	}
 	return decscription
+}
+
+func TrimAddress(address string) string {
+	if len(address) > 30 {
+		return address[:30] + "..."
+	}
+	return address
 }
 
 func prompt(prompt string) string {

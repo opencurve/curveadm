@@ -20,23 +20,16 @@
  * Author: Jingli Chen (Wine93)
  */
 
-package os
+// __SIGN_BY_WINE93__
 
-import "fmt"
+package os
 
 const (
 	PATH_FSTAB = "/etc/fstab"
-
-	FORMAT_PATH_DEVICE_SCHEDULER   = "/sys/block/%s/queue/scheduler"
-	FORMAT_PATH_DEVICE_ROTATIONAL = "/sys/block/%s/queue/rotational"
+	PATH_OS_RELEASE = "/etc/os-release"
+	MAX_PORT   = 65535
 )
 
-func GetFSTabPath() string { return PATH_FSTAB }
-
-func GetDeviceShedulerPath(device string) string {
-	return fmt.Sprintf(FORMAT_PATH_DEVICE_SCHEDULER, device)
-}
-
-func GetDeviceRotationalPath(device string) string {
-	return fmt.Sprintf(FORMAT_PATH_DEVICE_ROTATIONAL, device)
-}
+func GetFSTabPath() string     { return PATH_FSTAB }
+func GetMaxPortNum() int       { return MAX_PORT }
+func GetOSReleasePath() string { return PATH_OS_RELEASE }

@@ -24,13 +24,21 @@ package playground
 
 import (
 	"github.com/opencurve/curveadm/cli/cli"
+	comm "github.com/opencurve/curveadm/internal/common"
+	"github.com/opencurve/curveadm/internal/errno"
+	"github.com/opencurve/curveadm/internal/playbook"
+	"github.com/opencurve/curveadm/internal/storage"
+	pg "github.com/opencurve/curveadm/internal/task/task/playground"
 	"github.com/opencurve/curveadm/internal/tui"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
-	"github.com/opencurve/curveadm/pkg/log"
 	"github.com/spf13/cobra"
 )
 
 type listOptions struct{}
+
+var GET_PLAYGROUND_STATUS_PLAYBOOK_STEPS = []int{
+	playbook.GET_PLAYGROUND_STATUS,
+}
 
 func NewListCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	var options listOptions
@@ -49,14 +57,61 @@ func NewListCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	return cmd
 }
 
+func genListPlaybook(curveadm *cli.CurveAdm,
+	playgrounds []storage.Playground) (*playbook.Playbook, error) {
+	configs := []interface{}{}
+	for _, playground := range playgrounds {
+		configs = append(configs, playground)
+	}
+	steps := GET_PLAYGROUND_STATUS_PLAYBOOK_STEPS
+	pb := playbook.NewPlaybook(curveadm)
+	for _, step := range steps {
+		pb.AddStep(&playbook.PlaybookStep{
+			Type:    step,
+			Configs: configs,
+			ExecOptions: playbook.ExecOptions{
+				SilentSubBar: true,
+			},
+		})
+	}
+	return pb, nil
+}
+
+func displayPlaygrounds(curveadm *cli.CurveAdm) {
+	statuses := []pg.PlaygroundStatus{}
+	value := curveadm.MemStorage().Get(comm.KEY_ALL_PLAYGROUNDS_STATUS)
+	if value != nil {
+		m := value.(map[string]pg.PlaygroundStatus)
+		for _, status := range m {
+			statuses = append(statuses, status)
+		}
+	}
+
+	output := tui.FormatPlayground(statuses)
+	curveadm.WriteOutln("")
+	curveadm.WriteOut(output)
+}
+
 func runList(curveadm *cli.CurveAdm, options listOptions) error {
+	// 1) get playgrounds
 	playgrounds, err := curveadm.Storage().GetPlaygrounds("%")
 	if err != nil {
-		log.Error("GetPlayground", log.Field("error", err))
+		return errno.ERR_GET_ALL_PLAYGROUND_FAILED.E(err)
+	}
+
+	// 2) gen list playground
+	pb, err := genListPlaybook(curveadm, playgrounds)
+	if err != nil {
 		return err
 	}
 
-	output := tui.FormatPlayground(playgrounds)
-	curveadm.WriteOut(output)
+	// 3) run playground
+	err = pb.Run()
+	if err != nil {
+		return err
+	}
+
+	// 4) print playgrounds
+	displayPlaygrounds(curveadm)
 	return nil
 }

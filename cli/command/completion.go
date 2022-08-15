@@ -20,16 +20,19 @@
  * Author: aspirer
  */
 
+// __SIGN_BY_WINE93__
+
 package command
 
 import (
 	"fmt"
 	"os"
 
+	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/spf13/cobra"
 )
 
-func NewCompletionCommand() *cobra.Command {
+func NewCompletionCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	var completionCmd = &cobra.Command{
 		Use:   "completion [bash|zsh|fish|powershell]",
 		Short: "Generate completion script",

@@ -23,16 +23,21 @@
 package playground
 
 import (
+	"github.com/fatih/color"
 	"github.com/opencurve/curveadm/cli/cli"
-	pg "github.com/opencurve/curveadm/internal/configure/playground"
-	"github.com/opencurve/curveadm/internal/task/tasks"
+	"github.com/opencurve/curveadm/internal/errno"
+	"github.com/opencurve/curveadm/internal/playbook"
+	"github.com/opencurve/curveadm/internal/storage"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
-	"github.com/opencurve/curveadm/pkg/log"
 	"github.com/spf13/cobra"
 )
 
 type removeOptions struct {
 	name string
+}
+
+var REMOVE_PLAYGROUND_PLAYBOOK_STEPS = []int{
+	playbook.REMOVE_PLAYGROUND,
 }
 
 func NewRemoveCommand(curveadm *cli.CurveAdm) *cobra.Command {
@@ -53,31 +58,48 @@ func NewRemoveCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	return cmd
 }
 
+func genRemovePlaybook(curveadm *cli.CurveAdm,
+	playgrounds []storage.Playground) (*playbook.Playbook, error) {
+	configs := []interface{}{}
+	for _, playground := range playgrounds {
+		configs = append(configs, playground)
+	}
+	steps := REMOVE_PLAYGROUND_PLAYBOOK_STEPS
+	pb := playbook.NewPlaybook(curveadm)
+	for _, step := range steps {
+		pb.AddStep(&playbook.PlaybookStep{
+			Type:    step,
+			Configs: configs,
+		})
+	}
+	return pb, nil
+}
+
 func runRemove(curveadm *cli.CurveAdm, options removeOptions) error {
+	// 1) get playground
 	name := options.name
 	playgrounds, err := curveadm.Storage().GetPlaygrounds(name)
 	if err != nil {
-		return err
+		return errno.ERR_GET_PLAYGROUND_BY_NAME_FAILED.E(err)
 	} else if len(playgrounds) == 0 {
-		curveadm.WriteOutln("Playground '%s' not exist.", name)
-		return nil
+		return errno.ERR_PLAYGROUND_NOT_FOUND.
+			F("playground=%s", name)
 	}
 
-	playground := playgrounds[0]
-	err = tasks.ExecTasks(tasks.REMOVE_PLAYGROUND, curveadm, &pg.PlaygroundConfig{
-		Name:       name,
-		Mountpoint: playground.MountPoint,
-	})
-	if err == nil {
-		err = curveadm.Storage().DeletePlayground(options.name)
-		if err != nil {
-			log.Error("DeletePlayground", log.Field("error", err))
-		}
-	}
-
+	// 2) generate remove playground
+	pb, err := genRemovePlaybook(curveadm, playgrounds)
 	if err != nil {
-		return curveadm.NewPromptError(err, "")
+		return err
 	}
-	curveadm.WriteOutln("Playground '%s' removed.", name)
+
+	// 3) run playground
+	err = pb.Run()
+	if err != nil {
+		return err
+	}
+
+	// 4) print success prompt
+	curveadm.WriteOutln("")
+	curveadm.WriteOutln(color.GreenString("Playground '%s' removed.", name))
 	return nil
 }

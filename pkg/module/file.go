@@ -20,6 +20,8 @@
  * Author: Jingli Chen (Wine93)
  */
 
+// __SIGN_BY_WINE93__
+
 package module
 
 import (
@@ -28,8 +30,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	ssh "github.com/melbahja/goph"
-	"github.com/opencurve/curveadm/pkg/log"
+	log "github.com/opencurve/curveadm/pkg/log/glg"
 )
 
 const (
@@ -41,10 +42,10 @@ var (
 )
 
 type FileManager struct {
-	sshClient *ssh.Client
+	sshClient *SSHClient
 }
 
-func NewFileManager(sshClient *ssh.Client) *FileManager {
+func NewFileManager(sshClient *SSHClient) *FileManager {
 	return &FileManager{sshClient: sshClient}
 }
 
@@ -53,9 +54,9 @@ func (f *FileManager) Upload(localPath, remotePath string) error {
 		return ERR_UNREACHED
 	}
 
-	err := f.sshClient.Upload(localPath, remotePath)
-	log.SwitchLevel(err)("Upload",
-		log.Field("remoteAddr", remoteAddr(f.sshClient)),
+	err := f.sshClient.Client().Upload(localPath, remotePath)
+	log.SwitchLevel(err)("UploadFile",
+		log.Field("remoteAddress", remoteAddr(f.sshClient)),
 		log.Field("localPath", localPath),
 		log.Field("remotePath", remotePath),
 		log.Field("error", err))
@@ -67,9 +68,9 @@ func (f *FileManager) Download(remotePath, localPath string) error {
 		return ERR_UNREACHED
 	}
 
-	err := f.sshClient.Download(remotePath, localPath)
-	log.SwitchLevel(err)("Download",
-		log.Field("remoteAddr", remoteAddr(f.sshClient)),
+	err := f.sshClient.Client().Download(remotePath, localPath)
+	log.SwitchLevel(err)("DownloadFile",
+		log.Field("remoteAddress", remoteAddr(f.sshClient)),
 		log.Field("remotePath", remotePath),
 		log.Field("localPath", localPath),
 		log.Field("error", err))

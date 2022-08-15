@@ -1,19 +1,17 @@
 kind: curvebs
 global:
-  user: curve
-  ssh_port: 22
-  private_key_file: /home/curve/.ssh/publish_rsa
   container_image: opencurvedocker/curvebs:v1.2
-  log_dir: /home/${user}/logs/${service_role}${service_replica_sequence}
-  data_dir: /home/${user}/data/${service_role}${service_replica_sequence}
+  log_dir: ${home}/logs/${service_role}${service_replicas_sequence}
+  data_dir: ${home}/data/${service_role}${service_replicas_sequence}
   s3.nos_address: <>
   s3.snapshot_bucket_name: <>
   s3.ak: <>
   s3.sk: <>
   variable:
-    machine1: 10.0.1.1
-    machine2: 10.0.1.2
-    machine3: 10.0.1.3
+    home: /tmp
+    machine1: server-host1
+    machine2: serevr-host2
+    machine3: server-host3
 
 etcd_services:
   config:
@@ -38,16 +36,16 @@ mds_services:
 chunkserver_services:
   config:
     listen.ip: ${service_host}
-    listen.port: 82${format_replica_sequence}  # 8200,8201,8202
-    data_dir: /data/chunkserver${service_replica_sequence}  # /data/chunkserver0, /data/chunksever1
+    listen.port: 82${format_replicas_sequence}  # 8200,8201,8202
+    data_dir: /data/chunkserver${service_replicas_sequence}  # /data/chunkserver0, /data/chunksever1
     copysets: 100
   deploy:
     - host: ${machine1}
-      replica: 3
+      replicas: 3
     - host: ${machine2}
-      replica: 3
+      replicas: 3
     - host: ${machine3}
-      replica: 3
+      replicas: 3
 
 snapshotclone_services:
   config:

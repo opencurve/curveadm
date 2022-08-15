@@ -20,50 +20,78 @@
  * Author: Jingli Chen (Wine93)
  */
 
+// __SIGN_BY_WINE93__
+
 package common
 
 import (
 	"fmt"
 
 	"github.com/opencurve/curveadm/cli/cli"
+	comm "github.com/opencurve/curveadm/internal/common"
 	"github.com/opencurve/curveadm/internal/configure/topology"
+	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/task/context"
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
 	tui "github.com/opencurve/curveadm/internal/tui/common"
 )
 
-type step2CheckConatinerId struct {
-	containerId string
+func checkContainerExist(host, role, containerId string, out *string) step.LambdaType {
+	return func(ctx *context.Context) error {
+		if len(*out) == 0 {
+			return errno.ERR_CONTAINER_ALREADT_REMOVED.
+				F("host=%s role=%s containerId=%s",
+					host, role, tui.TrimContainerId(containerId))
+		}
+		return nil
+	}
 }
 
-func (s *step2CheckConatinerId) Execute(ctx *context.Context) error {
-	if s.containerId == "-" { // container has removed
-		return task.ERR_SKIP_TASK
+func checkContainerId(containerId string) step.LambdaType {
+	return func(ctx *context.Context) error {
+		if containerId == comm.CLEANED_CONTAINER_ID { // container has removed
+			return task.ERR_SKIP_TASK
+		}
+		return nil
 	}
-	return nil
 }
 
 func NewStopServiceTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task.Task, error) {
-	serviceId := curveadm.GetServiceId(dc.GetId())
-	containerId, err := curveadm.Storage().GetContainerId(serviceId)
+	hc, err := curveadm.GetHost(dc.GetHost())
 	if err != nil {
 		return nil, err
-	} else if containerId == "" {
-		return nil, fmt.Errorf("service(id=%s) not found", containerId)
+	}
+	serviceId := curveadm.GetServiceId(dc.GetId())
+	containerId, err := curveadm.GetContainerId(serviceId)
+	if err != nil {
+		return nil, err
 	}
 
+	// new task
 	subname := fmt.Sprintf("host=%s role=%s containerId=%s",
 		dc.GetHost(), dc.GetRole(), tui.TrimContainerId(containerId))
-	t := task.NewTask("Stop Service", subname, dc.GetSSHConfig())
-	t.AddStep(&step2CheckConatinerId{
-		containerId: containerId,
+	t := task.NewTask("Stop Service", subname, hc.GetSSHConfig())
+
+	// add step to task
+	var out string
+	host, role := dc.GetHost(), dc.GetRole()
+	t.AddStep(&step.Lambda{
+		Lambda: checkContainerId(containerId),
+	})
+	t.AddStep(&step.ListContainers{
+		ShowAll:     true,
+		Format:      `"{{.ID}}"`,
+		Filter:      fmt.Sprintf("id=%s", containerId),
+		Out:         &out,
+		ExecOptions: curveadm.ExecOptions(),
+	})
+	t.AddStep(&step.Lambda{
+		Lambda: checkContainerExist(host, role, containerId, &out),
 	})
 	t.AddStep(&step.StopContainer{
-		ContainerId:   containerId,
-		ExecWithSudo:  true,
-		ExecInLocal:   false,
-		ExecSudoAlias: curveadm.SudoAlias(),
+		ContainerId: containerId,
+		ExecOptions: curveadm.ExecOptions(),
 	})
 	return t, nil
 }

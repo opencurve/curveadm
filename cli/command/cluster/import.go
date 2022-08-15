@@ -30,10 +30,10 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/opencurve/curveadm/pkg/log/zaplog"
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/storage"
 	"github.com/opencurve/curveadm/internal/utils"
-	"github.com/opencurve/curveadm/pkg/log"
 	"github.com/spf13/cobra"
 )
 
@@ -189,7 +189,7 @@ func runImport(curveadm *cli.CurveAdm, options importOptions) error {
 	storage := curveadm.Storage()
 	clusters, err := storage.GetClusters(name)
 	if err != nil {
-		log.Error("GetClusters", log.Field("error", err))
+		zaplog.Error("GetClusters", zaplog.Field("error", err))
 		return err
 	} else if len(clusters) != 0 {
 		return fmt.Errorf("cluster %s already exist", name)

@@ -26,58 +26,68 @@ import (
 	"fmt"
 
 	"github.com/opencurve/curveadm/cli/cli"
-	client "github.com/opencurve/curveadm/internal/configure/client/bs"
+	comm "github.com/opencurve/curveadm/internal/common"
+	"github.com/opencurve/curveadm/internal/configure"
 	"github.com/opencurve/curveadm/internal/task/scripts"
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
 )
 
-const (
-	KEY_ADD_TARGET_OPTION = "ADD_TARGET_OPTION"
-)
-
-type AddTargetOption struct {
+type TargetOption struct {
+	Host   string
 	User   string
 	Volume string
 	Create bool
 	Size   int
+	Tid    string
 }
 
-func NewAddTargetTask(curveadm *cli.CurveAdm, cc *client.ClientConfig) (*task.Task, error) {
-	option := curveadm.MemStorage().Get(KEY_ADD_TARGET_OPTION).(AddTargetOption)
-	user, volume := option.User, option.Volume
-	subname := fmt.Sprintf("hostname=%s volume=%s", cc.GetHost(), volume)
-	t := task.NewTask("Add Target", subname, cc.GetSSHConfig())
+func NewAddTargetTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.Task, error) {
+	options := curveadm.MemStorage().Get(comm.KEY_TARGET_OPTIONS).(TargetOption)
+	user, volume := options.User, options.Volume
+	hc, err := curveadm.GetHost(options.Host)
+	if err != nil {
+		return nil, err
+	}
+
+	subname := fmt.Sprintf("host=%s volume=%s", options.Host, volume)
+	t := task.NewTask("Add Target", subname, hc.GetSSHConfig())
 
 	// add step
+	var output string
 	containerId := DEFAULT_TGTD_CONTAINER_NAME
 	targetScriptPath := "/curvebs/tools/sbin/target.sh"
 	targetScript := scripts.TARGET
-	cmd := fmt.Sprintf("/bin/bash %s %s %s %v %d", targetScriptPath, user, volume, option.Create, option.Size)
+	cmd := fmt.Sprintf("/bin/bash %s %s %s %v %d", targetScriptPath, user, volume, options.Create, options.Size)
 	toolsConf := fmt.Sprintf(FORMAT_TOOLS_CONF, cc.GetClusterMDSAddr())
 
+	t.AddStep(&step.ListContainers{
+		ShowAll:     true,
+		Format:      "'{{.ID}} {{.Status}}'",
+		Quiet:       true,
+		Filter:      fmt.Sprintf("name=%s", DEFAULT_TGTD_CONTAINER_NAME),
+		Out:         &output,
+		ExecOptions: curveadm.ExecOptions(),
+	})
+	t.AddStep(&step2CheckTgtdStatus{
+		output: &output,
+	})
 	t.AddStep(&step.InstallFile{ // install tools.conf
 		Content:           &toolsConf,
 		ContainerId:       &containerId,
 		ContainerDestPath: "/etc/curve/tools.conf",
-		ExecWithSudo:      true,
-		ExecInLocal:       false,
-		ExecSudoAlias:     curveadm.SudoAlias(),
+		ExecOptions:       curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.InstallFile{ // install target.sh
 		Content:           &targetScript,
 		ContainerId:       &containerId,
 		ContainerDestPath: targetScriptPath,
-		ExecWithSudo:      true,
-		ExecInLocal:       false,
-		ExecSudoAlias:     curveadm.SudoAlias(),
+		ExecOptions:       curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.ContainerExec{
-		ContainerId:   &containerId,
-		Command:       cmd,
-		ExecWithSudo:  true,
-		ExecInLocal:   false,
-		ExecSudoAlias: curveadm.SudoAlias(),
+		ContainerId: &containerId,
+		Command:     cmd,
+		ExecOptions: curveadm.ExecOptions(),
 	})
 
 	return t, nil

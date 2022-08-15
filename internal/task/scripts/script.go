@@ -22,6 +22,12 @@
 
 package scripts
 
+const (
+	STATUS_OK      = "CURVEADM_OK"
+	STATUS_FAIL    = "CURVEADM_FAIL"
+	STATUS_TIMEOUT = "CURVEADM_TIMEOUT"
+)
+
 var (
 	SCRIPT_WAIT              string = WAIT
 	SCRIPT_COLLECT           string = COLLECT
@@ -31,5 +37,7 @@ var (
 	SCRIPT_TARGET            string = TARGET
 	SCRIPT_RECYCLE           string = RECYCLE
 	SCRIPT_CREATEFS          string = CREATEFS
+	SCRIPT_CREATE_VOLUME     string = CREATE_VOLUME
 	SCRIPT_WAIT_CHUNKSERVERS string = WAIT_CHUNKSERVERS
+	SCRIPT_START_NGINX string = START_NGINX
 )

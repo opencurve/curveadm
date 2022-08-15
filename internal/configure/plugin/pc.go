@@ -58,7 +58,7 @@ func (pc *PluginConfig) GetSSHConfig() *module.SSHConfig {
 		Host:           target.Host,
 		Port:           target.Port,
 		PrivateKeyPath: target.PrivateKeyFile,
-		Timeout:        DEFAULT_SSH_TIMEOUT_SECONDS,
+		//Timeout:        DEFAULT_SSH_TIMEOUT_SECONDS,
 	}
 }
 
