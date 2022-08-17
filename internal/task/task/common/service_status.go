@@ -25,10 +25,12 @@
 package common
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
 
+	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/cli/cli"
 	comm "github.com/opencurve/curveadm/internal/common"
 	"github.com/opencurve/curveadm/internal/configure/topology"
@@ -222,7 +224,10 @@ func (s *step2FormatServiceStatus) Execute(ctx *context.Context) error {
 func NewInitServiceStatusTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task.Task, error) {
 	serviceId := curveadm.GetServiceId(dc.GetId())
 	containerId, err := curveadm.GetContainerId(serviceId)
-	if err != nil {
+	if errors.Is(err, errno.ERR_SERVICE_CONTAINER_ID_NOT_FOUND) && // FIXME
+		dc.GetRole() == topology.ROLE_SNAPSHOTCLONE {
+		return nil, nil
+	} else if err != nil {
 		return nil, err
 	}
 
@@ -251,7 +256,10 @@ func trimContainerStatus(status *string) step.LambdaType {
 func NewGetServiceStatusTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task.Task, error) {
 	serviceId := curveadm.GetServiceId(dc.GetId())
 	containerId, err := curveadm.GetContainerId(serviceId)
-	if err != nil {
+	if errors.Is(err, errno.ERR_SERVICE_CONTAINER_ID_NOT_FOUND) && // FIXME
+		dc.GetRole() == topology.ROLE_SNAPSHOTCLONE {
+		return nil, nil
+	} else if err != nil {
 		return nil, err
 	}
 	hc, err := curveadm.GetHost(dc.GetHost())
