@@ -347,6 +347,13 @@ func (curveadm *CurveAdm) GetContainerId(serviceId string) (string, error) {
 	return containerId, nil
 }
 
+// FIXME
+func (curveadm *CurveAdm) IsSkip(dc *topology.DeployConfig) bool {
+	serviceId := curveadm.GetServiceId(dc.GetId())
+	containerId, err := curveadm.Storage().GetContainerId(serviceId)
+	return err == nil && len(containerId) == 0 && dc.GetRole() == topology.ROLE_SNAPSHOTCLONE
+}
+
 func (curveadm *CurveAdm) GetVolumeId(host, user, volume string) string {
 	volumeId := fmt.Sprintf("curvebs_volume_%s_%s_%s", host, user, volume)
 	return utils.MD5Sum(volumeId)[:12]

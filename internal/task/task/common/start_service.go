@@ -76,7 +76,9 @@ func (s *step2CheckPostStart) Execute(ctx *context.Context) error {
 func NewStartServiceTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task.Task, error) {
 	serviceId := curveadm.GetServiceId(dc.GetId())
 	containerId, err := curveadm.GetContainerId(serviceId)
-	if err != nil {
+	if curveadm.IsSkip(dc) {
+		return nil, nil
+	} else if err != nil {
 		return nil, err
 	}
 	hc, err := curveadm.GetHost(dc.GetHost())

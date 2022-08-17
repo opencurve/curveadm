@@ -64,7 +64,9 @@ func NewStopServiceTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*tas
 	}
 	serviceId := curveadm.GetServiceId(dc.GetId())
 	containerId, err := curveadm.GetContainerId(serviceId)
-	if err != nil {
+	if curveadm.IsSkip(dc) {
+		return nil, nil
+	} else if err != nil {
 		return nil, err
 	}
 

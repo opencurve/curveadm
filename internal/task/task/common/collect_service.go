@@ -75,7 +75,9 @@ func (s *step2CopyFilesFromContainer) Execute(ctx *context.Context) error {
 func NewCollectServiceTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task.Task, error) {
 	serviceId := curveadm.GetServiceId(dc.GetId())
 	containerId, err := curveadm.Storage().GetContainerId(serviceId)
-	if err != nil {
+	if curveadm.IsSkip(dc) {
+		return nil, nil
+	} else if err != nil {
 		return nil, err
 	} else if len(containerId) == 0 {
 		return nil, nil
