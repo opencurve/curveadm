@@ -26,10 +26,12 @@ package step
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/task/context"
+	"github.com/opencurve/curveadm/internal/utils"
 	"github.com/opencurve/curveadm/pkg/module"
 )
 
@@ -236,6 +238,13 @@ type (
 		Verbose bool
 		Success *bool
 		Out     *string
+		module.ExecOptions
+	}
+
+	Scp struct {
+		Content    *string
+		Mode       int
+		RemotePath string
 		module.ExecOptions
 	}
 
@@ -544,6 +553,31 @@ func (s *Rpm) Execute(ctx *context.Context) error {
 
 	out, err := cmd.Execute(s.ExecOptions)
 	return PostHandle(s.Success, s.Out, out, err, errno.ERR_INSTALL_OR_REMOVE_RPM_PACKAGE_FAILED)
+}
+
+func (s *Scp) Execute(ctx *context.Context) error {
+	localPath := utils.RandFilename(TEMP_DIR)
+	defer os.Remove(localPath)
+	mode := 0644
+	if s.Mode > 0 {
+		mode = s.Mode
+	}
+	err := utils.WriteFile(localPath, *s.Content, mode)
+	if err != nil {
+		return errno.ERR_WRITE_FILE_FAILED.E(err)
+	}
+
+	config := ctx.SSHClient().Config()
+	cmd := ctx.Module().Shell().Scp(localPath, config.User, config.Host, s.RemotePath)
+	if !config.ForwardAgent {
+		cmd.AddOption("-i %s", config.PrivateKeyPath)
+	}
+
+	options := s.ExecOptions
+	options.ExecWithSudo = false
+	options.ExecInLocal = true
+	out, err := cmd.Execute(options)
+	return PostHandle(nil, nil, out, err, errno.ERR_SECURE_COPY_FILE_TO_REMOTE_FAILED)
 }
 
 func (s *Command) Execute(ctx *context.Context) error {

@@ -68,6 +68,7 @@ const (
 	TEMPLATE_TAR  = "tar {{.options}} {{.file}}"
 	TEMPLATE_DPKG = "dpkg {{.options}}"
 	TEMPLATE_RPM  = "rpm {{.options}}"
+	TEMPLATE_SCP  = "scp {{.options}} {{.source}} {{.user}}@{{.host}}:{{.target}}"
 
 	// bash
 	TEMPLATE_COMMAND     = "{{.command}}"
@@ -276,6 +277,15 @@ func (s *Shell) Dpkg() *Shell {
 
 func (s *Shell) Rpm() *Shell {
 	s.tmpl = template.Must(template.New("tar").Parse(TEMPLATE_RPM))
+	return s
+}
+
+func (s *Shell) Scp(source, user, host, target string) *Shell {
+	s.tmpl = template.Must(template.New("scp").Parse(TEMPLATE_SCP))
+	s.data["source"] = source
+	s.data["user"] = user
+	s.data["host"] = host
+	s.data["target"] = target
 	return s
 }
 

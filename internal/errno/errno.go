@@ -286,7 +286,6 @@ var (
 	ERR_DUPLICATE_HOST                           = EC(321007, "host is duplicate")
 	ERR_HOSTNAME_REQUIRES_VALID_IP_ADDRESS       = EC(321008, "hostname requires valid IP address")
 
-
 	// 330: configure (topology.yaml: parse failed)
 	ERR_TOPOLOGY_FILE_NOT_FOUND         = EC(330000, "topology file not found")
 	ERR_READ_TOPOLOGY_FILE_FAILED       = EC(330001, "read topology file failed")
@@ -488,8 +487,10 @@ var (
 	ERR_STORES_AND_EXTRACTS_FILES_FAILED           = EC(620023, "stores and extracts files failed (tar)")
 	ERR_INSTALL_OR_REMOVE_DEBIAN_PACKAGE_FAILED    = EC(620024, "install or remove debian package failed (dpkg)")
 	ERR_INSTALL_OR_REMOVE_RPM_PACKAGE_FAILED       = EC(620025, "install or remove rpm package failed (dpkg)")
+	ERR_SECURE_COPY_FILE_TO_REMOTE_FAILED          = EC(620026, "secure copy file to remote failed (scp)")
 	ERR_RUN_SCRIPT_FAILED                          = EC(620998, "run script failed (bash script.sh)")
 	ERR_RUN_A_BASH_COMMAND_FAILED                  = EC(620999, "run a bash command failed (bash -c)")
+
 
 	// 630: execute task (docker command)
 	ERR_GET_DOCKER_INFO_FAILED          = EC(630000, "get docker info failed (docker info)")

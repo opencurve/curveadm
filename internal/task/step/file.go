@@ -57,7 +57,6 @@ type (
 		HostDestPath      string
 		ContainerId       *string
 		ContainerDestPath string
-		Mode              int
 		module.ExecOptions
 	}
 
@@ -129,11 +128,7 @@ func (s *ReadFile) Execute(ctx *context.Context) error {
 func (s *InstallFile) Execute(ctx *context.Context) error {
 	localPath := utils.RandFilename(TEMP_DIR)
 	defer os.Remove(localPath)
-	mode := 0644
-	if s.Mode > 0 {
-		mode = s.Mode
-	}
-	err := utils.WriteFile(localPath, *s.Content, mode)
+	err := utils.WriteFile(localPath, *s.Content, 0644)
 	if err != nil {
 		return errno.ERR_WRITE_FILE_FAILED.E(err)
 	}

@@ -48,6 +48,10 @@ func (ctx *Context) Close() {
 	}
 }
 
+func (ctx *Context) SSHClient() *module.SSHClient {
+	return ctx.sshClient
+}
+
 func (ctx *Context) Module() *module.Module {
 	return ctx.module
 }
