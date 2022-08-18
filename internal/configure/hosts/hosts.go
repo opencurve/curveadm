@@ -120,6 +120,9 @@ func (hc *HostConfig) Build() error {
 	} else if len(hc.GetHostname()) == 0 {
 		return errno.ERR_HOSTNAME_FIELD_MISSING.
 			F("hosts[%d].hostname = nil", hc.sequence)
+	} else if !utils.IsValidAddress(hc.GetHostname()) {
+		return errno.ERR_HOSTNAME_REQUIRES_VALID_IP_ADDRESS.
+			F("hosts[%d].hostname = %s", hc.sequence, hc.GetHostname())
 	} else if hc.GetSSHPort() > os.GetMaxPortNum() {
 		return errno.ERR_HOSTS_SSH_PORT_EXCEED_MAX_PORT_NUMBER.
 			F("hosts[%d].ssh_port = %d", hc.sequence, hc.GetSSHPort())

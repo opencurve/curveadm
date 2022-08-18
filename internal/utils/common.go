@@ -37,12 +37,18 @@ import (
 	"os/exec"
 	"os/user"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
+
+const (
+	REGEX_IP = `^(((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\.|$)){4})`
+)
+
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
@@ -243,6 +249,16 @@ func GetCurrentHomeDir() string {
 	}
 
 	return user.HomeDir
+}
+
+func IsValidAddress(address string) bool {
+	regex, err := regexp.Compile(REGEX_IP)
+	if err != nil {
+		return false
+	}
+
+	mu := regex.FindStringSubmatch(address)
+	return len(mu) > 0
 }
 
 func ExecShell(format string, a ...interface{}) (string, error) {

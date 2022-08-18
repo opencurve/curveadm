@@ -284,6 +284,8 @@ var (
 	ERR_PRIVATE_KEY_FILE_NOT_EXIST               = EC(321005, "SSH private key file not exist")
 	ERR_PRIVATE_KEY_FILE_REQUIRE_600_PERMISSIONS = EC(321006, "SSH private key file require 600 permissions")
 	ERR_DUPLICATE_HOST                           = EC(321007, "host is duplicate")
+	ERR_HOSTNAME_REQUIRES_VALID_IP_ADDRESS       = EC(321008, "hostname requires valid IP address")
+
 
 	// 330: configure (topology.yaml: parse failed)
 	ERR_TOPOLOGY_FILE_NOT_FOUND         = EC(330000, "topology file not found")
