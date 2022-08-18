@@ -10,7 +10,7 @@ global:
 
 etcd_services:
   config:
-    listen.ip: ${target}
+    listen.ip: ${service_host}
     listen.port: 2380${service_host_sequence}         # 23800,23801,23802
     listen.client_port: 2379${service_host_sequence}  # 23790,23791,23792
   deploy:
@@ -20,7 +20,7 @@ etcd_services:
 
 mds_services:
   config:
-    listen.ip: ${target}
+    listen.ip: ${service_host}
     listen.port: 670${service_host_sequence}        # 6700,6701,6702
     listen.dummy_port: 770${service_host_sequence}  # 7700,7701,7702
   deploy:
@@ -30,7 +30,7 @@ mds_services:
 
 metaserver_services:
   config:
-    listen.ip: ${target}
+    listen.ip: ${service_host}
     listen.port: 680${service_host_sequence}           # 6800,6801,6802
     listen.external_port: 780${service_host_sequence}  # 7800,7801,7802
     global.enable_external_server: true
