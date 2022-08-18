@@ -221,20 +221,27 @@ func (curveadm *CurveAdm) Upgrade() (bool, error) {
 		return false, nil
 	}
 
+	// (1) skip upgrade if the pending version is stale
+	latestVersion := versions[0].Version
+	err, yes := tools.IsLatest(Version, latestVersion)
+	if err != nil || !yes {
+		return false, nil
+	}
+
+	// (2) skip upgrade if user has confirmed
 	day := time.Now().Format("2006-01-02")
-	version := versions[0].Version
 	lastConfirm := versions[0].LastConfirm
 	if day == lastConfirm {
 		return false, nil
 	}
 
-	curveadm.Storage().SetVersion(version, day)
-	pass := tui.ConfirmYes(tui.PromptAutoUpgrade(version))
+	curveadm.Storage().SetVersion(latestVersion, day)
+	pass := tui.ConfirmYes(tui.PromptAutoUpgrade(latestVersion))
 	if !pass {
 		return false, errno.ERR_CANCEL_OPERATION
 	}
 
-	err = tools.Upgrade(version)
+	err = tools.Upgrade(latestVersion)
 	if err != nil {
 		return false, err
 	}

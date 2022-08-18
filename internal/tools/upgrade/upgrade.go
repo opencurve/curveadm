@@ -57,7 +57,7 @@ func calcVersion(v string) int {
 	return num
 }
 
-func isLatest(currentVersion, remoteVersion string) (error, bool) {
+func IsLatest(currentVersion, remoteVersion string) (error, bool) {
 	v1 := calcVersion(currentVersion)
 	v2 := calcVersion(remoteVersion)
 	if v1 == -1 || v2 == -1 {
@@ -83,7 +83,7 @@ func GetLatestVersion(currentVersion string) (string, error) {
 	v, ok := resp.Header()[HEADER_VERSION]
 	if !ok {
 		return "", fmt.Errorf("response header '%s' not exist", HEADER_VERSION)
-	} else if err, yes := isLatest(currentVersion, strings.TrimPrefix(v[0], "v")); err != nil {
+	} else if err, yes := IsLatest(currentVersion, strings.TrimPrefix(v[0], "v")); err != nil {
 		return "", err
 	} else if yes {
 		return "", nil
