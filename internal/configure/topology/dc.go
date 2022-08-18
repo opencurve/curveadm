@@ -113,7 +113,11 @@ func NewDeployConfig(ctx *Context, kind, role, host, name string, replicas int,
 			F("%s: %v", CONFIG_VARIABLE.key, v)
 	}
 
-	vars, err := newVariables(v.(map[string]interface{}))
+	m := map[string]interface{}{}
+	if v != nil {
+		m = v.(map[string]interface{})
+	}
+	vars, err := newVariables(m)
 	if err != nil {
 		return nil, err
 	}
