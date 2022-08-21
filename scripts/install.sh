@@ -43,7 +43,7 @@ program_must_exist() {
 
 ############################ FUNCTIONS
 backup() {
-    if [[ $g_version == v0.1.0* && -d "$g_curveadm_home" ]]; then
+    if [ -d "$g_curveadm_home" ]; then
         mv $g_curveadm_home "${g_curveadm_home}-$(date +%s).backup"
     fi
 }
