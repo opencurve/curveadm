@@ -491,7 +491,6 @@ var (
 	ERR_RUN_SCRIPT_FAILED                          = EC(620998, "run script failed (bash script.sh)")
 	ERR_RUN_A_BASH_COMMAND_FAILED                  = EC(620999, "run a bash command failed (bash -c)")
 
-
 	// 630: execute task (docker command)
 	ERR_GET_DOCKER_INFO_FAILED          = EC(630000, "get docker info failed (docker info)")
 	ERR_PULL_IMAGE_FAILED               = EC(630001, "pull image failed (docker pull IMAGE)")
@@ -499,7 +498,7 @@ var (
 	ERR_START_CONTAINER_FAILED          = EC(630003, "start container failed (docker create CONTAINER)")
 	ERR_STOP_CONTAINER_FAILED           = EC(630004, "stop container failed (docker stop CONTAINER)")
 	ERR_RESTART_CONTAINER_FAILED        = EC(630005, "restart container failed (docker restart CONTAINER)")
-	ERR_WAIT_CONTAINER_STOP_FAILED      = EC(630006, "wait container stop failed (docker stop CONTAINER)")
+	ERR_WAIT_CONTAINER_STOP_FAILED      = EC(630006, "wait container stop failed (docker wait CONTAINER)")
 	ERR_REMOVE_CONTAINER_FAILED         = EC(630007, "remove container failed (docker rm CONTAINER)")
 	ERR_LIST_CONTAINERS_FAILED          = EC(630008, "list containers failed (docker ps)")
 	ERR_RUN_COMMAND_IN_CONTAINER_FAILED = EC(630009, "run a command in container failed (docker exec CONTAINER COMMAND)")

@@ -36,6 +36,7 @@ import (
 )
 
 const (
+	ONE_DAY_SECONDS       = 24 * 3600
 	SIGNATURE_NOT_MOUNTED = "not mounted"
 )
 
@@ -69,9 +70,9 @@ func checkContainerId(containerId string) step.LambdaType {
 }
 
 func (s *step2UmountFS) Execute(ctx *context.Context) error {
-	if len(*s.status) == 0 {
+	if len(*s.status) == 0 { // container already removed
 		return nil
-	} else if !strings.HasPrefix(*s.status, "Up") {
+	} else if !strings.HasPrefix(*s.status, "Up") { // not runing, remove it directly
 		return nil
 	}
 
@@ -100,16 +101,19 @@ func (s *step2RemoveContainer) Execute(ctx *context.Context) error {
 	}
 
 	steps := []task.Step{}
+	options := s.curveadm.ExecOptions()
+	options.ExecTimeoutSec = ONE_DAY_SECONDS // wait all data flushed to S3
 	if strings.HasPrefix(*s.status, "Up") {
 		steps = append(steps, &step.WaitContainer{
 			ContainerId: s.containerId,
-			ExecOptions: s.curveadm.ExecOptions(),
+			ExecOptions: options,
 		})
 	}
 	steps = append(steps, &step.RemoveContainer{
 		ContainerId: s.containerId,
 		ExecOptions: s.curveadm.ExecOptions(),
 	})
+
 	for _, step := range steps {
 		err := step.Execute(ctx)
 		if err != nil {
