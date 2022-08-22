@@ -50,6 +50,6 @@ if [ $ret -eq 0 ]; then
     exit $ret
 else
     echo "CREATEFS FAILED"
-    exit 0
+    exit 1
 fi
 `
