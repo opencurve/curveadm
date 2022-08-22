@@ -223,8 +223,8 @@ func (curveadm *CurveAdm) Upgrade() (bool, error) {
 
 	// (1) skip upgrade if the pending version is stale
 	latestVersion := versions[0].Version
-	err, yes := tools.IsLatest(Version, latestVersion)
-	if err != nil || !yes {
+	err, yes := tools.IsLatest(Version, strings.TrimPrefix(latestVersion, "v"))
+	if err != nil || yes {
 		return false, nil
 	}
 
