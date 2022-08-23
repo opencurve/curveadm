@@ -373,7 +373,7 @@ func NewMountFSTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.T
 		ExecOptions: curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.Lambda{
-		Lambda:checkStartContainerStatus(&success, &out),
+		Lambda: checkStartContainerStatus(&success, &out),
 	})
 	// TODO(P0): wait mount done
 
