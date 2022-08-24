@@ -569,6 +569,7 @@ func (s *Scp) Execute(ctx *context.Context) error {
 
 	config := ctx.SSHClient().Config()
 	cmd := ctx.Module().Shell().Scp(localPath, config.User, config.Host, s.RemotePath)
+	cmd.AddOption("-P %d", config.Port)
 	if !config.ForwardAgent {
 		cmd.AddOption("-i %s", config.PrivateKeyPath)
 	}
