@@ -242,6 +242,13 @@ var (
 		nil,
 	)
 
+	CONFIG_ENABLE_RDMA = itemset.insert(
+		"enable_rdma",
+		REQUIRE_BOOL,
+		true,
+		false,
+	)
+
 	CONFIG_ENABLE_RENAMEAT2 = itemset.insert(
 		"fs.enable_renameat2",
 		REQUIRE_BOOL,

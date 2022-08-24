@@ -146,6 +146,17 @@ func getArguments(dc *topology.DeployConfig) string {
 	return strings.Join(arguments, " ")
 }
 
+func getEnvironments(dc *topology.DeployConfig) []string {
+	preloads := []string{"/usr/local/lib/libjemalloc.so"}
+	if dc.GetEnableRDMA() {
+		preloads = append(preloads, "/usr/local/lib/libsmc-preload.so")
+	}
+
+	return []string{
+		fmt.Sprintf("'LD_PRELOAD=%s'", strings.Join(preloads, " ")),
+	}
+}
+
 func getMountVolumes(dc *topology.DeployConfig) []step.Volume {
 	volumes := []step.Volume{}
 	layout := dc.GetProjectLayout()
@@ -229,7 +240,7 @@ func NewCreateContainerTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (
 		Image:       dc.GetContainerImage(),
 		Command:     fmt.Sprintf("--role %s --args='%s'", role, getArguments(dc)),
 		AddHost:     []string{fmt.Sprintf("%s:127.0.0.1", hostname)},
-		Envs:        []string{"LD_PRELOAD=/usr/local/lib/libjemalloc.so"},
+		Envs:        getEnvironments(dc),
 		Hostname:    hostname,
 		Init:        true,
 		Name:        hostname,

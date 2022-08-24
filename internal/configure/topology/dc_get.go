@@ -135,7 +135,8 @@ func (dc *DeployConfig) GetS3AccessKey() string      { return dc.getString(CONFI
 func (dc *DeployConfig) GetS3SecretKey() string      { return dc.getString(CONFIG_S3_SECRET_KEY) }
 func (dc *DeployConfig) GetS3Address() string        { return dc.getString(CONFIG_S3_ADDRESS) }
 func (dc *DeployConfig) GetS3BucketName() string     { return dc.getString(CONFIG_S3_BUCKET_NAME) }
-func (dc *DeployConfig) GetEnableRenameAt2() bool  { return dc.getBool(CONFIG_ENABLE_RENAMEAT2) }
+func (dc *DeployConfig) GetEnableRDMA() bool         { return dc.getBool(CONFIG_ENABLE_RDMA) }
+func (dc *DeployConfig) GetEnableRenameAt2() bool    { return dc.getBool(CONFIG_ENABLE_RENAMEAT2) }
 func (dc *DeployConfig) GetEnableChunkfilePool() bool {
 	return dc.getBool(CONFIG_ENABLE_CHUNKFILE_POOL)
 }
