@@ -10,7 +10,7 @@ global:
   variable:
     home: /tmp
     machine1: server-host1
-    machine2: serevr-host2
+    machine2: server-host2
     machine3: server-host3
 
 etcd_services:
