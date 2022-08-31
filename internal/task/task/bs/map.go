@@ -24,6 +24,7 @@ package bs
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/opencurve/curveadm/cli/cli"
 	comm "github.com/opencurve/curveadm/internal/common"
@@ -37,11 +38,12 @@ import (
 
 type (
 	MapOptions struct {
-		Host   string
-		User   string
-		Volume string
-		Create bool
-		Size   int
+		Host        string
+		User        string
+		Volume      string
+		Create      bool
+		Size        int
+		NoExclusive bool
 	}
 )
 
@@ -52,6 +54,14 @@ func checkMapStatus(success *bool, out *string) step.LambdaType {
 		}
 		return errno.ERR_MAP_VOLUME_FAILED.S(*out)
 	}
+}
+
+func getMapOptions(options MapOptions) string {
+	mapOptions := []string{}
+	if options.NoExclusive {
+		mapOptions = append(mapOptions, "--no-exclusive")
+	}
+	return strings.Join(mapOptions, " ")
 }
 
 func NewMapTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.Task, error) {
@@ -71,7 +81,8 @@ func NewMapTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.Task,
 	containerId := containerName
 	script := scripts.MAP
 	scriptPath := "/curvebs/nebd/sbin/map.sh"
-	command := fmt.Sprintf("/bin/bash %s %s %s", scriptPath, options.User, options.Volume)
+	mapOptions := getMapOptions(options)
+	command := fmt.Sprintf("/bin/bash %s %s %s %s", scriptPath, options.User, options.Volume, mapOptions)
 
 	t.AddStep(&step.ListContainers{
 		ShowAll:     true,
