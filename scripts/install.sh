@@ -71,7 +71,7 @@ __EOF__
 install_binray() {
     local ret=1
     local tempfile="/tmp/curveadm-$(date +%s%6N).tar.gz"
-    curl $g_download_url -sLo $tempfile
+    curl $g_download_url -skLo $tempfile
     if [ $? -eq 0 ]; then
         tar -zxvf $tempfile -C $g_curveadm_home --strip-components=1 1>/dev/null
         ret=$?
