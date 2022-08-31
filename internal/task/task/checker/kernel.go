@@ -42,7 +42,7 @@ import (
 
 const (
 	CHUNKSERVER_LEAST_KERNEL_VERSION = "3.15.0"
-	REGEX_KERNEL_VAERSION            = "^(\\d+\\.\\d+\\.\\d+)-.+$"
+	REGEX_KERNEL_VAERSION            = "^(\\d+\\.\\d+\\.\\d+)(-.+)?$"
 )
 
 func calcKernelVersion(version string) int {

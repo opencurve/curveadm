@@ -103,6 +103,7 @@ func (s *step2CheckS3Configure) Execute(ctx *context.Context) error {
 		{topology.CONFIG_S3_BUCKET_NAME.Key(), dc.GetS3BucketName(), errno.ERR_INVALID_S3_BUCKET_NAME},
 	}
 
+	// we can pass it iff the s3 value is nil in weak check model
 	weak := s.curveadm.MemStorage().Get(comm.KEY_CHECK_WITH_WEAK).(bool) // for topology commit
 	for _, item := range items {
 		key := item.key

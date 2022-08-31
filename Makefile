@@ -5,3 +5,6 @@ build:
 
 debug:
 	go build -gcflags '-N -l' -tags debug -o ~/.curveadm/bin/curveadm $(PWD)/cmd/curveadm/main.go
+
+test:
+	go test ./...
