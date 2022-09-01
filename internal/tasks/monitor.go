@@ -56,6 +56,8 @@ func (m *monitor) error() error {
 
 // return number of {success, skip, error}
 func (m *monitor) sum(bid int) (int, int, int) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
 	nsucc, nskip, nerr := 0, 0, 0
 	for _, err := range m.result[bid] {
 		if err == nil {
@@ -79,8 +81,6 @@ func (m *monitor) set(bid int, err error) {
 }
 
 func (m *monitor) get(bid int) int {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
 	nsucc, nskip, nerr := m.sum(bid)
 	total := nsucc + nskip + nerr
 	if nerr != 0 {
