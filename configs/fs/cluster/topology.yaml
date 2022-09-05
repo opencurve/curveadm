@@ -37,6 +37,10 @@ metaserver_services:
     listen.external_port: 7800
     global.enable_external_server: true
     metaserver.loglevel: 0
+    # whether commit filesystem caches of raft wal to disk.
+    # it should be true iff you wants data NEVER lost,
+    # of course, it will leads some performance skew.
+    braft.raft_sync: false
   deploy:
     - host: ${machine1}
     - host: ${machine2}
