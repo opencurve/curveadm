@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/opencurve/curveadm/cli/cli"
 	comm "github.com/opencurve/curveadm/internal/common"
@@ -170,6 +171,13 @@ func getContainerName(curveadm *cli.CurveAdm, dc *topology.DeployConfig) string 
 		curveadm.GetServiceId(dc.GetId()))
 }
 
+func waitNginxStarted(seconds int) step.LambdaType {
+	return func(ctx *context.Context) error {
+		time.Sleep(time.Duration(seconds))
+		return nil
+	}
+}
+
 func NewStartHTTPServerTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task.Task, error) {
 	hc, err := curveadm.GetHost(dc.GetHost())
 	if err != nil {
@@ -212,6 +220,9 @@ func NewStartHTTPServerTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (
 		Success:     &success,
 		Out:         &out,
 		ExecOptions: curveadm.ExecOptions(),
+	})
+	t.AddStep(&step.Lambda{ // TODO(P1): maybe we should check all ports
+		Lambda: waitNginxStarted(3),
 	})
 
 	return t, nil
