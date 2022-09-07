@@ -24,8 +24,9 @@ require (
 	github.com/sergi/go-diff v1.2.0
 	github.com/spf13/cobra v1.3.0
 	github.com/spf13/viper v1.10.0
+	github.com/stretchr/testify v1.7.0
 	github.com/theupdateframework/notary v0.7.0 // indirect
 	github.com/vbauerster/mpb/v7 v7.1.5
 	go.uber.org/zap v1.21.0
-	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
+	golang.org/x/crypto v0.0.0-20220829220503-c86fa9a7ed90
 )
