@@ -40,8 +40,8 @@ type (
 		Host              string
 		Port              uint
 		ForwardAgent      bool // ForwardAgent > PrivateKeyPath > Password
-		BecomeMethod string
-		BecomeFlags string
+		BecomeMethod      string
+		BecomeFlags       string
 		BecomeUser        string
 		PrivateKeyPath    string
 		ConnectRetries    int
