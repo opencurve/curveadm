@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2021 NetEase Inc.
+ *  Copyright (c) 2022 NetEase Inc.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -16,14 +16,30 @@
 
 /*
  * Project: CurveAdm
- * Created Date: 2021-10-15
+ * Created Date: 2022-09-08
  * Author: Jingli Chen (Wine93)
  */
 
-// __SIGN_BY_WINE93__
+package checker
 
-package cli
+import (
+	"testing"
 
-var (
-	Version = "0.1.10"
+	"github.com/golang-module/carbon/v2"
+	"github.com/stretchr/testify/assert"
 )
+
+func TestWaitNginxStart(t *testing.T) {
+	assert := assert.New(t)
+
+	seconds := []int{1, 2, 3, 10}
+	for _, second := range seconds {
+		start := carbon.Now().Timestamp()
+		err := waitNginxStarted(second)(nil)
+		end := carbon.Now().Timestamp()
+		elapse := end - start
+		assert.Nil(err)
+		assert.GreaterOrEqual(elapse, second)
+		assert.Less(elapse, second+1)
+	}
+}

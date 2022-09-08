@@ -173,7 +173,7 @@ func getContainerName(curveadm *cli.CurveAdm, dc *topology.DeployConfig) string 
 
 func waitNginxStarted(seconds int) step.LambdaType {
 	return func(ctx *context.Context) error {
-		time.Sleep(time.Duration(seconds))
+		time.Sleep(time.Duration(seconds) * time.Second)
 		return nil
 	}
 }
@@ -222,7 +222,7 @@ func NewStartHTTPServerTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (
 		ExecOptions: curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.Lambda{ // TODO(P1): maybe we should check all ports
-		Lambda: waitNginxStarted(3),
+		Lambda: waitNginxStarted(5),
 	})
 
 	return t, nil
