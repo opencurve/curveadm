@@ -32,12 +32,12 @@ import (
 func TestWaitNginxStart(t *testing.T) {
 	assert := assert.New(t)
 
-	seconds := []int{1, 2, 3, 10}
+	seconds := []int{1, 2, 3}
 	for _, second := range seconds {
 		start := carbon.Now().Timestamp()
 		err := waitNginxStarted(second)(nil)
 		end := carbon.Now().Timestamp()
-		elapse := end - start
+		elapse := (int)(end - start)
 		assert.Nil(err)
 		assert.GreaterOrEqual(elapse, second)
 		assert.Less(elapse, second+1)

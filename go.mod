@@ -12,6 +12,7 @@ require (
 	github.com/fatih/color v1.13.0
 	github.com/fvbommel/sortorder v1.0.2 // indirect
 	github.com/go-resty/resty/v2 v2.7.0
+	github.com/golang-module/carbon/v2 v2.1.9
 	github.com/google/uuid v1.2.0
 	github.com/jpillora/longestcommon v0.0.0-20161227235612-adb9d91ee629
 	github.com/kpango/glg v1.6.11

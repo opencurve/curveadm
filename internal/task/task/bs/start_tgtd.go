@@ -54,7 +54,7 @@ func (s *step2CheckTargetDaemonStatus) Execute(ctx *context.Context) error {
 	}
 
 	return errno.ERR_OLD_TARGET_DAEMON_IS_ABNORMAL.
-		F("host=%s, containerId=%s")
+		F("host=%s", s.host)
 }
 
 func NewStartTargetDaemonTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.Task, error) {

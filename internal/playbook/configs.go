@@ -26,7 +26,6 @@ import (
 	"github.com/opencurve/curveadm/internal/build"
 	"github.com/opencurve/curveadm/internal/configure"
 	"github.com/opencurve/curveadm/internal/configure/hosts"
-	"github.com/opencurve/curveadm/internal/configure/plugin"
 	"github.com/opencurve/curveadm/internal/configure/topology"
 	"github.com/opencurve/curveadm/internal/errno"
 )
@@ -36,7 +35,6 @@ const (
 	TYPE_CONFIG_FORMAT
 	TYPE_CONFIG_DEPLOY
 	TYPE_CONFIG_CLIENT
-	TYPE_CONFIG_PLUGIN
 	TYPE_CONFIG_PLAYGROUND
 	TYPE_CONFIG_ANY
 	TYPE_CONFIG_NULL
@@ -50,7 +48,6 @@ type SmartConfig struct {
 	dcs   []*topology.DeployConfig
 	ccs   []*configure.ClientConfig
 	pgcs  []*configure.PlaygroundConfig
-	pcs   []*plugin.PluginConfig
 	anys  []interface{}
 }
 
@@ -97,13 +94,6 @@ func (c *SmartConfig) GetPGC(index int) *configure.PlaygroundConfig {
 	return c.pgcs[index]
 }
 
-func (c *SmartConfig) GetPC(index int) *plugin.PluginConfig {
-	if index < 0 || index >= c.len || c.ctype != TYPE_CONFIG_PLUGIN {
-		return nil
-	}
-	return c.pcs[index]
-}
-
 func (c *SmartConfig) GetAny(index int) interface{} {
 	if index < 0 || index >= c.len || c.ctype != TYPE_CONFIG_ANY {
 		return nil
@@ -120,7 +110,6 @@ func NewSmartConfig(configs interface{}) (*SmartConfig, error) {
 		dcs:   []*topology.DeployConfig{},
 		ccs:   []*configure.ClientConfig{},
 		pgcs:  []*configure.PlaygroundConfig{},
-		pcs:   []*plugin.PluginConfig{},
 		anys:  []interface{}{},
 	}
 	build.DEBUG(build.DEBUG_SMART_CONFIGS,
@@ -149,10 +138,6 @@ func NewSmartConfig(configs interface{}) (*SmartConfig, error) {
 		c.ctype = TYPE_CONFIG_PLAYGROUND
 		c.pgcs = configs.([]*configure.PlaygroundConfig)
 		c.len = len(c.pgcs)
-	case []*plugin.PluginConfig:
-		c.ctype = TYPE_CONFIG_PLUGIN
-		c.pcs = configs.([]*plugin.PluginConfig)
-		c.len = len(c.pcs)
 	case []interface{}:
 		c.ctype = TYPE_CONFIG_ANY
 		c.anys = configs.([]interface{})
@@ -178,10 +163,6 @@ func NewSmartConfig(configs interface{}) (*SmartConfig, error) {
 	case *configure.PlaygroundConfig:
 		c.ctype = TYPE_CONFIG_PLAYGROUND
 		c.pgcs = append(c.pgcs, configs.(*configure.PlaygroundConfig))
-		c.len = 1
-	case *plugin.PluginConfig:
-		c.ctype = TYPE_CONFIG_PLUGIN
-		c.pcs = append(c.pcs, configs.(*plugin.PluginConfig))
 		c.len = 1
 	case nil:
 		c.ctype = TYPE_CONFIG_NULL
