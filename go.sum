@@ -99,8 +99,8 @@ github.com/Shopify/logrus-bugsnag v0.0.0-20171204204709-577dee27f20d h1:UrqY+r/O
 github.com/Shopify/logrus-bugsnag v0.0.0-20171204204709-577dee27f20d/go.mod h1:HI8ITrYtUY+O+ZhtlqUnD8+KwNPOyugEhfP9fdUIaEQ=
 github.com/VividCortex/ewma v1.2.0 h1:f58SaIzcDXrSy3kWaHNvuJgJ3Nmz59Zji6XoJR/q1ow=
 github.com/VividCortex/ewma v1.2.0/go.mod h1:nz4BbCtbLyFDeC9SUHbtcT5644juEuWfUAUnGx7j5l4=
-github.com/Wine93/goph v0.0.0-20220907030102-3564d9035b54 h1:s/9/CqXFlzkSFtFX8ZHmkHaKk9PtA4J1NIn6NKmw3XU=
-github.com/Wine93/goph v0.0.0-20220907030102-3564d9035b54/go.mod h1:vy08GGf/z8wGP++yuLpgmuN2JcifRNCJ1lsjMPfN2X8=
+github.com/Wine93/goph v0.0.0-20220907033045-3b286d827fb3 h1:gP0W63xa8rP8uV0CZQDgtcc9QCBIYN5cq3vMavCGT1Q=
+github.com/Wine93/goph v0.0.0-20220907033045-3b286d827fb3/go.mod h1:vy08GGf/z8wGP++yuLpgmuN2JcifRNCJ1lsjMPfN2X8=
 github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d h1:licZJFw2RwpHMqeKTCYkitsPqHNxTmd4SNR5r94FGM8=
 github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d/go.mod h1:asat636LX7Bqt5lYEZ27JNDcqxfjdBQuJ/MM4CN/Lzo=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=

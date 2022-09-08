@@ -31,4 +31,4 @@ require (
 	golang.org/x/crypto v0.0.0-20220829220503-c86fa9a7ed90
 )
 
-replace github.com/melbahja/goph v1.3.0 => github.com/Wine93/goph v0.0.0-20220907030102-3564d9035b54
+replace github.com/melbahja/goph v1.3.0 => github.com/Wine93/goph v0.0.0-20220907033045-3b286d827fb3
