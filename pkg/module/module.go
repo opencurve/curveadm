@@ -108,13 +108,13 @@ func execCommand(sshClient *SSHClient,
 
 	// (3) handle 'become_user'
 	if sshClient != nil {
-	becomeMethod := sshClient.Config().BecomeMethod
-	becomeFlags := sshClient.Config().BecomeFlags
-	becomeUser := sshClient.Config().BecomeUser
-	if len(becomeUser) > 0 {
-		become := strings.Join([]string{becomeMethod, becomeFlags, becomeUser}, " ")
-		command = strings.Join([]string{become, command}, " ")
-	}
+		becomeMethod := sshClient.Config().BecomeMethod
+		becomeFlags := sshClient.Config().BecomeFlags
+		becomeUser := sshClient.Config().BecomeUser
+		if len(becomeUser) > 0 {
+			become := strings.Join([]string{becomeMethod, becomeFlags, becomeUser}, " ")
+			command = strings.Join([]string{become, command}, " ")
+		}
 	}
 
 	// (4) create context for timeout
@@ -130,13 +130,13 @@ func execCommand(sshClient *SSHClient,
 	var err error
 	if options.ExecInLocal {
 		cmd := exec.CommandContext(ctx, "bash", "-c", command)
-		cmd.Env = []string{"LANG="}
+		cmd.Env = []string{"LANG=en_US.UTF-8"}
 		out, err = cmd.CombinedOutput()
 	} else {
 		var cmd *goph.Cmd
 		cmd, err = sshClient.Client().CommandContext(ctx, command)
 		if err == nil {
-			cmd.Env = []string{"LANG="}
+			cmd.Env = []string{"LANG=en_US.UTF-8"}
 			out, err = cmd.CombinedOutput()
 		}
 	}
