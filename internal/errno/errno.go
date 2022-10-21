@@ -245,6 +245,7 @@ var (
 	ERR_VOLUME_SIZE_MUST_BE_MULTIPLE_OF_10_GB    = EC(221005, "volume size must be a multiple of 10GB, like 10GB, 20GB, 30GB...")
 	ERR_CLIENT_CONFIGURE_FILE_NOT_EXIST          = EC(221006, "client configure file not exist")
 	ERR_NO_CLIENT_MATCHED                        = EC(221007, "no client matched")
+	ERR_VOLUME_NAME_CAN_NOT_CONTAIN_UNDERSCORE   = EC(221008, "volume name can't contain \"_\" symbol")
 	// 222: command options (client/fs)
 	ERR_FS_MOUNTPOINT_REQUIRE_ABSOLUTE_PATH = EC(222000, "mount point must be an absolute path")
 
