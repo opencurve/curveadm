@@ -43,6 +43,7 @@ func NewHostsCommand(curveadm *cli.CurveAdm) *cobra.Command {
 		NewShowCommand(curveadm),
 		NewListCommand(curveadm),
 		NewSSHCommand(curveadm),
+		NewPlaybookCommand(curveadm),
 	)
 	return cmd
 }

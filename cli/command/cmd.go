@@ -82,11 +82,12 @@ func addSubCommands(cmd *cobra.Command, curveadm *cli.CurveAdm) {
 		NewSupportCommand(curveadm),    // curveadm support
 		NewUpgradeCommand(curveadm),    // curveadm upgrade
 		// commonly used shorthands
-		hosts.NewSSHCommand(curveadm),     // curveadm ssh
-		client.NewMapCommand(curveadm),    // curveadm map
-		client.NewMountCommand(curveadm),  // curveadm mount
-		client.NewUnmapCommand(curveadm),  // curveadm unmap
-		client.NewUmountCommand(curveadm), // curveadm umount
+		hosts.NewSSHCommand(curveadm),      // curveadm ssh
+		hosts.NewPlaybookCommand(curveadm), // curveadm playbook
+		client.NewMapCommand(curveadm),     // curveadm map
+		client.NewMountCommand(curveadm),   // curveadm mount
+		client.NewUnmapCommand(curveadm),   // curveadm unmap
+		client.NewUmountCommand(curveadm),  // curveadm umount
 	)
 }
 

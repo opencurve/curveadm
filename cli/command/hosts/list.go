@@ -20,8 +20,6 @@
  * Author: Jingli Chen (Wine93)
  */
 
-// __SIGN_BY_WINE93__
-
 package hosts
 
 import (

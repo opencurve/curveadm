@@ -27,6 +27,7 @@ package tools
 import (
 	"bytes"
 	"fmt"
+	"os/exec"
 	"strings"
 	"text/template"
 
@@ -37,11 +38,13 @@ import (
 )
 
 const (
+	TEMPLATE_SCP                    = `scp -P {{.port}} {{or .options ""}} {{.source}} {{.user}}@{{.host}}:{{.target}}`
+	TEMPLATE_SSH_COMMAND            = `ssh {{.user}}@{{.host}} -p {{.port}} {{or .options ""}} {{or .become ""}} {{.command}}`
 	TEMPLATE_SSH_ATTACH             = `ssh -tt {{.user}}@{{.host}} -p {{.port}} {{or .options ""}} {{or .become ""}} {{.command}}`
 	TEMPLATE_COMMAND_EXEC_CONTAINER = `{{.sudo}} docker exec -it {{.container_id}} /bin/bash -c "cd {{.home_dir}}; /bin/bash"`
 )
 
-func prepareOptions(curveadm *cli.CurveAdm, host, command string, become bool) (map[string]interface{}, error) {
+func prepareOptions(curveadm *cli.CurveAdm, host string, become bool, extra map[string]interface{}) (map[string]interface{}, error) {
 	options := map[string]interface{}{}
 	hc, err := curveadm.GetHost(host)
 	if err != nil {
@@ -52,43 +55,82 @@ func prepareOptions(curveadm *cli.CurveAdm, host, command string, become bool) (
 	options["user"] = config.User
 	options["host"] = config.Host
 	options["port"] = config.Port
+	opts := []string{
+		"-o StrictHostKeyChecking=no",
+		//"-o UserKnownHostsFile=/dev/null",
+	}
 	if !config.ForwardAgent {
-		options["options"] = fmt.Sprintf("-i %s", config.PrivateKeyPath)
+		opts = append(opts, fmt.Sprintf("-i %s", config.PrivateKeyPath))
 	}
 	if len(config.BecomeUser) > 0 && become {
 		options["become"] = fmt.Sprintf("%s %s %s",
 			config.BecomeMethod, config.BecomeFlags, config.BecomeUser)
 	}
-	options["command"] = command
+
+	for k, v := range extra {
+		options[k] = v
+	}
+
+	options["options"] = strings.Join(opts, " ")
 	return options, nil
 }
 
-func sshAttach(curveadm *cli.CurveAdm, options map[string]interface{}) error {
-	tmpl := template.Must(template.New("ssh_attach").Parse(TEMPLATE_SSH_ATTACH))
+func newCommand(curveadm *cli.CurveAdm, text string, options map[string]interface{}) (*exec.Cmd, error) {
+	tmpl := template.Must(template.New(utils.MD5Sum(text)).Parse(text))
 	buffer := bytes.NewBufferString("")
 	if err := tmpl.Execute(buffer, options); err != nil {
-		return errno.ERR_BUILD_TEMPLATE_FAILED.E(err)
+		return nil, errno.ERR_BUILD_TEMPLATE_FAILED.E(err)
 	}
 	command := buffer.String()
 	build.DEBUG(build.DEBUG_TOOL, build.Field{"command", command})
+	return utils.NewCommand(command), nil
+}
 
-	cmd := utils.NewCommand(command)
+func runCommand(curveadm *cli.CurveAdm, text string, options map[string]interface{}) error {
+	cmd, err := newCommand(curveadm, text, options)
+	if err != nil {
+		return err
+	}
 	cmd.Stdout = curveadm.Out()
 	cmd.Stderr = curveadm.Err()
 	cmd.Stdin = curveadm.In()
-	err := cmd.Run()
+	return cmd.Run()
+}
+
+func runCommandOutput(curveadm *cli.CurveAdm, text string, options map[string]interface{}) (string, error) {
+	cmd, err := newCommand(curveadm, text, options)
+	if err != nil {
+		return "", err
+	}
+	out, err := cmd.CombinedOutput()
+	return string(out), err
+}
+
+func ssh(curveadm *cli.CurveAdm, options map[string]interface{}) error {
+	err := runCommand(curveadm, TEMPLATE_SSH_ATTACH, options)
 	if err != nil && !strings.HasPrefix(err.Error(), "exit status") {
 		return errno.ERR_CONNECT_REMOTE_HOST_WITH_INTERACT_BY_SSH_FAILED.E(err)
 	}
 	return nil
 }
 
+func scp(curveadm *cli.CurveAdm, options map[string]interface{}) error {
+	// TODO: added error code
+	_, err := runCommandOutput(curveadm, TEMPLATE_SCP, options)
+	return err
+}
+
+func execute(curveadm *cli.CurveAdm, options map[string]interface{}) (string, error) {
+	return runCommandOutput(curveadm, TEMPLATE_SSH_COMMAND, options)
+}
+
 func AttachRemoteHost(curveadm *cli.CurveAdm, host string, become bool) error {
-	options, err := prepareOptions(curveadm, host, "/bin/bash", become)
+	options, err := prepareOptions(curveadm, host, become,
+		map[string]interface{}{"command": "/bin/bash"})
 	if err != nil {
 		return err
 	}
-	return sshAttach(curveadm, options)
+	return ssh(curveadm, options)
 }
 
 func AttachRemoteContainer(curveadm *cli.CurveAdm, host, containerId, home string) error {
@@ -104,9 +146,31 @@ func AttachRemoteContainer(curveadm *cli.CurveAdm, host, containerId, home strin
 	}
 	command := buffer.String()
 
-	options, err := prepareOptions(curveadm, host, command, true)
+	options, err := prepareOptions(curveadm, host, true,
+		map[string]interface{}{"command": command})
 	if err != nil {
 		return err
 	}
-	return sshAttach(curveadm, options)
+	return ssh(curveadm, options)
+}
+
+func Scp(curveadm *cli.CurveAdm, host, source, target string) error {
+	options, err := prepareOptions(curveadm, host, false,
+		map[string]interface{}{
+			"source": source,
+			"target": target,
+		})
+	if err != nil {
+		return err
+	}
+	return scp(curveadm, options)
+}
+
+func ExecuteRemoteCommand(curveadm *cli.CurveAdm, host, command string) (string, error) {
+	options, err := prepareOptions(curveadm, host, true,
+		map[string]interface{}{"command": command})
+	if err != nil {
+		return "", err
+	}
+	return execute(curveadm, options)
 }
