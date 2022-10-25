@@ -5,3 +5,5 @@ bin/
 PIPE/
 curveadm/
 T/*
+logs/*
+.playground
