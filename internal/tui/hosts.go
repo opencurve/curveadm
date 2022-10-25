@@ -49,6 +49,7 @@ func FormatHosts(hcs []*configure.HostConfig, verbose bool) string {
 		"Forward Agent",
 		"Become User",
 		"Labels",
+		"Envs",
 	}
 	first, second := tuicommon.FormatTitle(title)
 	lines = append(lines, first)
@@ -64,6 +65,7 @@ func FormatHosts(hcs []*configure.HostConfig, verbose bool) string {
 		forwardAgent := utils.Choose(hc.GetForwardAgent(), "Y", "N")
 		becomeUser := utils.Choose(len(hc.GetBecomeUser()) > 0, hc.GetBecomeUser(), "-")
 		labels := utils.Choose(len(hc.GetLabels()) > 0, strings.Join(hc.GetLabels(), ","), "-")
+		envs := utils.Choose(len(hc.GetEnvs()) > 0, strings.Join(hc.GetEnvs(), ","), "-")
 		privateKeyFile := hc.GetPrivateKeyFile()
 		if len(privateKeyFile) == 0 {
 			privateKeyFile = "-"
@@ -80,6 +82,7 @@ func FormatHosts(hcs []*configure.HostConfig, verbose bool) string {
 			forwardAgent,
 			becomeUser,
 			labels,
+			envs,
 		})
 	}
 

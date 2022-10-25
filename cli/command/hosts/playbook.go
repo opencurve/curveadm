@@ -26,6 +26,7 @@ package hosts
 import (
 	"fmt"
 	"path"
+	"strings"
 	"sync"
 
 	"github.com/fatih/color"
@@ -85,8 +86,9 @@ func NewPlaybookCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	return cmd
 }
 
-func execute(curveadm *cli.CurveAdm, name, source string) {
+func execute(curveadm *cli.CurveAdm, hc *hosts.HostConfig, source string) {
 	defer func() { wg.Done() }()
+	name := hc.GetHost()
 	target := path.Join("/tmp", utils.RandString(8))
 	err := tools.Scp(curveadm, name, source, target)
 	if err != nil {
@@ -99,7 +101,12 @@ func execute(curveadm *cli.CurveAdm, name, source string) {
 		tools.ExecuteRemoteCommand(curveadm, name, command)
 	}()
 
-	command := fmt.Sprintf("bash %s", target)
+	items := []string{}
+	for _, env := range hc.GetEnvs() {
+		items = append(items, env)
+	}
+	items = append(items, fmt.Sprintf("bash %s", target))
+	command := strings.Join(items, " ")
 	out, err := tools.ExecuteRemoteCommand(curveadm, name, command)
 	retC <- result{host: name, out: out, err: err}
 }
@@ -114,7 +121,8 @@ func output(curveadm *cli.CurveAdm, total int) {
 			curveadm.WriteOutln("--- %s [%s]", ret.host,
 				utils.Choose(err == nil, color.GreenString("SUCCESS"), color.RedString("FAIL")))
 			if err != nil {
-				curveadm.WriteOut(err.Error())
+				curveadm.WriteOut(out)
+				curveadm.WriteOutln(err.Error())
 			} else if len(out) > 0 {
 				curveadm.WriteOut(out)
 			}
@@ -137,7 +145,7 @@ func runPlaybook(curveadm *cli.CurveAdm, options playbookOptions) error {
 	wg.Add(len(hcs))
 	go output(curveadm, len(hcs))
 	for _, hc := range hcs {
-		go execute(curveadm, hc.GetHost(), options.filepath)
+		go execute(curveadm, hc, options.filepath)
 	}
 	wg.Wait()
 	return nil

@@ -75,6 +75,7 @@ func (hc *HostConfig) GetPrivateKeyFile() string { return hc.getString(CONFIG_PR
 func (hc *HostConfig) GetForwardAgent() bool     { return hc.getBool(CONFIG_FORWARD_AGENT) }
 func (hc *HostConfig) GetBecomeUser() string     { return hc.getString(CONFIG_BECOME_USER) }
 func (hc *HostConfig) GetLabels() []string       { return hc.labels }
+func (hc *HostConfig) GetEnvs() []string         { return hc.envs }
 func (hc *HostConfig) GetSSHConfig() *module.SSHConfig {
 	return &module.SSHConfig{
 		User:              hc.GetUser(),

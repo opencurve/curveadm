@@ -37,6 +37,7 @@ import (
 
 const (
 	KEY_LABELS = "labels"
+	KEY_ENVS   = "envs"
 
 	PERMISSIONS_600 = 384 // -rw------- (256 + 128 = 384)
 )
@@ -51,6 +52,7 @@ type (
 		sequence int
 		config   map[string]interface{}
 		labels   []string
+		envs     []string
 	}
 )
 
@@ -89,11 +91,36 @@ func (hc *HostConfig) convertLables() error {
 	return nil
 }
 
+func (hc *HostConfig) convertEnvs() error {
+	value := hc.config[KEY_ENVS]
+	slice, ok := (value).([]interface{})
+	if !ok {
+		return errno.ERR_CONFIGURE_VALUE_REQUIRES_STRING_SLICE.
+			F("hosts[%d].%s = %v", hc.sequence, KEY_ENVS, value)
+	}
+
+	for _, value := range slice {
+		if v, ok := utils.All2Str(value); !ok {
+			return errno.ERR_CONFIGURE_VALUE_REQUIRES_STRING_SLICE.
+				F("hosts[%d].%s = %v", hc.sequence, KEY_ENVS, value)
+		} else {
+			hc.envs = append(hc.envs, v)
+		}
+	}
+
+	return nil
+}
+
 func (hc *HostConfig) Build() error {
 	for key, value := range hc.config {
-		// convert labels
-		if key == KEY_LABELS {
+		if key == KEY_LABELS { // convert labels
 			if err := hc.convertLables(); err != nil {
+				return err
+			}
+			hc.config[key] = nil // delete labels section
+			continue
+		} else if key == KEY_ENVS { // convert envs
+			if err := hc.convertEnvs(); err != nil {
 				return err
 			}
 			hc.config[key] = nil // delete labels section
