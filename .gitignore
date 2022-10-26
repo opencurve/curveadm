@@ -7,3 +7,5 @@ curveadm/
 T/*
 logs/*
 .playground
+.build/
+.CHANGELOG

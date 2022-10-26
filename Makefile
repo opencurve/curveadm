@@ -1,4 +1,4 @@
-.PHONY: build debug test
+.PHONY: build debug test tar
 
 # go env
 GOPROXY     := "https://goproxy.cn,direct"
@@ -40,6 +40,9 @@ TEST_FLAGS += -p 3
 # packages
 PACKAGES := $(PWD)/cmd/curveadm/main.go
 
+# tar
+VERSION := "unknown"
+
 build:
 	$(GOENV) $(GO) build -o $(OUTPUT) $(BUILD_FLAGS) $(PACKAGES)
 
@@ -48,3 +51,6 @@ debug:
 
 test:
 	$(GO) test $(TEST_FLAGS) ./...
+
+tar:
+	@NOS=$(NOS) bash build/package/mktar.sh $(VERSION)
