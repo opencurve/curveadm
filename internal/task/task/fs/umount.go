@@ -60,15 +60,6 @@ type (
 	}
 )
 
-func checkContainerId(containerId string) step.LambdaType {
-	return func(ctx *context.Context) error {
-		if len(containerId) == 0 {
-			return task.ERR_SKIP_TASK
-		}
-		return nil
-	}
-}
-
 func (s *step2UmountFS) Execute(ctx *context.Context) error {
 	if len(*s.status) == 0 { // container already removed
 		return nil
@@ -142,9 +133,6 @@ func NewUmountFSTask(curveadm *cli.CurveAdm, v interface{}) (*task.Task, error) 
 
 	// add step to task
 	var status string
-	t.AddStep(&step.Lambda{
-		Lambda: checkContainerId(containerId),
-	})
 	t.AddStep(&step.ListContainers{
 		ShowAll:     true,
 		Format:      "'{{.Status}}'",
