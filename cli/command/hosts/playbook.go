@@ -44,13 +44,15 @@ var (
 )
 
 type result struct {
-	host string
-	out  string
-	err  error
+	index int
+	host  string
+	out   string
+	err   error
 }
 
 type playbookOptions struct {
 	filepath string
+	args     []string
 	labels   []string
 }
 
@@ -66,11 +68,12 @@ func NewPlaybookCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	var options playbookOptions
 
 	cmd := &cobra.Command{
-		Use:   "playbook [OPTIONS] PLAYBOOK",
+		Use:   "playbook [OPTIONS] PLAYBOOK [ARGS...]",
 		Short: "Execute playbook",
-		Args:  cliutil.ExactArgs(1),
+		Args:  cliutil.RequiresMinArgs(1),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			options.filepath = args[0]
+			options.args = args[1:]
 			return checkPlaybookOptions(curveadm, options)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -86,11 +89,11 @@ func NewPlaybookCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	return cmd
 }
 
-func execute(curveadm *cli.CurveAdm, hc *hosts.HostConfig, source string) {
+func execute(curveadm *cli.CurveAdm, options playbookOptions, idx int, hc *hosts.HostConfig) {
 	defer func() { wg.Done() }()
 	name := hc.GetHost()
 	target := path.Join("/tmp", utils.RandString(8))
-	err := tools.Scp(curveadm, name, source, target)
+	err := tools.Scp(curveadm, name, options.filepath, target)
 	if err != nil {
 		retC <- result{host: name, err: err}
 		return
@@ -101,30 +104,42 @@ func execute(curveadm *cli.CurveAdm, hc *hosts.HostConfig, source string) {
 		tools.ExecuteRemoteCommand(curveadm, name, command)
 	}()
 
-	items := []string{}
-	for _, env := range hc.GetEnvs() {
-		items = append(items, env)
-	}
-	items = append(items, fmt.Sprintf("bash %s", target))
-	command := strings.Join(items, " ")
+	command := strings.Join([]string{
+		strings.Join(hc.GetEnvs(), " "),
+		"bash",
+		target,
+		strings.Join(options.args, " "),
+	}, " ")
 	out, err := tools.ExecuteRemoteCommand(curveadm, name, command)
-	retC <- result{host: name, out: out, err: err}
+	retC <- result{index: idx, host: name, out: out, err: err}
 }
 
-func output(curveadm *cli.CurveAdm, total int) {
+func output(curveadm *cli.CurveAdm, ret *result) {
+	curveadm.WriteOutln("")
+	out, err := ret.out, ret.err
+	curveadm.WriteOutln("%s [%s]", color.YellowString(ret.host),
+		utils.Choose(err == nil, color.GreenString("SUCCESS"), color.RedString("FAIL")))
+	curveadm.WriteOutln("---")
+	if err != nil {
+		curveadm.Out().Write([]byte(out))
+		curveadm.WriteOutln(err.Error())
+	} else if len(out) > 0 {
+		curveadm.Out().Write([]byte(out))
+	}
+}
+
+func receiver(curveadm *cli.CurveAdm, total int) {
 	curveadm.WriteOutln("TOTAL: %d hosts", total)
-	for {
-		select {
-		case ret := <-retC:
-			curveadm.WriteOutln("")
-			out, err := ret.out, ret.err
-			curveadm.WriteOutln("--- %s [%s]", ret.host,
-				utils.Choose(err == nil, color.GreenString("SUCCESS"), color.RedString("FAIL")))
-			if err != nil {
-				curveadm.WriteOut(out)
-				curveadm.WriteOutln(err.Error())
-			} else if len(out) > 0 {
-				curveadm.WriteOut(out)
+	current := 0
+	rets := map[int]result{}
+	for ret := range retC {
+		rets[ret.index] = ret
+		for {
+			if v, ok := rets[current]; ok {
+				output(curveadm, &v)
+				current++
+			} else {
+				break
 			}
 		}
 	}
@@ -143,9 +158,9 @@ func runPlaybook(curveadm *cli.CurveAdm, options playbookOptions) error {
 
 	retC = make(chan result)
 	wg.Add(len(hcs))
-	go output(curveadm, len(hcs))
-	for _, hc := range hcs {
-		go execute(curveadm, hc, options.filepath)
+	go receiver(curveadm, len(hcs))
+	for i, hc := range hcs {
+		go execute(curveadm, options, i, hc)
 	}
 	wg.Wait()
 	return nil

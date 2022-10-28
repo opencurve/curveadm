@@ -32,7 +32,6 @@ import (
 	"text/template"
 
 	"github.com/opencurve/curveadm/cli/cli"
-	"github.com/opencurve/curveadm/internal/build"
 	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/utils"
 )
@@ -82,8 +81,8 @@ func newCommand(curveadm *cli.CurveAdm, text string, options map[string]interfac
 		return nil, errno.ERR_BUILD_TEMPLATE_FAILED.E(err)
 	}
 	command := buffer.String()
-	build.DEBUG(build.DEBUG_TOOL, build.Field{"command", command})
-	return utils.NewCommand(command), nil
+	items := strings.Split(command, " ")
+	return exec.Command(items[0], items[1:]...), nil
 }
 
 func runCommand(curveadm *cli.CurveAdm, text string, options map[string]interface{}) error {
