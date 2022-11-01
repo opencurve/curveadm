@@ -80,7 +80,7 @@ func ParseImage(image string) (user, name string, err error) {
 	} else if !strings.HasPrefix(name, "/") {
 		err = errno.ERR_VOLUME_NAME_MUST_START_WITH_SLASH_PREFIX.
 			F("volume name: %s", name)
-	} else if !strings.Contains(name, "_") {
+	} else if strings.Contains(name, "_") {
 		err = errno.ERR_VOLUME_NAME_CAN_NOT_CONTAIN_UNDERSCORE.
 			F("volume name: %s", name)
 	}
