@@ -16,31 +16,23 @@
 
 /*
  * Project: CurveAdm
- * Created Date: 2022-06-23
+ * Created Date: 2022-11-07
  * Author: Jingli Chen (Wine93)
  */
 
-package playground
+package script
 
 import (
-	"github.com/opencurve/curveadm/cli/cli"
-	cliutil "github.com/opencurve/curveadm/internal/utils"
-	"github.com/spf13/cobra"
+	_ "embed"
 )
 
-func NewPlaygroundCommand(curveadm *cli.CurveAdm) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "playground",
-		Short: "Manage playground",
-		Args:  cliutil.NoArgs,
-		RunE:  cliutil.ShowHelp(curveadm.Err()),
-	}
+var (
+	//go:embed topology.yaml
+	TOPOLOGY string
 
-	cmd.AddCommand(
-		NewRunCommand(curveadm),
-		NewRemoveCommand(curveadm),
-		NewListCommand(curveadm),
-		NewEnterCommand(curveadm),
-	)
-	return cmd
-}
+	//go:embed client.yaml
+	CLIENT string
+
+	//go:embed entrypoint.sh
+	ENTRYPOINT string
+)

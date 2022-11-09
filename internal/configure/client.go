@@ -23,6 +23,7 @@
 package configure
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
 
@@ -122,6 +123,22 @@ func NewClientConfig(config map[string]interface{}) (*ClientConfig, error) {
 			F("%s: %s", field, cc.GetClusterMDSAddr())
 	}
 	return cc, nil
+}
+
+func ParseClientCfg(data string) (*ClientConfig, error) {
+	parser := viper.NewWithOptions(viper.KeyDelimiter("::"))
+	parser.SetConfigType("yaml")
+	err := parser.ReadConfig(bytes.NewBuffer([]byte(data)))
+	if err != nil {
+		return nil, errno.ERR_PARSE_CLIENT_CONFIGURE_FAILED.E(err)
+	}
+
+	config := map[string]interface{}{}
+	if err := parser.Unmarshal(&config); err != nil {
+		return nil, errno.ERR_PARSE_CLIENT_CONFIGURE_FAILED.E(err)
+	}
+	build.DEBUG(build.DEBUG_CLIENT_CONFIGURE, config)
+	return NewClientConfig(config)
 }
 
 func ParseClientConfig(filename string) (*ClientConfig, error) {

@@ -443,6 +443,10 @@ func (s *Storage) GetPlaygrounds(name string) ([]Playground, error) {
 	return s.getPlaygrounds(SELECT_PLAYGROUND, name)
 }
 
+func (s *Storage) GetPlaygroundById(id string) ([]Playground, error) {
+	return s.getPlaygrounds(SELECT_PLAYGROUND_BY_ID, id)
+}
+
 // audit
 func (s *Storage) InsertAuditLog(time time.Time, workDir, command string, status int) (int64, error) {
 	s.mutex.Lock()

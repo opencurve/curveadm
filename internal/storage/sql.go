@@ -104,7 +104,7 @@ var (
             work_directory TEXT NOT NULL,
 			command TEXT NOT NULL,
 			status INTEGER DEFAULT 0,
-            error_code INTEGET DEFAULT 0 
+            error_code INTEGET DEFAULT 0
 		)
     `
 
@@ -185,6 +185,8 @@ var (
 	SET_PLAYGROUND_STATUS = `UPDATE playgrounds SET status = ? WHERE name = ?`
 
 	SELECT_PLAYGROUND = `SELECT * FROM playgrounds WHERE name LIKE ?`
+
+	SELECT_PLAYGROUND_BY_ID = `SELECT * FROM playgrounds WHERE id = ?`
 
 	DELETE_PLAYGROUND = `DELETE from playgrounds WHERE name = ?`
 

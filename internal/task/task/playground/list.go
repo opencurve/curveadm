@@ -87,19 +87,16 @@ func NewGetPlaygroundStatusTask(curveadm *cli.CurveAdm, v interface{}) (*task.Ta
 
 	// add step to task
 	var status string
-	options := curveadm.ExecOptions()
-	options.ExecInLocal = true
-
 	t.AddStep(&step.ListContainers{
 		ShowAll:     true,
 		Format:      "'{{.Status}}'",
 		Quiet:       true,
 		Filter:      fmt.Sprintf("name=%s", playground.Name),
 		Out:         &status,
-		ExecOptions: options,
+		ExecOptions: execOptions(curveadm),
 	})
 	t.AddStep(&step2FormatPlaygroundStatus{
-		status: &status,
+		status:     &status,
 		playground: playground,
 		memStorage: curveadm.MemStorage(),
 	})

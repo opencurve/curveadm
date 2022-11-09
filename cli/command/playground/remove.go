@@ -33,7 +33,7 @@ import (
 )
 
 type removeOptions struct {
-	name string
+	id string
 }
 
 var REMOVE_PLAYGROUND_PLAYBOOK_STEPS = []int{
@@ -44,12 +44,12 @@ func NewRemoveCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	var options removeOptions
 
 	cmd := &cobra.Command{
-		Use:     "rm PLAYGROUND",
+		Use:     "rm ID",
 		Aliases: []string{"delete"},
 		Short:   "Remove playground",
 		Args:    cliutil.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			options.name = args[0]
+			options.id = args[0]
 			return runRemove(curveadm, options)
 		},
 		DisableFlagsInUseLine: true,
@@ -77,13 +77,13 @@ func genRemovePlaybook(curveadm *cli.CurveAdm,
 
 func runRemove(curveadm *cli.CurveAdm, options removeOptions) error {
 	// 1) get playground
-	name := options.name
-	playgrounds, err := curveadm.Storage().GetPlaygrounds(name)
+	id := options.id
+	playgrounds, err := curveadm.Storage().GetPlaygroundById(id)
 	if err != nil {
 		return errno.ERR_GET_PLAYGROUND_BY_NAME_FAILED.E(err)
 	} else if len(playgrounds) == 0 {
 		return errno.ERR_PLAYGROUND_NOT_FOUND.
-			F("playground=%s", name)
+			F("id=%s", id)
 	}
 
 	// 2) generate remove playground
@@ -100,6 +100,6 @@ func runRemove(curveadm *cli.CurveAdm, options removeOptions) error {
 
 	// 4) print success prompt
 	curveadm.WriteOutln("")
-	curveadm.WriteOutln(color.GreenString("Playground '%s' removed.", name))
+	curveadm.WriteOutln(color.GreenString("Playground '%s' removed.", playgrounds[0].Name))
 	return nil
 }

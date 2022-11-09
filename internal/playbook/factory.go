@@ -108,7 +108,9 @@ const (
 	UNINSTALL_POLARFS
 
 	// playground
-	RUN_PLAYGROUND
+	CREATE_PLAYGROUND
+	INIT_PLAYGROUND
+	START_PLAYGROUND
 	REMOVE_PLAYGROUND
 	GET_PLAYGROUND_STATUS
 
@@ -266,8 +268,12 @@ func (p *Playbook) createTasks(step *PlaybookStep) (*tasks.Tasks, error) {
 		case UNINSTALL_POLARFS:
 			t, err = bs.NewUninstallPolarFSTask(curveadm, nil)
 		// playground
-		case RUN_PLAYGROUND:
-			t, err = pg.NewRunPlaygroundTask(curveadm, config.GetPGC(i))
+		case CREATE_PLAYGROUND:
+			t, err = pg.NewCreatePlaygroundTask(curveadm, config.GetPGC(i))
+		case INIT_PLAYGROUND:
+			t, err = pg.NewInitPlaygroundTask(curveadm, config.GetPGC(i))
+		case START_PLAYGROUND:
+			t, err = pg.NewStartPlaygroundTask(curveadm, config.GetPGC(i))
 		case REMOVE_PLAYGROUND:
 			t, err = pg.NewRemovePlaygroundTask(curveadm, config.GetAny(i))
 		case GET_PLAYGROUND_STATUS:

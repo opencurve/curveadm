@@ -24,6 +24,8 @@
 
 package topology
 
+import "path"
+
 const (
 	REQUIRE_ANY = iota
 	REQUIRE_INT
@@ -74,6 +76,18 @@ var (
 		items:    []*item{},
 		key2item: map[string]*item{},
 	}
+
+	CONFIG_PREFIX = itemset.insert(
+		"prefix",
+		REQUIRE_STRING,
+		true,
+		func(dc *DeployConfig) interface{} {
+			if dc.GetKind() == KIND_CURVEBS {
+				return path.Join(LAYOUT_CURVEBS_ROOT_DIR, dc.GetRole())
+			}
+			return path.Join(LAYOUT_CURVEFS_ROOT_DIR, dc.GetRole())
+		},
+	)
 
 	CONFIG_REPORT_USAGE = itemset.insert(
 		"report_usage",

@@ -37,18 +37,23 @@ type (
 		Name           string
 		ContainerImage string
 		Mountpoint     string
+
+		DeployConfigs []*topology.DeployConfig
+		ClientConfig  *ClientConfig
 	}
 )
 
-func (pc *PlaygroundConfig) GetKind() string { return pc.Kind }
-func (pc *PlaygroundConfig) GetName() string { return pc.Name }
-func (pc *PlaygroundConfig) GetMointpoint() string { return pc.Mountpoint }
-func (pc *PlaygroundConfig) GetContainIamge() string {
-	if len(pc.ContainerImage) > 0 {
-		return pc.ContainerImage
-	} else if pc.Kind == topology.KIND_CURVEBS {
+func (cfg *PlaygroundConfig) GetKind() string                            { return cfg.Kind }
+func (cfg *PlaygroundConfig) GetName() string                            { return cfg.Name }
+func (cfg *PlaygroundConfig) GetMointpoint() string                      { return cfg.Mountpoint }
+func (cfg *PlaygroundConfig) GetDeployConfigs() []*topology.DeployConfig { return cfg.DeployConfigs }
+func (cfg *PlaygroundConfig) GetClientConfig() *ClientConfig             { return cfg.ClientConfig }
+
+func (cfg *PlaygroundConfig) GetContainIamge() string {
+	if len(cfg.ContainerImage) > 0 {
+		return cfg.ContainerImage
+	} else if cfg.Kind == topology.KIND_CURVEBS {
 		return DEFAULT_CURVEBS_CONTAINER_IMAGE
 	}
 	return DEFAULT_CURVEFS_CONTAINER_IMAGE
 }
-

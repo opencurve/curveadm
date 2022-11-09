@@ -1,0 +1,40 @@
+kind: curvebs
+global:
+  prefix: /curvebs/playground/${service_role}${service_host_sequence}
+  log_dir: ${home}/logs/${service_role}${service_host_sequence}
+  data_dir: ${home}/data/${service_role}${service_host_sequence}
+  variable:
+    home: /tmp
+    target: localhost
+
+etcd_services:
+  config:
+    listen.ip: ${service_host}
+    listen.port: 2380${service_host_sequence}
+    listen.client_port: 2379${service_host_sequence}
+  deploy:
+    - host: ${target}
+    - host: ${target}
+    - host: ${target}
+
+mds_services:
+  config:
+    listen.ip: ${service_host}
+    listen.port: 670${service_host_sequence}
+    listen.dummy_port: 770${service_host_sequence}
+  deploy:
+    - host: ${target}
+    - host: ${target}
+    - host: ${target}
+
+chunkserver_services:
+  config:
+    listen.ip: ${service_host}
+    listen.port: 820${service_host_sequence}  # 8200,8201,8202
+    data_dir: /data/chunkserver${service_host_sequence}  # /data/chunkserver0, /data/chunksever1
+    copysets: 100
+    chunkfilepool.enable_get_chunk_from_pool: false
+  deploy:
+    - host: ${target}
+    - host: ${target}
+    - host: ${target}

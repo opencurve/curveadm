@@ -88,7 +88,6 @@ func displayPlaygrounds(curveadm *cli.CurveAdm) {
 	}
 
 	output := tui.FormatPlayground(statuses)
-	curveadm.WriteOutln("")
 	curveadm.WriteOut(output)
 }
 

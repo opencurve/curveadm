@@ -33,26 +33,29 @@ import (
 	"github.com/opencurve/curveadm/internal/configure/topology"
 	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/playbook"
+	"github.com/opencurve/curveadm/internal/task/task/playground/script"
 	"github.com/opencurve/curveadm/internal/utils"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/cobra"
 )
 
 const (
-	FORMAT_PLAYGROUND_NAME = "playground-%s-%d" // playground-curvebs-1656035415
-
 	KIND_CURVEBS = topology.KIND_CURVEBS
 	KIND_CURVEFS = topology.KIND_CURVEFS
+
+	FORMAT_PLAYGROUND_NAME = "playground-%s-%d" // playground-curvebs-1656035415
 )
 
 var (
 	supportKind = map[string]bool{
 		KIND_CURVEBS: true,
-		KIND_CURVEFS: true,
+		//KIND_CURVEFS: true, // FIXME: support curvefs
 	}
 
 	RUN_PLAYGROUND_PLAYBOOK_STEPS = []int{
-		playbook.RUN_PLAYGROUND,
+		playbook.CREATE_PLAYGROUND,
+		playbook.INIT_PLAYGROUND,
+		playbook.START_PLAYGROUND,
 	}
 )
 
@@ -69,12 +72,19 @@ func checkRunOptions(curveadm *cli.CurveAdm, options runOptions) error {
 	if !supportKind[kind] {
 		return errno.ERR_UNSUPPORT_PLAYGROUND_KIND.
 			F("kind=%s", kind)
-	} else if kind == KIND_CURVEFS && len(mountPoint) == 0 {
+	}
+
+	if kind == KIND_CURVEBS {
+		return nil
+	}
+
+	// checker for curvefs
+	if len(mountPoint) == 0 {
 		return errno.ERR_MUST_SPECIFY_MOUNTPOINT_FOR_CURVEFS_PLAYGROUND
-	} else if kind == KIND_CURVEFS && !filepath.IsAbs(mountPoint) {
+	} else if !filepath.IsAbs(mountPoint) {
 		return errno.ERR_PLAYGROUND_MOUNTPOINT_REQUIRE_ABSOLUTE_PATH.
 			F("mountPoint=%s", mountPoint)
-	} else if kind == KIND_CURVEFS && !utils.PathExist(mountPoint) {
+	} else if !utils.PathExist(mountPoint) {
 		return errno.ERR_PLAYGROUND_MOUNTPOINT_NOT_EXIST.
 			F("mountPoint=%s", mountPoint)
 	}
@@ -101,13 +111,15 @@ func NewRunCommand(curveadm *cli.CurveAdm) *cobra.Command {
 
 	flags := cmd.Flags()
 	flags.StringVarP(&options.kind, "kind", "k", "curvefs", "Specify the type of playground (curvebs/curvefs)")
-	flags.StringVar(&options.mountPoint, "mountpoint", "", "Specify the mountpoint for CurveFS playground")
-	flags.StringVar(&options.containerImage, "container_image", "i", "Specify the playground container image")
+	flags.StringVar(&options.mountPoint, "mountpoint", "p", "Specify the mountpoint for CurveFS playground")
+	flags.StringVarP(&options.containerImage, "container_image", "i", "harbor.cloud.netease.com/curve/curvebs:playground", "Specify the playground container image")
 
 	return cmd
 }
 
 func genRunPlaybook(curveadm *cli.CurveAdm,
+	dcs []*topology.DeployConfig,
+	cc *configure.ClientConfig,
 	options runOptions) (*playbook.Playbook, error) {
 	steps := RUN_PLAYGROUND_PLAYBOOK_STEPS
 	pb := playbook.NewPlaybook(curveadm)
@@ -115,9 +127,15 @@ func genRunPlaybook(curveadm *cli.CurveAdm,
 		pb.AddStep(&playbook.PlaybookStep{
 			Type: step,
 			Configs: &configure.PlaygroundConfig{
-				Kind:       options.kind,
-				Name:       options.name,
-				Mountpoint: options.mountPoint,
+				Kind:           options.kind,
+				Name:           options.name,
+				ContainerImage: options.containerImage,
+				Mountpoint:     options.mountPoint,
+				DeployConfigs:  dcs,
+				ClientConfig:   cc,
+			},
+			ExecOptions: playbook.ExecOptions{
+				SilentSubBar: true,
 			},
 		})
 	}
@@ -125,19 +143,36 @@ func genRunPlaybook(curveadm *cli.CurveAdm,
 }
 
 func runRun(curveadm *cli.CurveAdm, options runOptions) error {
-	// 1) generate run playground
-	pb, err := genRunPlaybook(curveadm, options)
+	// 1) print prompt
+	curveadm.WriteOutln(color.GreenString("Start to run playground '%s', it will takes 1~2 minutes\n"), options.name)
+
+	// 2) parse topology
+	ctx := topology.NewContext()
+	ctx.Add("localhost", "127.0.0.1")
+	dcs, err := topology.ParseTopology(script.TOPOLOGY, ctx)
 	if err != nil {
 		return err
 	}
 
-	// 2) run playground
+	// 3) parse client configure
+	cc, err := configure.ParseClientCfg(script.CLIENT)
+	if err != nil {
+		return err
+	}
+
+	// 4) generate run playground
+	pb, err := genRunPlaybook(curveadm, dcs, cc, options)
+	if err != nil {
+		return err
+	}
+
+	// 5) run playground
 	err = pb.Run()
 	if err != nil {
 		return err
 	}
 
-	// 3) print success prompt
+	// 6) print success prompt
 	curveadm.WriteOutln("")
 	curveadm.WriteOutln(color.GreenString("Playground '%s' successfully deployed ^_^",
 		options.name))

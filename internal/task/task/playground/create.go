@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2021 NetEase Inc.
+ *  Copyright (c) 2022 NetEase Inc.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 /*
  * Project: CurveAdm
- * Created Date: 2022-06-23
+ * Created Date: 2022-11-07
  * Author: Jingli Chen (Wine93)
  */
 
@@ -24,12 +24,11 @@ package playground
 
 import (
 	"fmt"
-	"time"
 
-	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/configure"
 	"github.com/opencurve/curveadm/internal/configure/topology"
+	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/task/context"
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
@@ -41,35 +40,21 @@ const (
 )
 
 type (
-	step2WaitDone struct{}
-
 	step2CreateNBDDevice struct {
 		execOptions module.ExecOptions
 	}
 
 	step2InsertPlayGround struct {
 		curveadm *cli.CurveAdm
-		pc       *configure.PlaygroundConfig
+		cfg      *configure.PlaygroundConfig
 	}
 )
-
-func (s *step2WaitDone) Execute(ctx *context.Context) error {
-	time.Sleep(10 * time.Second)
-	return nil
-}
-
-func (s *step2CreateNBDDevice) Execute(ctx *context.Context) error {
-	cmd := ctx.Module().Shell().ModProbe("nbd", "nbds_max=64")
-	_, err := cmd.Execute(s.execOptions)
-	return err
-}
 
 func getAttchMount(kind, mountPoint string) string {
 	var mount string
 	if kind == topology.KIND_CURVEBS {
 		return mount
 	}
-	// FIXME: use project layout to replace "/curvefs/client/mnt" path
 	return fmt.Sprintf(FORMAT_MOUNT_OPTION, mountPoint, "/curvefs/client/mnt")
 }
 
@@ -85,41 +70,53 @@ func getMountVolumes(kind string) []step.Volume {
 	}
 }
 
+func execOptions(curveadm *cli.CurveAdm) module.ExecOptions {
+	options := curveadm.ExecOptions()
+	options.ExecInLocal = true
+	options.ExecWithSudo = false
+	return options
+}
+
+func (s *step2CreateNBDDevice) Execute(ctx *context.Context) error {
+	cmd := ctx.Module().Shell().ModProbe("nbd", "nbds_max=64")
+	_, err := cmd.Execute(s.execOptions)
+	return err
+}
+
 func (s *step2InsertPlayGround) Execute(ctx *context.Context) error {
-	pc := s.pc
-	err := s.curveadm.Storage().InsertPlayground(pc.GetName(), pc.GetMointpoint())
+	cfg := s.cfg
+	err := s.curveadm.Storage().InsertPlayground(cfg.GetName(), cfg.GetMointpoint())
 	if err != nil {
 		return errno.ERR_INSERT_PLAYGROUND_FAILED.E(err)
 	}
 	return nil
 }
 
-func NewRunPlaygroundTask(curveadm *cli.CurveAdm, pc *configure.PlaygroundConfig) (*task.Task, error) {
-	kind := pc.GetKind()
-	name := pc.GetName()
-	containerImage := pc.GetContainIamge()
-	mountPoint := pc.GetMointpoint()
+func NewCreatePlaygroundTask(curveadm *cli.CurveAdm, cfg *configure.PlaygroundConfig) (*task.Task, error) {
+	kind := cfg.GetKind()
+	name := cfg.GetName()
+	containerImage := cfg.GetContainIamge()
+	mountPoint := cfg.GetMointpoint()
 
 	// new task
 	subname := fmt.Sprintf("kind=%s name=%s image=%s", kind, name, containerImage)
-	t := task.NewTask("Run Playground", subname, nil)
+	t := task.NewTask("Create Playground", subname, nil)
 	var containerId string
 
 	// add step to task
-	options := curveadm.ExecOptions()
-	options.ExecInLocal = true
-
 	t.AddStep(&step2CreateNBDDevice{
-		execOptions: options,
+		execOptions: execOptions(curveadm),
 	})
 	t.AddStep(&step.PullImage{
 		Image:       containerImage,
-		ExecOptions: options,
+		ExecOptions: execOptions(curveadm),
 	})
 	t.AddStep(&step.CreateContainer{
 		Image:             containerImage,
 		Envs:              []string{"LD_PRELOAD=/usr/local/lib/libjemalloc.so"},
-		Name:              name, // playground-curvebs-1656035415
+		Entrypoint:        "/bin/bash",
+		Command:           "/entrypoint.sh curvebs",
+		Name:              name, // playground-curvebs-1656035414
 		Network:           "bridge",
 		Mount:             getAttchMount(kind, mountPoint),
 		Volumes:           getMountVolumes(kind),
@@ -129,17 +126,11 @@ func NewRunPlaygroundTask(curveadm *cli.CurveAdm, pc *configure.PlaygroundConfig
 		Ulimits:           []string{"core=-1"},
 		Privileged:        true,
 		Out:               &containerId,
-		ExecOptions:       options,
+		ExecOptions:       execOptions(curveadm),
 	})
 	t.AddStep(&step2InsertPlayGround{
-		pc:       pc,
 		curveadm: curveadm,
+		cfg:      cfg,
 	})
-	t.AddStep(&step.StartContainer{
-		ContainerId: &containerId,
-		ExecOptions: options,
-	})
-	t.AddStep(&step2WaitDone{})
-
 	return t, nil
 }

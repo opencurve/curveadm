@@ -41,6 +41,7 @@ const (
 	TEMPLATE_SSH_COMMAND            = `ssh {{.user}}@{{.host}} -p {{.port}} {{or .options ""}} {{or .become ""}} {{.command}}`
 	TEMPLATE_SSH_ATTACH             = `ssh -tt {{.user}}@{{.host}} -p {{.port}} {{or .options ""}} {{or .become ""}} {{.command}}`
 	TEMPLATE_COMMAND_EXEC_CONTAINER = `{{.sudo}} docker exec -it {{.container_id}} /bin/bash -c "cd {{.home_dir}}; /bin/bash"`
+	TEMPLATE_LOCAL_EXEC_CONTAINER   = `docker exec -it {{.container_id}} /bin/bash` // FIXME: merge it
 )
 
 func prepareOptions(curveadm *cli.CurveAdm, host string, become bool, extra map[string]interface{}) (map[string]interface{}, error) {
@@ -54,6 +55,7 @@ func prepareOptions(curveadm *cli.CurveAdm, host string, become bool, extra map[
 	options["user"] = config.User
 	options["host"] = config.Host
 	options["port"] = config.Port
+
 	opts := []string{
 		"-o StrictHostKeyChecking=no",
 		//"-o UserKnownHostsFile=/dev/null",
@@ -151,6 +153,19 @@ func AttachRemoteContainer(curveadm *cli.CurveAdm, host, containerId, home strin
 		return err
 	}
 	return ssh(curveadm, options)
+}
+
+func AttachLocalContainer(curveadm *cli.CurveAdm, containerId string) error {
+	data := map[string]interface{}{
+		"container_id": containerId,
+	}
+	tmpl := template.Must(template.New("command").Parse(TEMPLATE_LOCAL_EXEC_CONTAINER))
+	buffer := bytes.NewBufferString("")
+	if err := tmpl.Execute(buffer, data); err != nil {
+		return errno.ERR_BUILD_TEMPLATE_FAILED.E(err)
+	}
+	command := buffer.String()
+	return runCommand(curveadm, command, map[string]interface{}{})
 }
 
 func Scp(curveadm *cli.CurveAdm, host, source, target string) error {

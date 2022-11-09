@@ -25,8 +25,8 @@ package playground
 import (
 	"fmt"
 
-	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/cli/cli"
+	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/storage"
 	"github.com/opencurve/curveadm/internal/task/context"
 	"github.com/opencurve/curveadm/internal/task/step"
@@ -54,25 +54,25 @@ func (s *step2RemoveContainer) Execute(ctx *context.Context) error {
 	}
 
 	steps := []task.Step{}
-	options := s.curveadm.ExecOptions()
-	options.ExecInLocal = true
 	steps = append(steps, &step.StopContainer{
 		ContainerId: playground.Name,
-		ExecOptions: options,
+		ExecOptions: execOptions(s.curveadm),
 	})
 	steps = append(steps, &step.RemoveContainer{
 		ContainerId: playground.Name,
-		ExecOptions: options,
+		ExecOptions: execOptions(s.curveadm),
 	})
-	mountPoint := playground.MountPoint
-	if len(playground.MountPoint) > 0 {
-		steps = append(steps, &step.UmountFilesystem{
-			Directorys:     []string{mountPoint},
-			IgnoreNotFound: true,
-			IgnoreUmounted: true,
-			ExecOptions:    options,
-		})
-	}
+	/*
+		mountPoint := playground.MountPoint
+		if len(playground.MountPoint) > 0 {
+			steps = append(steps, &step.UmountFilesystem{
+				Directorys:     []string{mountPoint},
+				IgnoreNotFound: true,
+				IgnoreUmounted: true,
+				ExecOptions:    execOptions(s.curveadm),
+			})
+		}
+	*/
 
 	for _, step := range steps {
 		err := step.Execute(ctx)
@@ -99,16 +99,13 @@ func NewRemovePlaygroundTask(curveadm *cli.CurveAdm, v interface{}) (*task.Task,
 
 	// add step to task
 	var containerId string
-	options := curveadm.ExecOptions()
-	options.ExecInLocal = true
-
 	t.AddStep(&step.ListContainers{
 		ShowAll:     true,
 		Format:      "'{{.ID}}'",
 		Quiet:       true,
 		Filter:      fmt.Sprintf("name=%s", playground.Name),
 		Out:         &containerId,
-		ExecOptions: options,
+		ExecOptions: execOptions(curveadm),
 	})
 	t.AddStep(&step2RemoveContainer{
 		containerId: &containerId,
