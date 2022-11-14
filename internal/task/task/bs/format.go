@@ -97,7 +97,7 @@ func checkDeviceUUID(host, device string, success *bool, uuid *string) step.Lamb
 func (s *step2EditFSTab) expression(express2del, express2add *string) step.LambdaType {
 	return func(ctx *context.Context) error {
 		*express2del = fmt.Sprintf("/UUID=%s/d", *s.oldUUID)
-		*express2add = fmt.Sprintf("$aUUID=%s  %s  ext4  rw,errors=remount-ro  0  0  # %s",
+		*express2add = fmt.Sprintf("$ a UUID=%s  %s  ext4  rw,errors=remount-ro  0  0  # %s",
 			s.uuid, s.mountPoint, WARNING_EDIT)
 		return nil
 	}
