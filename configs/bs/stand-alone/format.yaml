@@ -1,17 +1,6 @@
-user: curve
-ssh_port: 22
-private_key_file: /home/curve/.ssh/publish_rsa
 host:
-  - 10.0.1.1
+  - server-host1
 disk:
-  # support disk range like: /dev/sd[b-e]:/data/chunkserver[1-4]:90
-  # if you want to exclude disk /dev/sdc and sdd, use this:
-  #   /dev/sd[b-e,^cd]:/data/chunkserver[1-2]:80
-  # if you have too many disks on a host(more than 26), use these:
-  #   /dev/sd[a-z]:/data/chunkserver[1-26]:70
-  #   /dev/sda[a-z]:/data/chunkserver[27-52]:60
-  # also support disk and mountpoint with suffix, like:
-  #   /dev/nvme[0-9]n1:/data/chunkserver[0-9]n1:90
   - /dev/sda:/data/chunkserver0:90  # device:mount_path:format_percent%
   - /dev/sdb:/data/chunkserver1:90
   - /dev/sdc:/data/chunkserver2:90
