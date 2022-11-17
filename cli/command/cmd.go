@@ -70,6 +70,7 @@ func addSubCommands(cmd *cobra.Command, curveadm *cli.CurveAdm) {
 		NewCompletionCommand(curveadm), // curveadm completion
 		NewDeployCommand(curveadm),     // curveadm deploy
 		NewEnterCommand(curveadm),      // curveadm enter
+		NewExecCommand(curveadm),       // curveadm exec
 		NewFormatCommand(curveadm),     // curveadm format
 		NewMigrateCommand(curveadm),    // curveadm migrate
 		NewPrecheckCommand(curveadm),   // curveadm precheck

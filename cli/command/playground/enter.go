@@ -62,6 +62,6 @@ func runEnter(curveadm *cli.CurveAdm, options enterOptions) error {
 			F("id=%s", id)
 	}
 
-	// 2) attch remote container
+	// 2) attch local container
 	return tools.AttachLocalContainer(curveadm, playgrounds[0].Name)
 }
