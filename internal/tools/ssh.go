@@ -37,11 +37,12 @@ import (
 )
 
 const (
-	TEMPLATE_SCP                    = `scp -P {{.port}} {{or .options ""}} {{.source}} {{.user}}@{{.host}}:{{.target}}`
-	TEMPLATE_SSH_COMMAND            = `ssh {{.user}}@{{.host}} -p {{.port}} {{or .options ""}} {{or .become ""}} {{.command}}`
-	TEMPLATE_SSH_ATTACH             = `ssh -tt {{.user}}@{{.host}} -p {{.port}} {{or .options ""}} {{or .become ""}} {{.command}}`
-	TEMPLATE_COMMAND_EXEC_CONTAINER = `{{.sudo}} docker exec -it {{.container_id}} /bin/bash -c "cd {{.home_dir}}; /bin/bash"`
-	TEMPLATE_LOCAL_EXEC_CONTAINER   = `docker exec -it {{.container_id}} /bin/bash` // FIXME: merge it
+	TEMPLATE_SCP                             = `scp -P {{.port}} {{or .options ""}} {{.source}} {{.user}}@{{.host}}:{{.target}}`
+	TEMPLATE_SSH_COMMAND                     = `ssh {{.user}}@{{.host}} -p {{.port}} {{or .options ""}} {{or .become ""}} {{.command}}`
+	TEMPLATE_SSH_ATTACH                      = `ssh -tt {{.user}}@{{.host}} -p {{.port}} {{or .options ""}} {{or .become ""}} {{.command}}`
+	TEMPLATE_COMMAND_EXEC_CONTAINER          = `{{.sudo}} docker exec -it {{.container_id}} /bin/bash -c "cd {{.home_dir}}; /bin/bash"`
+	TEMPLATE_LOCAL_EXEC_CONTAINER            = `docker exec -it {{.container_id}} /bin/bash` // FIXME: merge it
+	TEMPLATE_COMMAND_EXEC_CONTAINER_NOATTACH = `{{.sudo}} docker exec -t {{.container_id}} /bin/bash -c "{{.command}}"`
 )
 
 func prepareOptions(curveadm *cli.CurveAdm, host string, become bool, extra map[string]interface{}) (map[string]interface{}, error) {
@@ -166,6 +167,27 @@ func AttachLocalContainer(curveadm *cli.CurveAdm, containerId string) error {
 	}
 	command := buffer.String()
 	return runCommand(curveadm, command, map[string]interface{}{})
+}
+
+func ExecCmdInRemoteContainer(curveadm *cli.CurveAdm, host, containerId, cmd string) error {
+	data := map[string]interface{}{
+		"sudo":         curveadm.Config().GetSudoAlias(),
+		"container_id": containerId,
+		"command":      cmd,
+	}
+	tmpl := template.Must(template.New("command").Parse(TEMPLATE_COMMAND_EXEC_CONTAINER_NOATTACH))
+	buffer := bytes.NewBufferString("")
+	if err := tmpl.Execute(buffer, data); err != nil {
+		return errno.ERR_BUILD_TEMPLATE_FAILED.E(err)
+	}
+	command := buffer.String()
+
+	options, err := prepareOptions(curveadm, host, true,
+		map[string]interface{}{"command": command})
+	if err != nil {
+		return err
+	}
+	return ssh(curveadm, options)
 }
 
 func Scp(curveadm *cli.CurveAdm, host, source, target string) error {
