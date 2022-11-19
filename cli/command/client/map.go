@@ -23,6 +23,7 @@
 package client
 
 import (
+	"github.com/dustin/go-humanize"
 	"strconv"
 	"strings"
 
@@ -88,24 +89,40 @@ func ParseImage(image string) (user, name string, err error) {
 }
 
 func ParseSize(size string) (int, error) {
-	if !strings.HasSuffix(size, "GB") {
-		return 0, errno.ERR_VOLUME_SIZE_MUST_END_WITH_GB_SUFFIX.
+	if !strings.HasSuffix(size, "GiB") {
+		return 0, errno.ERR_VOLUME_SIZE_MUST_END_WITH_GiB_SUFFIX.
 			F("size: %s", size)
 	}
 
-	size = strings.TrimSuffix(size, "GB")
+	size = strings.TrimSuffix(size, "GiB")
 	n, err := strconv.Atoi(size)
 	if err != nil || n <= 0 {
 		return 0, errno.ERR_VOLUME_SIZE_REQUIRES_POSITIVE_INTEGER.
-			F("size: %sGB", size)
+			F("size: %sGiB", size)
 	} else if n%10 != 0 {
-		return 0, errno.ERR_VOLUME_SIZE_MUST_BE_MULTIPLE_OF_10_GB.
-			F("size: %sGB", size)
+		return 0, errno.ERR_VOLUME_SIZE_MUST_BE_MULTIPLE_OF_10_GiB.
+			F("size: %sGiB", size)
 	}
 
 	return n, nil
 }
 
+func ParseBlockSize(blocksize string) (uint64, error) {
+	if !strings.HasSuffix(blocksize, "B") {
+		return 0, errno.ERR_VOLUME_BLOCKSIZE_MUST_END_WITH_BYTE_SUFFIX.
+			F("blocksize: %s", blocksize)
+	}
+	blocksize = strings.TrimSuffix(blocksize, "B")
+	m, err := humanize.ParseBytes(blocksize)
+	if err != nil || m <= 0 {
+		return 0, errno.ERR_VOLUME_BLOCKSIZE_REQUIRES_POSITIVE_INTEGER.
+			F("blocksize: %s", humanize.IBytes(m))
+	} else if m%512 != 0 {
+		return 0, errno.ERR_VOLUME_BLOCKSIZE_BE_MULTIPLE_OF_512.
+			F("blocksize: %s", humanize.IBytes(m))
+	}
+	return m, nil
+}
 func checkMapOptions(curveadm *cli.CurveAdm, options mapOptions) error {
 	if _, _, err := ParseImage(options.image); err != nil {
 		return err
@@ -140,9 +157,8 @@ func NewMapCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	flags.StringVar(&options.host, "host", "localhost", "Specify target host")
 	flags.BoolVar(&options.create, "create", false, "Create volume iff not exist")
 	flags.BoolVar(&options.noExclusive, "no-exclusive", false, "Map volume non exclusive")
-	flags.StringVar(&options.size, "size", "10GB", "Specify volume size")
+	flags.StringVar(&options.size, "size", "10GiB", "Specify volume size")
 	flags.StringVarP(&options.filename, "conf", "c", "client.yaml", "Specify client configuration file")
-
 	return cmd
 }
 
