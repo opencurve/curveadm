@@ -60,6 +60,7 @@ type mapOptions struct {
 	image       string
 	host        string
 	size        string
+	blocksize   string
 	create      bool
 	filename    string
 	noExclusive bool
@@ -106,10 +107,29 @@ func ParseSize(size string) (int, error) {
 	return n, nil
 }
 
+func ParseBlockSize(blocksize string) (int, error) {
+	if !strings.HasSuffix(blocksize, "byte") {
+		return 0, errno.ERR_VOLUME_BLOCKSIZE_MUST_END_WITH_BYTE_SUFFIX.
+			F("blocksize: %s", blocksize)
+	}
+	blocksize = strings.TrimSuffix(blocksize, "byte")
+	m, err := strconv.Atoi(blocksize)
+	if err != nil || m <= 0 {
+		return 0, errno.ERR_VOLUME_BLOCKSIZE_REQUIRES_POSITIVE_INTEGER.
+			F("blocksize: %sbyte", blocksize)
+	} else if m%512 != 0 {
+		return 0, errno.ERR_VOLUME_BLOCKSIZE_BE_MULTIPLE_OF_512.
+			F("blocksize: %sbyte", blocksize)
+	}
+	return m, nil
+}
+
 func checkMapOptions(curveadm *cli.CurveAdm, options mapOptions) error {
 	if _, _, err := ParseImage(options.image); err != nil {
 		return err
 	} else if _, err = ParseSize(options.size); err != nil {
+		return err
+	} else if _, err = ParseBlockSize(options.blocksize); err != nil {
 		return err
 	} else if !utils.PathExist(options.filename) {
 		return errno.ERR_CLIENT_CONFIGURE_FILE_NOT_EXIST.
@@ -142,7 +162,7 @@ func NewMapCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	flags.BoolVar(&options.noExclusive, "no-exclusive", false, "Map volume non exclusive")
 	flags.StringVar(&options.size, "size", "10GB", "Specify volume size")
 	flags.StringVarP(&options.filename, "conf", "c", "client.yaml", "Specify client configuration file")
-
+	flags.StringVar(&options.blocksize, "block size", "512byte", "Specify target block size")
 	return cmd
 }
 
