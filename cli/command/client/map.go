@@ -110,16 +110,16 @@ func ParseSize(size string) (int, error) {
 func ParseBlockSize(blocksize string) (int, error) {
 	if !strings.HasSuffix(blocksize, "byte") {
 		return 0, errno.ERR_VOLUME_BLOCKSIZE_MUST_END_WITH_BYTE_SUFFIX.
-			F("block size: %d byte", blocksize)
+			F("blocksize: %s", blocksize)
 	}
 	blocksize = strings.TrimSuffix(blocksize, "byte")
 	m, err := strconv.Atoi(blocksize)
 	if err != nil || m <= 0 {
 		return 0, errno.ERR_VOLUME_BLOCKSIZE_REQUIRES_POSITIVE_INTEGER.
-			F("block size: %d byte", blocksize)
+			F("blocksize: %sbyte", blocksize)
 	} else if m%512 != 0 {
 		return 0, errno.ERR_VOLUME_BLOCKSIZE_BE_MULTIPLE_OF_512.
-			F("block size: %d byte", blocksize)
+			F("blocksize: %sbyte", blocksize)
 	}
 	return m, nil
 }
