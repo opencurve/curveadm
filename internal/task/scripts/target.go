@@ -27,6 +27,7 @@ package scripts
  * Example: target curve test true 10
  * See Also: https://linux.die.net/man/8/tgtadm
  */
+
 var TARGET = `
 #!/usr/bin/env bash
 
@@ -34,6 +35,7 @@ g_user=$1
 g_volume=$2
 g_create=$3
 g_size=$4
+g_blocksize=$5
 g_tid=1
 g_image=cbd:pool/${g_volume}_${g_user}_
 g_image_md5=$(echo -n ${g_image} | md5sum | awk '{ print $1 }')
@@ -50,7 +52,6 @@ if [ $g_create == "true" ]; then
         fi
     fi
 fi
-
 for ((i=1;;i++)); do
     tgtadm --lld iscsi --mode target --op show --tid $i 1>/dev/null 2>&1
     if [ $? -ne 0 ]; then
@@ -75,7 +76,8 @@ tgtadm --lld iscsi \
     --tid ${g_tid} \
     --lun 1 \
     --bstype curve \
-    --backing-store ${g_image}
+    --backing-store ${g_image} \
+    --blocksize ${g_blocksize}
 if [ $? -ne 0 ]; then
    echo "tgtadm logicalunit new failed"
    exit 1

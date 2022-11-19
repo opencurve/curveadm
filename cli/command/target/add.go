@@ -45,17 +45,20 @@ var (
 )
 
 type addOptions struct {
-	image    string
-	host     string
-	size     string
-	create   bool
-	filename string
+	image     string
+	host      string
+	size      string
+	create    bool
+	filename  string
+	blocksize string
 }
 
 func checkAddOptions(curveadm *cli.CurveAdm, options addOptions) error {
 	if _, _, err := client.ParseImage(options.image); err != nil {
 		return err
 	} else if _, err = client.ParseSize(options.size); err != nil {
+		return err
+	} else if _, err = client.ParseBlockSize(options.blocksize); err != nil {
 		return err
 	} else if !utils.PathExist(options.filename) {
 		return errno.ERR_CLIENT_CONFIGURE_FILE_NOT_EXIST.
@@ -85,9 +88,9 @@ func NewAddCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	flags := cmd.Flags()
 	flags.StringVar(&options.host, "host", "localhost", "Specify target host")
 	flags.BoolVar(&options.create, "create", false, "Create volume iff not exist")
-	flags.StringVar(&options.size, "size", "10GB", "Specify volume size")
+	flags.StringVar(&options.size, "size", "10GiB", "Specify volume size")
 	flags.StringVarP(&options.filename, "conf", "c", "client.yaml", "Specify client configuration file")
-
+	flags.StringVar(&options.blocksize, "blocksize", "4096B", "Specify volume blocksize")
 	return cmd
 }
 
@@ -96,6 +99,7 @@ func genAddPlaybook(curveadm *cli.CurveAdm,
 	options addOptions) (*playbook.Playbook, error) {
 	user, name, _ := client.ParseImage(options.image)
 	size, _ := client.ParseSize(options.size)
+	blocksize, _ := client.ParseBlockSize(options.blocksize)
 	steps := ADD_PLAYBOOK_STEPS
 	pb := playbook.NewPlaybook(curveadm)
 	for _, step := range steps {
@@ -104,11 +108,12 @@ func genAddPlaybook(curveadm *cli.CurveAdm,
 			Configs: ccs,
 			Options: map[string]interface{}{
 				comm.KEY_TARGET_OPTIONS: bs.TargetOption{
-					Host:   options.host,
-					User:   user,
-					Volume: name,
-					Size:   size,
-					Create: options.create,
+					Host:      options.host,
+					User:      user,
+					Volume:    name,
+					Size:      size,
+					Blocksize: blocksize,
+					Create:    options.create,
 				},
 			},
 		})
