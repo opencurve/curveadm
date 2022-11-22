@@ -38,7 +38,8 @@ import (
 const (
 	FORMAT_EXAMPLE = `Examples:
   $ curveadm format -f /path/to/format.yaml           # Format chunkfile pool with specified configure file
-  $ curveadm format --status -f /path/to/format.yaml  # Display formatting status`
+  $ curveadm format --status -f /path/to/format.yaml  # Display formatting status
+  $ curveadm format --stop   -f /path/to/format.yaml  # Stop formatting progress`
 )
 
 var (
@@ -49,11 +50,16 @@ var (
 	FORMAT_STATUS_PLAYBOOK_STEPS = []int{
 		playbook.GET_FORMAT_STATUS,
 	}
+	// FORMAT_STOP_PLAYBOOK_STEPS stop formatting step
+	FORMAT_STOP_PLAYBOOK_STEPS = []int{
+		playbook.STOP_FORMAT,
+	}
 )
 
 type formatOptions struct {
 	filename   string
 	showStatus bool
+	stopFormat bool
 }
 
 func NewFormatCommand(curveadm *cli.CurveAdm) *cobra.Command {
@@ -73,6 +79,7 @@ func NewFormatCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	flags := cmd.Flags()
 	flags.StringVarP(&options.filename, "formatting", "f", "format.yaml", "Specify the configure file for formatting chunkfile pool")
 	flags.BoolVar(&options.showStatus, "status", false, "Show formatting status")
+	flags.BoolVar(&options.stopFormat, "stop", false, "Stop formatting progress")
 
 	return cmd
 }
@@ -84,9 +91,16 @@ func genFormatPlaybook(curveadm *cli.CurveAdm,
 		return nil, errno.ERR_NO_DISK_FOR_FORMATTING
 	}
 
+	if options.showStatus && options.stopFormat {
+		return nil, errno.ERR_UNSUPPORT_CONFIGURE_VALUE_TYPE
+	}
+
 	steps := FORMAT_PLAYBOOK_STEPS
 	if options.showStatus {
 		steps = FORMAT_STATUS_PLAYBOOK_STEPS
+	}
+	if options.stopFormat {
+		steps = FORMAT_STOP_PLAYBOOK_STEPS
 	}
 	pb := playbook.NewPlaybook(curveadm)
 	for _, step := range steps {
