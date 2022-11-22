@@ -59,6 +59,7 @@ type (
 		mountPoint string
 		oldUUID    *string
 		uuid       string
+		skipAdd    bool
 		curveadm   *cli.CurveAdm
 	}
 )
@@ -137,12 +138,14 @@ func (s *step2EditFSTab) execute(ctx *context.Context) error {
 			ExecOptions: curveadm.ExecOptions(),
 		})
 	}
-	steps = append(steps, &step.Sed{ // add new record
-		Files:       []string{os.GetFSTabPath()},
-		Expression:  &express2add,
-		InPlace:     true,
-		ExecOptions: curveadm.ExecOptions(),
-	})
+	if !s.skipAdd {
+		steps = append(steps, &step.Sed{ // add new record
+			Files:       []string{os.GetFSTabPath()},
+			Expression:  &express2add,
+			InPlace:     true,
+			ExecOptions: curveadm.ExecOptions(),
+		})
+	}
 
 	for _, step := range steps {
 		err := step.Execute(ctx)
