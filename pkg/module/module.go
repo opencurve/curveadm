@@ -111,7 +111,7 @@ func execCommand(sshClient *SSHClient,
 		becomeMethod := sshClient.Config().BecomeMethod
 		becomeFlags := sshClient.Config().BecomeFlags
 		becomeUser := sshClient.Config().BecomeUser
-		if len(becomeUser) > 0 {
+		if len(becomeUser) > 0 && !options.ExecInLocal {
 			become := strings.Join([]string{becomeMethod, becomeFlags, becomeUser}, " ")
 			command = strings.Join([]string{become, command}, " ")
 		}
