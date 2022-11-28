@@ -23,9 +23,10 @@
 package client
 
 import (
-	"github.com/dustin/go-humanize"
 	"strconv"
 	"strings"
+
+	"github.com/dustin/go-humanize"
 
 	"github.com/fatih/color"
 	"github.com/opencurve/curveadm/cli/cli"
@@ -41,9 +42,10 @@ import (
 
 const (
 	MAP_EXAMPLE = `Examples:
-  $ curveadm map user:/volume --host machine1 --create                 # Map volume which created by automatic
-  $ curveadm map user:/volume --host machine1 --size=10GB --create     # Map volume which size is 10GB and created by automatic
-  $ curveadm map user:/volume --host machine1 -c /path/to/client.yaml  # Map volume with specified configure file`
+  $ curveadm map user:/volume --host machine1 --create                  # Map volume which created by automatic
+  $ curveadm map user:/volume --host machine1 --size=10GiB --create     # Map volume which size is 10GiB and created by automatic
+  $ curveadm map user:/volume --host machine1 --create --poolset ssd    # Map volume created by automatic in poolset 'ssd'
+  $ curveadm map user:/volume --host machine1 -c /path/to/client.yaml   # Map volume with specified configure file`
 )
 
 var (
@@ -64,6 +66,7 @@ type mapOptions struct {
 	create      bool
 	filename    string
 	noExclusive bool
+	poolset     string
 }
 
 func ParseImage(image string) (user, name string, err error) {
@@ -159,6 +162,7 @@ func NewMapCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	flags.BoolVar(&options.noExclusive, "no-exclusive", false, "Map volume non exclusive")
 	flags.StringVar(&options.size, "size", "10GiB", "Specify volume size")
 	flags.StringVarP(&options.filename, "conf", "c", "client.yaml", "Specify client configuration file")
+	flags.StringVar(&options.poolset, "poolset", "", "Specify the poolset")
 	return cmd
 }
 
@@ -181,6 +185,7 @@ func genMapPlaybook(curveadm *cli.CurveAdm,
 					Size:        size,
 					Create:      options.create,
 					NoExclusive: options.noExclusive,
+					Poolset:     options.poolset,
 				},
 				comm.KEY_CLIENT_HOST:              options.host, // for checker
 				comm.KEY_CHECK_KERNEL_MODULE_NAME: comm.KERNERL_MODULE_NBD,
