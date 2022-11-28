@@ -32,8 +32,9 @@ var CREATE_VOLUME = `
 g_user=$1
 g_volume=$2
 g_size=$3
+g_poolset=$4
 
-output=$(curve_ops_tool create -userName=$g_user -fileName=$g_volume -fileLength=$g_size)
+output=$(curve_ops_tool create -userName=$g_user -fileName=$g_volume -fileLength=$g_size -poolset=$g_poolset)
 if [ $? -ne 0 ]; then
   if [ "$output" = "CreateFile fail with errCode: 101" ]; then
      echo "EXIST"

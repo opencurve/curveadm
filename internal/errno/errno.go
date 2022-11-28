@@ -233,6 +233,7 @@ var (
 	ERR_UNSUPPORT_SKIPPED_CHECK_ITEM   = EC(210004, "unsupport skipped check item")
 	ERR_UNSUPPORT_CLEAN_ITEM           = EC(210005, "unsupport clean item")
 	ERR_NO_SERVICES_MATCHED            = EC(210006, "no services matched")
+	ERR_INVALID_DISK_TYPE              = EC(210007, "diskType must be lowercase and only can only be one of ssd, hdd and nvme")
 
 	// 220: commad options (client common)
 	ERR_UNSUPPORT_CLIENT_KIND = EC(220000, "unsupport client kind")

@@ -48,7 +48,7 @@ type step2SetClusterPool struct {
 	storage     *storage.Storage
 }
 
-func getClusterPool(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (configure.CurveClusterTopo, error) {
+func getClusterPool(curveadm *cli.CurveAdm, dc *topology.DeployConfig, poolsetName, diskType string) (configure.CurveClusterTopo, error) {
 	oldPool := configure.CurveClusterTopo{}
 	dcs, err := curveadm.ParseTopology()
 	if err != nil {
@@ -58,7 +58,7 @@ func getClusterPool(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (configur
 	// 1) generate a new default pool
 	data := curveadm.ClusterPoolData()
 	if len(data) == 0 {
-		return configure.GenerateDefaultClusterPool(dcs)
+		return configure.GenerateDefaultClusterPool(dcs, poolsetName, diskType)
 	}
 
 	// 2) OR change old pool and return it
@@ -66,7 +66,7 @@ func getClusterPool(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (configur
 	if err != nil {
 		return oldPool, err
 	}
-	pool, err := configure.GenerateDefaultClusterPool(dcs)
+	pool, err := configure.GenerateDefaultClusterPool(dcs, poolsetName, diskType)
 	if err != nil {
 		return pool, err
 	}
@@ -87,10 +87,10 @@ func getClusterPool(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (configur
 	return oldPool, err
 }
 
-func prepare(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (clusterPoolJson, clusterMDSAddrs string, err error) {
+func prepare(curveadm *cli.CurveAdm, dc *topology.DeployConfig, poolsetName, diskType string) (clusterPoolJson, clusterMDSAddrs string, err error) {
 	// 1. get origin cluster pool
 	var clusterPool configure.CurveClusterTopo
-	clusterPool, err = getClusterPool(curveadm, dc)
+	clusterPool, err = getClusterPool(curveadm, dc, poolsetName, diskType)
 	if err != nil {
 		return
 	}
@@ -98,7 +98,7 @@ func prepare(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (clusterPoolJson
 	// 2. scale out cluster or migrate servers
 	if curveadm.MemStorage().Get(comm.KEY_SCALE_OUT_CLUSTER) != nil { // scale out cluster
 		dcs := curveadm.MemStorage().Get(comm.KEY_SCALE_OUT_CLUSTER).([]*topology.DeployConfig)
-		configure.ScaleOutClusterPool(&clusterPool, dcs)
+		configure.ScaleOutClusterPool(&clusterPool, dcs, poolsetName, diskType)
 	} else if curveadm.MemStorage().Get(comm.KEY_MIGRATE_SERVERS) != nil { // migrate servers
 		migrates := curveadm.MemStorage().Get(comm.KEY_MIGRATE_SERVERS).([]*configure.MigrateServer)
 		configure.MigrateClusterServer(&clusterPool, migrates)
@@ -193,6 +193,9 @@ func NewCreateTopologyTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*
 		dc.GetHost(), dc.GetRole(), tui.TrimContainerId(containerId))
 	t := task.NewTask(name, subname, hc.GetSSHConfig())
 
+	disktype := curveadm.MemStorage().Get(comm.SPECIFY_DISK_TYPE).(string)
+	poolsetName := curveadm.MemStorage().Get(comm.POOLSET).(string)
+
 	// add step to task
 	var success bool
 	var out string
@@ -201,7 +204,7 @@ func NewCreateTopologyTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*
 	poolJSONPath := fmt.Sprintf("%s/topology.json", layout.ToolsConfDir)
 	waitScript := scripts.SCRIPT_WAIT
 	waitScriptPath := fmt.Sprintf("%s/wait.sh", layout.ToolsBinDir)
-	clusterPoolJson, clusterMDSAddrs, err := prepare(curveadm, dc)
+	clusterPoolJson, clusterMDSAddrs, err := prepare(curveadm, dc, poolsetName, disktype)
 	if err != nil {
 		return nil, err
 	}

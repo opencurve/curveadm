@@ -45,6 +45,8 @@ const (
 	KEY_CREATE_POOL_TYPE   = "POOL_TYPE"
 	POOL_TYPE_LOGICAL      = "logicalpool"
 	POOL_TYPE_PHYSICAL     = "physicalpool"
+	SPECIFY_DISK_TYPE      = "disktype"
+	POOLSET                = "poolset"
 
 	// format
 	KEY_ALL_FORMAT_STATUS = "ALL_FORMAT_STATUS"

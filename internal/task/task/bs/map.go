@@ -44,6 +44,7 @@ type (
 		Create      bool
 		Size        int
 		NoExclusive bool
+		Poolset     string
 	}
 )
 

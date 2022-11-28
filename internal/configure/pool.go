@@ -46,7 +46,10 @@ type (
 		From *topology.DeployConfig
 		To   *topology.DeployConfig
 	}
-
+	Poolset struct {
+		Name string `json:"name"`
+		Type string `json:"type"`
+	}
 	LogicalPool struct {
 		Name         string `json:"name"`
 		Replicas     int    `json:"replicasnum"`
@@ -66,12 +69,14 @@ type (
 		Zone         string `json:"zone"`
 		PhysicalPool string `json:"physicalpool,omitempty"` // curvebs
 		Pool         string `json:"pool,omitempty"`         // curvefs
+		PoolsetName  string `json:"poolsetName,omitempty"`  // curvebs
 	}
 
 	CurveClusterTopo struct {
 		Servers      []Server      `json:"servers"`
 		LogicalPools []LogicalPool `json:"logicalpools,omitempty"` // curvebs
 		Pools        []LogicalPool `json:"pools,omitempty"`        // curvefs
+		Poolsets     []Poolset     `json:"poolsets,omitempty"`     // curvebs
 		NPools       int           `json:"npools"`
 	}
 )
@@ -140,7 +145,7 @@ func formatName(dc *topology.DeployConfig) string {
 	return fmt.Sprintf("%s_%s_%d", dc.GetHost(), dc.GetName(), dc.GetReplicasSequence())
 }
 
-func createLogicalPool(dcs []*topology.DeployConfig, logicalPool string) (LogicalPool, []Server) {
+func createLogicalPool(dcs []*topology.DeployConfig, logicalPool string, poolsetName string) (LogicalPool, []Server) {
 	var zone string
 	copysets := 0
 	servers := []Server{}
@@ -179,6 +184,7 @@ func createLogicalPool(dcs []*topology.DeployConfig, logicalPool string) (Logica
 			}
 			if kind == KIND_CURVEBS {
 				server.PhysicalPool = physicalPool
+				server.PoolsetName = poolsetName
 			} else {
 				server.Pool = logicalPool
 			}
@@ -209,23 +215,41 @@ func createLogicalPool(dcs []*topology.DeployConfig, logicalPool string) (Logica
 	return lpool, servers
 }
 
-func generateClusterPool(dcs []*topology.DeployConfig, poolName string) CurveClusterTopo {
-	lpool, servers := createLogicalPool(dcs, poolName)
+func generateClusterPool(dcs []*topology.DeployConfig, poolName string, poolsetName, diskType string) CurveClusterTopo {
+	lpool, servers := createLogicalPool(dcs, poolName, poolsetName)
 	topo := CurveClusterTopo{Servers: servers, NPools: 1}
 	if dcs[0].GetKind() == KIND_CURVEBS {
 		topo.LogicalPools = []LogicalPool{lpool}
+		//Poolset
+		poolset := Poolset{
+			Name: poolsetName,
+			Type: diskType,
+		}
+		//topo.Poolsets = []Poolset{poolset}
+		topo.Poolsets = append(topo.Poolsets, poolset)
 	} else {
 		topo.Pools = []LogicalPool{lpool}
 	}
 	return topo
 }
 
-func ScaleOutClusterPool(old *CurveClusterTopo, dcs []*topology.DeployConfig) {
+func ScaleOutClusterPool(old *CurveClusterTopo, dcs []*topology.DeployConfig, poolsetName, diskType string) {
 	npools := old.NPools
-	topo := generateClusterPool(dcs, fmt.Sprintf("pool%d", npools+1))
+	topo := generateClusterPool(dcs, fmt.Sprintf("pool%d", npools+1), poolsetName, diskType)
 	if dcs[0].GetKind() == KIND_CURVEBS {
 		for _, pool := range topo.LogicalPools {
 			old.LogicalPools = append(old.LogicalPools, pool)
+		}
+		for _, newPst := range topo.Poolsets {
+			isExist := false
+			for _, oldPst := range old.Poolsets {
+				if oldPst.Name == newPst.Name {
+					isExist = true
+				}
+			}
+			if !isExist {
+				old.Poolsets = append(old.Poolsets, newPst)
+			}
 		}
 	} else {
 		for _, pool := range topo.Pools {
@@ -261,7 +285,7 @@ func MigrateClusterServer(old *CurveClusterTopo, migrates []*MigrateServer) {
 	}
 }
 
-func GenerateDefaultClusterPool(dcs []*topology.DeployConfig) (topo CurveClusterTopo, err error) {
-	topo = generateClusterPool(dcs, "pool1")
+func GenerateDefaultClusterPool(dcs []*topology.DeployConfig, poolsetName, diskType string) (topo CurveClusterTopo, err error) {
+	topo = generateClusterPool(dcs, "pool1", poolsetName, diskType)
 	return
 }
