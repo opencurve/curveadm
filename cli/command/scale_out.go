@@ -23,6 +23,8 @@
 package command
 
 import (
+	"time"
+
 	"github.com/fatih/color"
 	"github.com/opencurve/curveadm/cli/cli"
 	comm "github.com/opencurve/curveadm/internal/common"
@@ -33,7 +35,6 @@ import (
 	cliutil "github.com/opencurve/curveadm/internal/utils"
 	utils "github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/cobra"
-	"time"
 )
 
 var (
@@ -113,8 +114,10 @@ var (
 )
 
 type scaleOutOptions struct {
-	insecure bool
-	filename string
+	insecure        bool
+	filename        string
+	poolset         string
+	poolsetDiskType string
 }
 
 func NewScaleOutCommand(curveadm *cli.CurveAdm) *cobra.Command {
@@ -134,6 +137,9 @@ func NewScaleOutCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	flags := cmd.Flags()
 	flags.BoolVarP(&options.insecure, "insecure", "k", false,
 		"Scale out cluster without precheck")
+
+	flags.StringVar(&options.poolset, "poolset", "default", "Specify the poolset")
+	flags.StringVar(&options.poolsetDiskType, "poolset-disktype", "ssd", "Specify the disk type of physical pool")
 
 	return cmd
 }
@@ -305,7 +311,7 @@ func precheckBeforeScaleOut(curveadm *cli.CurveAdm, options scaleOutOptions, dat
 }
 
 func genScaleOutPlaybook(curveadm *cli.CurveAdm,
-	dcs []*topology.DeployConfig, data string) (*playbook.Playbook, error) {
+	dcs []*topology.DeployConfig, data, poolset, poolsetDiskType string) (*playbook.Playbook, error) {
 	diffs, _ := diffTopology(curveadm, data)
 	dcs2scaleOut := diffs[topology.DIFF_ADD]
 	role := dcs2scaleOut[0].GetRole()
@@ -330,10 +336,14 @@ func genScaleOutPlaybook(curveadm *cli.CurveAdm,
 			options[comm.KEY_CREATE_POOL_TYPE] = comm.POOL_TYPE_PHYSICAL
 			options[comm.KEY_SCALE_OUT_CLUSTER] = dcs2scaleOut
 			options[comm.KEY_NEW_TOPOLOGY_DATA] = data
+			options[comm.POOLSET] = poolset
+			options[comm.POOLSET_DISK_TYPE] = poolsetDiskType
 		case CREATE_LOGICAL_POOL:
 			options[comm.KEY_CREATE_POOL_TYPE] = comm.POOL_TYPE_LOGICAL
 			options[comm.KEY_SCALE_OUT_CLUSTER] = dcs2scaleOut
 			options[comm.KEY_NEW_TOPOLOGY_DATA] = data
+			options[comm.POOLSET] = poolset
+			options[comm.POOLSET_DISK_TYPE] = poolsetDiskType
 		case playbook.UPDATE_TOPOLOGY:
 			options[comm.KEY_NEW_TOPOLOGY_DATA] = data
 		}
@@ -396,7 +406,7 @@ func runScaleOut(curveadm *cli.CurveAdm, options scaleOutOptions) error {
 	}
 
 	// 7) generate scale-out playbook
-	pb, err := genScaleOutPlaybook(curveadm, dcs, data)
+	pb, err := genScaleOutPlaybook(curveadm, dcs, data, options.poolset, options.poolsetDiskType)
 	if err != nil {
 		return err
 	}

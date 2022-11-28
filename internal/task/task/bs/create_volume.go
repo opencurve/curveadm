@@ -83,8 +83,7 @@ func NewCreateVolumeTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*t
 	toolsConf := fmt.Sprintf(FORMAT_TOOLS_CONF, cc.GetClusterMDSAddr())
 	script := scripts.CREATE_VOLUME
 	scriptPath := "/curvebs/nebd/sbin/create.sh"
-	command := fmt.Sprintf("/bin/bash %s %s %s %d", scriptPath, options.User, options.Volume, options.Size)
-
+	command := fmt.Sprintf("/bin/bash %s %s %s %d %s", scriptPath, options.User, options.Volume, options.Size, options.Poolset)
 	t.AddStep(&step.ListContainers{
 		ShowAll:     true,
 		Format:      "'{{.Status}}'",
