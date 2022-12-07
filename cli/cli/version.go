@@ -25,5 +25,5 @@
 package cli
 
 var (
-	Version = "0.1.12-dev"
+	Version = "0.1.12-dev.2"
 )
