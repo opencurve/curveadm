@@ -135,8 +135,15 @@ func newMutate(cc *configure.ClientConfig, delimiter string) step.Mutate {
 
 		// replace config
 		v, ok := serviceConfig[strings.ToLower(key)]
+		var valueInter interface{}
 		if ok {
-			value = v
+			valueInter = v
+		}
+
+		// replace delimiter
+		v, err = utils.ReplaceDelimiter(valueInter, delimiter)
+		if err == nil{
+			value = v.(string)
 		}
 
 		out = fmt.Sprintf("%s%s%s", key, delimiter, value)
@@ -178,8 +185,14 @@ func newCurveBSMutate(cc *configure.ClientConfig, delimiter string) step.Mutate 
 			}
 
 			v, ok := serviceConfig[replaceKey]
+			var valueInter interface{}
 			if ok {
-				value = v
+				valueInter = v
+			}
+			// replace delimiter
+			v, err = utils.ReplaceDelimiter(valueInter, delimiter)
+			if err == nil{
+				value = v.(string)
 			}
 		}
 
@@ -203,8 +216,14 @@ func newToolsMutate(cc *configure.ClientConfig, delimiter string) step.Mutate {
 			replaceKey = tools2client[key]
 		}
 		v, ok := clientConfig[strings.ToLower(replaceKey)]
+		var valueInter interface{}
 		if ok {
-			value = v
+			valueInter = v
+		}
+		// replace delimiter
+		v, err = utils.ReplaceDelimiter(valueInter, delimiter)
+		if err == nil{
+			value = v.(string)
 		}
 		out = fmt.Sprintf("%s%s%s", key, delimiter, value)
 		return

@@ -79,14 +79,14 @@ type (
 
 	ClientConfig struct {
 		config        map[string]interface{}
-		serviceConfig map[string]string
+		serviceConfig map[string]interface{}
 		variables     *variable.Variables
 		data          string // configure file content
 	}
 )
 
 func NewClientConfig(config map[string]interface{}) (*ClientConfig, error) {
-	serviceConfig := map[string]string{}
+	serviceConfig := make(map[string]interface{})
 	for k, v := range config {
 		value, ok := utils.All2Str(v)
 		if !ok {
@@ -173,18 +173,18 @@ func (cc *ClientConfig) getBool(key string) bool {
 	return v.(bool)
 }
 
-func (cc *ClientConfig) GetKind() string                    { return cc.getString(KEY_KIND) }
-func (cc *ClientConfig) GetDataDir() string                 { return cc.getString(KEY_DATA_DIR) }
-func (cc *ClientConfig) GetLogDir() string                  { return cc.getString(KEY_LOG_DIR) }
-func (cc *ClientConfig) GetCoreDir() string                 { return cc.getString(KEY_CORE_DIR) }
-func (cc *ClientConfig) GetS3AccessKey() string             { return cc.getString(KEY_CLIENT_S3_ACCESS_KEY) }
-func (cc *ClientConfig) GetS3SecretKey() string             { return cc.getString(KEY_CLIENT_S3_SECRET_KEY) }
-func (cc *ClientConfig) GetS3Address() string               { return cc.getString(KEY_CLIENT_S3_ADDRESS) }
-func (cc *ClientConfig) GetS3BucketName() string            { return cc.getString(KEY_CLIENT_S3_BUCKET_NAME) }
-func (c *ClientConfig) GetContainerPid() string             { return c.getString(KEY_CONTAINER_PID) }
-func (cc *ClientConfig) GetCoreLocateDir() string           { return DEFAULT_CORE_LOCATE_DIR }
-func (c *ClientConfig) GetServiceConfig() map[string]string { return c.serviceConfig }
-func (cc *ClientConfig) GetVariables() *variable.Variables  { return cc.variables }
+func (cc *ClientConfig) GetKind() string                         { return cc.getString(KEY_KIND) }
+func (cc *ClientConfig) GetDataDir() string                      { return cc.getString(KEY_DATA_DIR) }
+func (cc *ClientConfig) GetLogDir() string                       { return cc.getString(KEY_LOG_DIR) }
+func (cc *ClientConfig) GetCoreDir() string                      { return cc.getString(KEY_CORE_DIR) }
+func (cc *ClientConfig) GetS3AccessKey() string                  { return cc.getString(KEY_CLIENT_S3_ACCESS_KEY) }
+func (cc *ClientConfig) GetS3SecretKey() string                  { return cc.getString(KEY_CLIENT_S3_SECRET_KEY) }
+func (cc *ClientConfig) GetS3Address() string                    { return cc.getString(KEY_CLIENT_S3_ADDRESS) }
+func (cc *ClientConfig) GetS3BucketName() string                 { return cc.getString(KEY_CLIENT_S3_BUCKET_NAME) }
+func (c *ClientConfig) GetContainerPid() string                  { return c.getString(KEY_CONTAINER_PID) }
+func (cc *ClientConfig) GetCoreLocateDir() string                { return DEFAULT_CORE_LOCATE_DIR }
+func (c *ClientConfig) GetServiceConfig() map[string]interface{} { return c.serviceConfig }
+func (cc *ClientConfig) GetVariables() *variable.Variables       { return cc.variables }
 func (cc *ClientConfig) GetContainerImage() string {
 	containerImage := cc.getString(KEY_CONTAINER_IMAGE)
 	if len(containerImage) == 0 {

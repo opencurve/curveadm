@@ -84,6 +84,26 @@ var (
 		playbook.CHECK_HOST_DATE,
 	}
 
+	MEMCACHED_PRECHECK_STEPS = []int{
+		playbook.CHECK_TOPOLOGY,             // topology
+		playbook.CHECK_SSH_CONNECT,          // ssh
+		playbook.CHECK_PERMISSION,           // permission
+		playbook.CLEAN_PRECHECK_ENVIRONMENT, // <none>
+		playbook.CHECK_PORT_IN_USE,          // network
+		playbook.START_HTTP_SERVER,
+		playbook.CHECK_DESTINATION_REACHABLE,
+		playbook.CHECK_NETWORK_FIREWALL,
+		playbook.GET_HOST_DATE, // date
+		playbook.CHECK_HOST_DATE,
+		playbook.CHECK_EXTENDED_EXT_PATH,
+	}
+
+	KIND_MAP_CHECK_STEPS = map[string][]int{
+		topology.KIND_CURVEBS:   CURVEBS_PRECHECK_STEPS,
+		topology.KIND_CURVEFS:   CURVEFS_PRECHECK_STEPS,
+		topology.KIND_MEMCACHED: MEMCACHED_PRECHECK_STEPS,
+	}
+
 	PRECHECK_POST_STEPS = []int{
 		playbook.CLEAN_PRECHECK_ENVIRONMENT,
 	}
@@ -169,11 +189,7 @@ func skipPrecheckSteps(precheckSteps []int, options precheckOptions) []int {
 func genPrecheckPlaybook(curveadm *cli.CurveAdm,
 	dcs []*topology.DeployConfig,
 	options precheckOptions) (*playbook.Playbook, error) {
-	kind := dcs[0].GetKind()
-	steps := CURVEFS_PRECHECK_STEPS
-	if kind == topology.KIND_CURVEBS {
-		steps = CURVEBS_PRECHECK_STEPS
-	}
+	steps := KIND_MAP_CHECK_STEPS[dcs[0].GetKind()]
 	steps = skipPrecheckSteps(steps, options)
 
 	// add playbook step

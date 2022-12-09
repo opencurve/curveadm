@@ -150,6 +150,25 @@ func (vars *Variables) Rendering(s string) (string, error) {
 	return value, err
 }
 
+func (vars *Variables) RenderingTree(s interface{}) (interface{}, error) {
+	switch data := s.(type) {
+	case string:
+		return vars.Rendering(data)
+	case map[string]interface{}:
+		retVal := make(map[string]interface{})
+		for key, value := range data {
+			renderValue, err := vars.RenderingTree(value)
+			if err != nil {
+				return nil, err
+			}
+			retVal[key] = renderValue
+		}
+		return retVal, nil
+	default:
+		return nil, fmt.Errorf("unrecognized data: %v", s)
+	}
+}
+
 func (vars *Variables) Debug() {
 	for _, v := range vars.m {
 		log.Info("Variable", log.Field(v.Name, v.Value))

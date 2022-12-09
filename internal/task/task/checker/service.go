@@ -53,6 +53,11 @@ type (
 	step2CheckClientS3Configure struct {
 		config *configure.ClientConfig
 	}
+
+	step2CheckExtendedExtPath struct {
+		dc          *topology.DeployConfig
+		execOptions module.ExecOptions
+	}
 )
 
 func (s *step2CheckChunkfilePool) Execute(ctx *context.Context) error {
@@ -188,4 +193,46 @@ func NewClientS3ConfigureTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig
 
 func NewCheckDiskUsageTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.Task, error) {
 	return nil, nil
+}
+
+func NewCheckExtendedExtPathTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig)(*task.Task, error) {
+	hc, err := curveadm.GetHost(dc.GetHost())
+	if err != nil {
+		return nil, err
+	}
+
+	subname := fmt.Sprintf("host=%s role=%s", dc.GetHost(), dc.GetRole())
+	t := task.NewTask("Check extended ext_path", subname, hc.GetSSHConfig())
+
+	t.AddStep(&step2CheckExtendedExtPath{
+		dc:          dc,
+		execOptions: curveadm.ExecOptions(),
+	})
+
+	return t, nil
+}
+
+func (s *step2CheckExtendedExtPath) Execute(ctx *context.Context) error {
+	dc := s.dc
+	extended := dc.GetExtended()
+	if len(extended) == 0 || extended["ext_path"] == nil || extended["ext_path"] == "" {
+		return nil
+	}
+	strSplit := strings.Split(extended["ext_path"].(string), ":")
+	if len(strSplit) != 2 {
+		return fmt.Errorf("unsupport extended ext_path: %s", extended["ext_path"])
+	}
+	dataPath := strSplit[0]
+
+	var out string
+	step := step.List{
+		Files:       []string{dataPath},
+		Out:         &out,
+		ExecOptions: s.execOptions,
+	}
+	err := step.Execute(ctx)
+	if err != nil {
+		return err
+	}
+	return nil
 }

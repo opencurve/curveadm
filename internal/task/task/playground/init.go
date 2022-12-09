@@ -36,6 +36,7 @@ import (
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
 	"github.com/opencurve/curveadm/internal/task/task/playground/script"
+	"github.com/opencurve/curveadm/internal/utils"
 	"github.com/opencurve/curveadm/pkg/variable"
 )
 
@@ -45,7 +46,7 @@ const (
 )
 
 func newMutate(cfg interface{}, delimiter string) step.Mutate {
-	var serviceCfg map[string]string
+	var serviceCfg map[string]interface{}
 	var variables *variable.Variables
 	switch cfg.(type) {
 	case *topology.DeployConfig:
@@ -66,13 +67,20 @@ func newMutate(cfg interface{}, delimiter string) step.Mutate {
 
 		// replace config
 		v, ok := serviceCfg[strings.ToLower(key)]
+		var valueInter interface{}
 		if ok {
-			value = v
+			valueInter = v
 		}
 
 		// replace variable
-		value, err = variables.Rendering(value)
+		valueInter, err = variables.RenderingTree(valueInter)
 		if err != nil {
+			return
+		}
+
+		// replace delimiter
+		value, err = utils.ReplaceDelimiter(valueInter, delimiter)
+		if err != nil{
 			return
 		}
 

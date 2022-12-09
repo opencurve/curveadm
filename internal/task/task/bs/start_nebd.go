@@ -85,14 +85,21 @@ func newMutate(cc *configure.ClientConfig, delimiter string) step.Mutate {
 
 		// replace config
 		v, ok := serviceConfig[strings.ToLower(key)]
+		var valueInter interface{}
 		if ok {
-			value = v
+			valueInter = v
 		}
 
 		// replace variable
-		value, err = cc.GetVariables().Rendering(value)
+		valueInter, err = cc.GetVariables().RenderingTree(valueInter)
 		if err != nil {
 			return
+		}
+
+		// replace delimiter
+		v, err = utils.ReplaceDelimiter(valueInter, delimiter)
+		if err == nil{
+			value = v.(string)
 		}
 
 		out = fmt.Sprintf("%s%s%s", key, delimiter, value)

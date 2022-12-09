@@ -115,6 +115,28 @@ func All2Str(v interface{}) (value string, ok bool) {
 	return
 }
 
+func Final2Str(v interface{}) (value interface{}, ok bool) {
+	vStr, ok := All2Str(v)
+	if ok {
+		return vStr, ok
+	}
+	// ok = false
+	retValue := make(map[string]interface{})
+	switch v.(type) {
+	case map[string]interface{}:
+		ok = true
+		for key, value := range v.(map[string]interface{}) {
+			fianlValue, ok := Final2Str(value)
+			if !ok {
+				return nil, ok
+			}
+			retValue[key] = fianlValue
+		}
+	default:
+	}
+	return retValue, ok
+}
+
 // convert all to string
 func Atoa(v interface{}) string {
 	value, _ := All2Str(v)
@@ -134,6 +156,15 @@ func Str2Bool(s string) (bool, bool) { // value, ok
 func IsTrueStr(s string) bool {
 	v, yes := Str2Bool(s)
 	return yes && v == true
+}
+
+func Inter2MapStr2Interface(s interface{}) (map[string]interface{}, bool) {
+	switch data := s.(type) {
+		case map[string]interface{}:
+			return data, true
+		default:
+			return nil, false
+	}
 }
 
 func TrimSuffixRepeat(s, suffix string) string {
@@ -314,4 +345,23 @@ func EncryptFile(srcfile, dstfile, secret string) error {
 	// Append the IV
 	outfile.Write(iv)
 	return nil
+}
+
+func ReplaceDelimiter(value interface{}, delimiter string) (string, error) {
+	switch data := value.(type) {
+	case string:
+		return data, nil
+	case map[string]interface{}:
+		var ret string
+		for k, v := range data {
+			vStr, ok := ReplaceDelimiter(v, delimiter)
+			if ok != nil {
+				return "", ok
+			}
+			ret +=  fmt.Sprintf("%s%s%s\n", k, delimiter, vStr)
+		}
+		return ret, nil
+	default:
+		return "", fmt.Errorf("unrecognized data: %v", value)
+	}
 }

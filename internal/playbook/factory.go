@@ -51,6 +51,7 @@ const (
 	CHECK_CHUNKFILE_POOL
 	CHECK_S3
 	CLEAN_PRECHECK_ENVIRONMENT
+	CHECK_EXTENDED_EXT_PATH
 
 	// common
 	PULL_IMAGE
@@ -62,6 +63,7 @@ const (
 	START_CHUNKSERVER
 	START_SNAPSHOTCLONE
 	START_METASERVER
+	START_MEMCACHED
 	STOP_SERVICE
 	RESTART_SERVICE
 	CREATE_PHYSICAL_POOL
@@ -183,6 +185,8 @@ func (p *Playbook) createTasks(step *PlaybookStep) (*tasks.Tasks, error) {
 			t, err = checker.NewCheckMdsAddressTask(curveadm, config.GetCC(i))
 		case CLEAN_PRECHECK_ENVIRONMENT:
 			t, err = checker.NewCleanEnvironmentTask(curveadm, config.GetDC(i))
+		case CHECK_EXTENDED_EXT_PATH:
+			t, err = checker.NewCheckExtendedExtPathTask(curveadm, config.GetDC(i))
 		// common
 		case PULL_IMAGE:
 			t, err = comm.NewPullImageTask(curveadm, config.GetDC(i))
@@ -195,6 +199,7 @@ func (p *Playbook) createTasks(step *PlaybookStep) (*tasks.Tasks, error) {
 			START_MDS,
 			START_CHUNKSERVER,
 			START_SNAPSHOTCLONE,
+			START_MEMCACHED,
 			START_METASERVER:
 			t, err = comm.NewStartServiceTask(curveadm, config.GetDC(i))
 		case STOP_SERVICE:

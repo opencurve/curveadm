@@ -1,0 +1,21 @@
+kind: memcached
+global:
+  container_image: opencurvedocker/curvefs:latest
+  variable:
+    target: server-host
+    home: /tmp
+
+memcached_services:
+  config:
+    listen.ip: ${service_host}
+    listen.port: 690${service_host_sequence}         # 6900,6901,6902
+    memory-limit: 32768 # item memory in megabytes
+    max-item-size: 8m # adjusts max item size (default: 1m, min: 1k, max: 1024m)
+    extended:
+      ext_path: ${home}/memcachefile${service_host_sequence}/cachefile:1024G
+      ext_wbuf_size: 8 # size in megabytes of page write buffers.
+      ext_item_age: 1 # store items idle at least this long (seconds, default: no age limit)
+  deploy:
+    - host: ${target}
+    - host: ${target}
+    - host: ${target}

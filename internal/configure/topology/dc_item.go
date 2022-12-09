@@ -32,6 +32,7 @@ const (
 	REQUIRE_STRING
 	REQUIRE_BOOL
 	REQUIRE_POSITIVE_INTEGER
+	REQUIRE_MAP_STRING2INTERFACE
 
 	// default value
 	DEFAULT_REPORT_USAGE                    = true
@@ -47,6 +48,7 @@ const (
 	DEFAULT_SNAPSHOTCLONE_LISTEN_PROXY_PORT = 8080
 	DEFAULT_METASERVER_LISTN_PORT           = 6800
 	DEFAULT_METASERVER_LISTN_EXTARNAL_PORT  = 7800
+	DEFAULT_MEMCACHED_LISTN_PORT            = 6900
 	DEFAULT_ENABLE_EXTERNAL_SERVER          = false
 	DEFAULT_CHUNKSERVER_COPYSETS            = 100 // copysets per chunkserver
 	DEFAULT_METASERVER_COPYSETS             = 100 // copysets per metaserver
@@ -68,9 +70,10 @@ type (
 )
 
 // you should add config item to itemset iff you want to:
-//   (1) check the configuration item value, like type, valid value OR
-//   (2) filter out the configuration item for service config OR
-//   (3) set the default value for configuration item
+//
+//	(1) check the configuration item value, like type, valid value OR
+//	(2) filter out the configuration item for service config OR
+//	(3) set the default value for configuration item
 var (
 	itemset = &itemSet{
 		items:    []*item{},
@@ -82,8 +85,11 @@ var (
 		REQUIRE_STRING,
 		true,
 		func(dc *DeployConfig) interface{} {
-			if dc.GetKind() == KIND_CURVEBS {
+			switch dc.GetKind() {
+			case KIND_CURVEBS:
 				return path.Join(LAYOUT_CURVEBS_ROOT_DIR, dc.GetRole())
+			case KIND_MEMCACHED:
+				return path.Join(LAYOUT_MEMCACHED_ROOT_DIR)
 			}
 			return path.Join(LAYOUT_CURVEFS_ROOT_DIR, dc.GetRole())
 		},
@@ -154,6 +160,8 @@ var (
 				return DEFAULT_SNAPSHOTCLONE_LISTEN_PORT
 			case ROLE_METASERVER:
 				return DEFAULT_METASERVER_LISTN_PORT
+			case ROLE_MEMCACHED:
+				return DEFAULT_MEMCACHED_LISTN_PORT
 			}
 			return nil
 		},
@@ -282,6 +290,27 @@ var (
 		REQUIRE_STRING,
 		true,
 		nil,
+	)
+
+	CONFIG_MEMORY_LIMIT = itemset.insert(
+		"memory-limit",
+		REQUIRE_INT,
+		false,
+		32768,
+	)
+
+	CONFIG_MAX_ITEM_SIZE = itemset.insert(
+		"max-item-size",
+		REQUIRE_STRING,
+		false,
+		"1m",
+	)
+
+	CONFIG_EXTENDED = itemset.insert(
+		"extended",
+		REQUIRE_MAP_STRING2INTERFACE,
+		false,
+		map[string]interface{}{},
 	)
 )
 

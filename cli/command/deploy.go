@@ -50,6 +50,7 @@ const (
 	START_SNAPSHOTCLONE        = playbook.START_SNAPSHOTCLONE
 	START_METASERVER           = playbook.START_METASERVER
 	BALANCE_LEADER             = playbook.BALANCE_LEADER
+	START_MEMCACHED            = playbook.START_MEMCACHED
 
 	ROLE_ETCD          = topology.ROLE_ETCD
 	ROLE_MDS           = topology.ROLE_MDS
@@ -82,6 +83,19 @@ var (
 		START_MDS,
 		CREATE_LOGICAL_POOL,
 		START_METASERVER,
+	}
+
+	MEMCACHED_DEPLOY_STEPS = []int{
+		CLEAN_PRECHECK_ENVIRONMENT,
+		PULL_IMAGE,
+		CREATE_CONTAINER,
+		START_MEMCACHED,
+	}
+
+	KIND2DEPLOY_STEPS = map[string][]int{
+		topology.KIND_CURVEBS:   CURVEBS_DEPLOY_STEPS,
+		topology.KIND_CURVEFS:   CURVEFS_DEPLOY_STEPS,
+		topology.KIND_MEMCACHED: MEMCACHED_DEPLOY_STEPS,
 	}
 
 	DEPLOY_FILTER_ROLE = map[int]string{
@@ -203,11 +217,7 @@ func precheckBeforeDeploy(curveadm *cli.CurveAdm,
 func genDeployPlaybook(curveadm *cli.CurveAdm,
 	dcs []*topology.DeployConfig,
 	options deployOptions) (*playbook.Playbook, error) {
-	kind := dcs[0].GetKind()
-	steps := CURVEFS_DEPLOY_STEPS
-	if kind == topology.KIND_CURVEBS {
-		steps = CURVEBS_DEPLOY_STEPS
-	}
+	steps := KIND2DEPLOY_STEPS[dcs[0].GetKind()]
 	steps = skipDeploySteps(steps, options)
 
 	pb := playbook.NewPlaybook(curveadm)
@@ -256,17 +266,20 @@ func serviceStats(dcs []*topology.DeployConfig) string {
 	nchunkserevr := count[topology.ROLE_METASERVER]
 	nsnapshotclone := count[topology.ROLE_SNAPSHOTCLONE]
 	nmetaserver := count[topology.ROLE_METASERVER]
+	nmemcached := count[topology.ROLE_MEMCACHED]
 
 	var serviceStats string
-	kind := dcs[0].GetKind()
-	if kind == topology.KIND_CURVEBS { // KIND_CURVEBS
+	switch dcs[0].GetKind() {
+	case topology.KIND_CURVEBS:
 		serviceStats = fmt.Sprintf("etcd*%d, mds*%d, chunkserver*%d, snapshotclone*%d",
 			netcd, nmds, nchunkserevr, nsnapshotclone)
-	} else { // KIND_CURVEFS
+	case topology.KIND_MEMCACHED:
+		serviceStats = fmt.Sprintf("memcached*%d", nmemcached)
+	case topology.KIND_CURVEFS:
+	default:
 		serviceStats = fmt.Sprintf("etcd*%d, mds*%d, metaserver*%d",
 			netcd, nmds, nmetaserver)
 	}
-
 	return serviceStats
 }
 
@@ -278,7 +291,7 @@ func displayDeployTitle(curveadm *cli.CurveAdm, dcs []*topology.DeployConfig) {
 }
 
 /*
- * Deploy Steps:
+ * Deploy curve[bs/fs] Steps:
  *   1) pull image
  *   2) create container
  *   3) sync config
@@ -290,6 +303,13 @@ func displayDeployTitle(curveadm *cli.CurveAdm, dcs []*topology.DeployConfig) {
  *     4.4) start snapshotserver(curvebs) container
  *   5) create logical pool
  *   6) balance leader rapidly
+ */
+/*
+ * Deploy memcached Steps:
+ *   1) pull image
+ *   2) create container
+ *   3) start container
+ *     4.1) start memcached container
  */
 func runDeploy(curveadm *cli.CurveAdm, options deployOptions) error {
 	// 1) parse cluster topology

@@ -86,6 +86,14 @@ func getClusterMdsAddr(dcs []*topology.DeployConfig) string {
 	return value
 }
 
+func getClusterMemcachedAddr(dcs []*topology.DeployConfig) string {
+	value, err := dcs[0].GetVariables().Get("cluster_memcached_addr")
+	if err != nil {
+		return "-"
+	}
+	return value
+}
+
 func getClusterMdsLeader(statuses []task.ServiceStatus) string {
 	leaders := []string{}
 	for _, status := range statuses {
@@ -117,8 +125,15 @@ func displayStatus(curveadm *cli.CurveAdm, dcs []*topology.DeployConfig, options
 	curveadm.WriteOutln("")
 	curveadm.WriteOutln("cluster name      : %s", curveadm.ClusterName())
 	curveadm.WriteOutln("cluster kind      : %s", dcs[0].GetKind())
-	curveadm.WriteOutln("cluster mds addr  : %s", getClusterMdsAddr(dcs))
-	curveadm.WriteOutln("cluster mds leader: %s", getClusterMdsLeader(statuses))
+	switch dcs[0].GetKind() {
+	case topology.KIND_MEMCACHED:
+		curveadm.WriteOutln("cluster addr      : %s", getClusterMemcachedAddr(dcs))
+	case topology.KIND_CURVEFS:
+	case topology.KIND_CURVEBS:
+	default:
+		curveadm.WriteOutln("cluster mds addr  : %s", getClusterMdsAddr(dcs))
+		curveadm.WriteOutln("cluster mds leader: %s", getClusterMdsLeader(statuses))
+	}
 	curveadm.WriteOutln("")
 	curveadm.WriteOut("%s", output)
 }

@@ -36,19 +36,21 @@ import (
 )
 
 const (
-	KIND_CURVEBS = "curvebs"
-	KIND_CURVEFS = "curvefs"
+	KIND_CURVEBS   = "curvebs"
+	KIND_CURVEFS   = "curvefs"
+	KIND_MEMCACHED = "memcached"
 
 	ROLE_ETCD          = "etcd"
 	ROLE_MDS           = "mds"
 	ROLE_CHUNKSERVER   = "chunkserver"
 	ROLE_SNAPSHOTCLONE = "snapshotclone"
 	ROLE_METASERVER    = "metaserver"
+	ROLE_MEMCACHED     = "memcached"
 )
 
 type (
 	DeployConfig struct {
-		kind             string // KIND_CURVEFS / KIND_CUVREBS
+		kind             string // KIND_CURVEFS / KIND_CUVREBS / KIND_MEMCACHED
 		id               string // role_host_[name/hostSequence]_replicasSequence
 		parentId         string // role_host_[name/hostSequence]_0
 		role             string // etcd/mds/metaserevr/chunkserver
@@ -60,7 +62,7 @@ type (
 		replicasSequence int // start with 0
 
 		config        map[string]interface{}
-		serviceConfig map[string]string
+		serviceConfig map[string]interface{}
 		variables     *variable.Variables
 		ctx           *Context
 	}
@@ -127,7 +129,7 @@ func NewDeployConfig(ctx *Context, kind, role, host, name string, replicas int,
 	// after that we will convert the value to specified type according to
 	// the its require type
 	for k, v := range config {
-		if strv, ok := utils.All2Str(v); ok {
+		if strv, ok := utils.Final2Str(v); ok {
 			config[k] = strv
 		} else {
 			return nil, errno.ERR_UNSUPPORT_CONFIGURE_VALUE_TYPE.
@@ -147,7 +149,7 @@ func NewDeployConfig(ctx *Context, kind, role, host, name string, replicas int,
 		hostSequence:     hostSequence,
 		replicasSequence: replicasSequence,
 		config:           config,
-		serviceConfig:    map[string]string{},
+		serviceConfig:    map[string]interface{}{},
 		variables:        vars,
 		ctx:              ctx,
 	}, nil
@@ -176,7 +178,7 @@ func (dc *DeployConfig) renderVariables() error {
 	}
 
 	for k, v := range dc.config {
-		realv, err := vars.Rendering(v.(string))
+		realv, err := vars.RenderingTree(v)
 		if err != nil {
 			return errno.ERR_RENDERING_VARIABLE_FAILED.E(err)
 		}
@@ -193,7 +195,7 @@ func (dc *DeployConfig) convert() error {
 	for k, v := range dc.config {
 		item := itemset.get(k)
 		if item == nil || item.exclude == false {
-			dc.serviceConfig[k] = v.(string)
+			dc.serviceConfig[k] = v
 		}
 	}
 
@@ -205,7 +207,7 @@ func (dc *DeployConfig) convert() error {
 		if value == nil {
 			continue
 		}
-		v, ok := utils.All2Str(value)
+		v, ok := utils.Final2Str(value)
 		if !ok {
 			return errno.ERR_UNSUPPORT_CONFIGURE_VALUE_TYPE.
 				F("%s: %v", k, value)
@@ -215,26 +217,26 @@ func (dc *DeployConfig) convert() error {
 		case REQUIRE_ANY:
 			// do nothing
 		case REQUIRE_INT:
-			if intv, ok := utils.Str2Int(v); !ok {
+			if intv, ok := utils.Str2Int(v.(string)); !ok {
 				return errno.ERR_CONFIGURE_VALUE_REQUIRES_INTEGER.
 					F("%s: %v", k, value)
 			} else {
 				dc.config[k] = intv
 			}
 		case REQUIRE_STRING:
-			if len(v) == 0 {
+			if len(v.(string)) == 0 {
 				return errno.ERR_CONFIGURE_VALUE_REQUIRES_NON_EMPTY_STRING.
 					F("%s: %v", k, value)
 			}
 		case REQUIRE_BOOL:
-			if boolv, ok := utils.Str2Bool(v); !ok {
+			if boolv, ok := utils.Str2Bool(v.(string)); !ok {
 				return errno.ERR_CONFIGURE_VALUE_REQUIRES_BOOL.
 					F("%s: %v", k, value)
 			} else {
 				dc.config[k] = boolv
 			}
 		case REQUIRE_POSITIVE_INTEGER:
-			if intv, ok := utils.Str2Int(v); !ok {
+			if intv, ok := utils.Str2Int(v.(string)); !ok {
 				return errno.ERR_CONFIGURE_VALUE_REQUIRES_INTEGER.
 					F("%s: %v", k, value)
 			} else if intv <= 0 {
@@ -242,6 +244,12 @@ func (dc *DeployConfig) convert() error {
 					F("%s: %v", k, value)
 			} else {
 				dc.config[k] = intv
+			}
+		case REQUIRE_MAP_STRING2INTERFACE:
+			if mapStr2Inter, ok := utils.Inter2MapStr2Interface(v); !ok {
+				return errno.ERR_CONFIGURE_VALUE_REQUIRES_MAP_STR2INTER.F("%s: %v", k, value)
+			} else {
+				dc.config[k] = mapStr2Inter
 			}
 		}
 	}

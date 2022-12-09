@@ -34,6 +34,7 @@ import (
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
 	tui "github.com/opencurve/curveadm/internal/tui/common"
+	"github.com/opencurve/curveadm/internal/utils"
 )
 
 const (
@@ -56,14 +57,21 @@ func newMutate(dc *topology.DeployConfig, delimiter string, forceRender bool) st
 
 		// replace config
 		v, ok := serviceConfig[strings.ToLower(key)]
+		var valueInter interface{}
 		if ok {
-			value = v
+			valueInter = v
 		}
 
 		// replace variable
-		value, err = dc.GetVariables().Rendering(value)
+		valueInter, err = dc.GetVariables().RenderingTree(valueInter)
 		if err != nil {
 			return
+		}
+
+		// replace delimiter
+		v, err = utils.ReplaceDelimiter(valueInter, delimiter)
+		if err == nil {
+			value = v.(string)
 		}
 
 		out = fmt.Sprintf("%s%s%s", key, delimiter, value)

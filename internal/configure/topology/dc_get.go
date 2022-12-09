@@ -36,6 +36,7 @@ const (
 	// service project layout
 	LAYOUT_CURVEFS_ROOT_DIR                 = "/curvefs"
 	LAYOUT_CURVEBS_ROOT_DIR                 = "/curvebs"
+	LAYOUT_MEMCACHED_ROOT_DIR               = "/memcached"
 	LAYOUT_PLAYGROUND_ROOT_DIR              = "playground"
 	LAYOUT_CONF_SRC_DIR                     = "/conf"
 	LAYOUT_SERVICE_BIN_DIR                  = "/sbin"
@@ -67,6 +68,12 @@ var (
 		ROLE_CHUNKSERVER:   []string{"chunkserver.conf", "cs_client.conf", "s3.conf"},
 		ROLE_SNAPSHOTCLONE: []string{"snapshotclone.conf", "snap_client.conf", "s3.conf", "nginx.conf"},
 		ROLE_METASERVER:    []string{"metaserver.conf"},
+	}
+
+	KIND2ROOT = map[string]string{
+		KIND_CURVEBS:   LAYOUT_CURVEBS_ROOT_DIR,
+		KIND_CURVEFS:   LAYOUT_CURVEFS_ROOT_DIR,
+		KIND_MEMCACHED: LAYOUT_MEMCACHED_ROOT_DIR,
 	}
 )
 
@@ -106,6 +113,14 @@ func (dc *DeployConfig) getBool(i *item) bool {
 	return v.(bool)
 }
 
+func (dc *DeployConfig) getMapString2Interface(i *item) map[string]interface{} {
+	v := dc.get(i)
+	if v == nil {
+		return make(map[string]interface{})
+	}
+	return v.(map[string]interface{})
+}
+
 // (1): config property
 func (dc *DeployConfig) GetKind() string                     { return dc.kind }
 func (dc *DeployConfig) GetId() string                       { return dc.id }
@@ -117,7 +132,7 @@ func (dc *DeployConfig) GetName() string                     { return dc.name }
 func (dc *DeployConfig) GetReplicas() int                    { return dc.replicas }
 func (dc *DeployConfig) GetHostSequence() int                { return dc.hostSequence }
 func (dc *DeployConfig) GetReplicasSequence() int            { return dc.replicasSequence }
-func (dc *DeployConfig) GetServiceConfig() map[string]string { return dc.serviceConfig }
+func (dc *DeployConfig) GetServiceConfig() map[string]interface{} { return dc.serviceConfig }
 func (dc *DeployConfig) GetVariables() *variable.Variables   { return dc.variables }
 
 // (2): config item
@@ -153,6 +168,18 @@ func (dc *DeployConfig) GetListenExternalPort() int {
 		return dc.getInt(CONFIG_LISTEN_EXTERNAL_PORT)
 	}
 	return dc.GetListenPort()
+}
+
+func (dc *DeployConfig) GetExtended() map[string]interface{} {
+	return dc.getMapString2Interface(CONFIG_EXTENDED)
+}
+
+func (dc *DeployConfig) GetMemoryLimit() int {
+	return dc.getInt(CONFIG_MEMORY_LIMIT)
+}
+
+func (dc *DeployConfig) GetMaxItemSize() string {
+	return dc.getString(CONFIG_MAX_ITEM_SIZE)
 }
 
 // (3): service project layout
@@ -209,6 +236,7 @@ type (
 		ServiceDataDir     string // /curvebs/mds/data
 		ServiceConfPath    string // /curvebs/mds/conf/mds.conf
 		ServiceConfSrcPath string // /curvebs/conf/mds.conf
+		ServiceExtPathPre  string // /memcached/data/
 		ServiceConfFiles   []ConfFile
 
 		// tools
@@ -236,7 +264,11 @@ func (dc *DeployConfig) GetProjectLayout() Layout {
 	kind := dc.GetKind()
 	role := dc.GetRole()
 	// project
-	root := utils.Choose(kind == KIND_CURVEBS, LAYOUT_CURVEBS_ROOT_DIR, LAYOUT_CURVEFS_ROOT_DIR)
+	root, ok := KIND2ROOT[kind]
+	if !ok {
+		// default /curvefs
+		root = KIND2ROOT[KIND_CURVEFS]
+	}
 
 	// service
 	confSrcDir := root + LAYOUT_CONF_SRC_DIR
@@ -279,6 +311,7 @@ func (dc *DeployConfig) GetProjectLayout() Layout {
 		ServiceConfPath:    fmt.Sprintf("%s/%s.conf", serviceConfDir, role),
 		ServiceConfSrcPath: fmt.Sprintf("%s/%s.conf", confSrcDir, role),
 		ServiceConfFiles:   serviceConfFiles,
+		ServiceExtPathPre:  fmt.Sprintf("%s/data", serviceRootDir),
 
 		// tools
 		ToolsRootDir:        toolsRootDir,

@@ -40,6 +40,27 @@ const (
 	S3_TEMPLATE_VALUE = "<>"
 )
 
+var (
+	KIND_SKIP_ROLE = map[string]map[string]bool{
+		topology.KIND_CURVEFS: {
+			ROLE_CHUNKSERVER:   true,
+			ROLE_MEMCACHED:     true,
+			ROLE_SNAPSHOTCLONE: true,
+		},
+		topology.KIND_CURVEBS: {
+			ROLE_MEMCACHED:  true,
+			ROLE_METASERVER: true,
+		},
+		topology.KIND_MEMCACHED: {
+			ROLE_CHUNKSERVER:   true,
+			ROLE_ETCD:          true,
+			ROLE_MDS:           true,
+			ROLE_METASERVER:    true,
+			ROLE_SNAPSHOTCLONE: true,
+		},
+	}
+)
+
 type (
 	// check whether host exist
 	step2CheckSSHConfigure struct {
@@ -180,22 +201,14 @@ func (s *step2CheckServices) getHostNum(dcs []*topology.DeployConfig) int {
 
 func (s *step2CheckServices) skip(role string) bool {
 	kind := s.dcs[0].GetKind()
-	// KIND_CURVEFS
-	if kind == topology.KIND_CURVEFS {
-		if role == ROLE_CHUNKSERVER || role == ROLE_SNAPSHOTCLONE {
-			return true
-		}
-		return false
+
+	// KIND_CURVEBS snapshot
+	skip := s.curveadm.MemStorage().Get(comm.KEY_CHECK_SKIP_SNAPSHOECLONE).(bool)
+	if skip && role == ROLE_SNAPSHOTCLONE {
+		return true
 	}
 
-	// KIND_CURVEBS
-	skip := s.curveadm.MemStorage().Get(comm.KEY_CHECK_SKIP_SNAPSHOECLONE).(bool)
-	if role == ROLE_METASERVER {
-		return true
-	} else if skip && role == ROLE_SNAPSHOTCLONE {
-		return true
-	}
-	return false
+	return KIND_SKIP_ROLE[kind][role]
 }
 
 func (s *step2CheckServices) Execute(ctx *context.Context) error {
@@ -209,6 +222,7 @@ func (s *step2CheckServices) Execute(ctx *context.Context) error {
 		{ROLE_CHUNKSERVER, errno.ERR_CHUNKSERVER_REQUIRES_3_SERVICES},
 		{ROLE_SNAPSHOTCLONE, errno.ERR_SNAPSHOTCLONE_REQUIRES_3_SERVICES}, // 0 OR >= 3
 		{ROLE_METASERVER, errno.ERR_METASERVER_REQUIRES_3_SERVICES},
+		{ROLE_MEMCACHED, errno.ERR_MEMCACHED_REQUIRES_1_HOSTS},
 	}
 	weak := s.curveadm.MemStorage().Get(comm.KEY_CHECK_WITH_WEAK).(bool) // for topology commit
 	for _, item := range items {

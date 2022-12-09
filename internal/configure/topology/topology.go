@@ -35,6 +35,7 @@ import (
 var (
 	CURVEBS_ROLES = []string{ROLE_ETCD, ROLE_MDS, ROLE_CHUNKSERVER, ROLE_SNAPSHOTCLONE}
 	CURVEFS_ROLES = []string{ROLE_ETCD, ROLE_MDS, ROLE_METASERVER}
+	MEMCACHED_ROLES = []string{ROLE_MEMCACHED}
 )
 
 type (
@@ -61,6 +62,7 @@ type (
 		MetaserverServices    Service `mapstructure:"metaserver_services"`
 		ChunkserverServices   Service `mapstructure:"chunkserver_services"`
 		SnapshotcloneServices Service `mapstructure:"snapshotclone_services"`
+		MemcachedServices     Service `mapstructure:"memcached_services"`
 	}
 )
 
@@ -105,11 +107,14 @@ func ParseTopology(data string, ctx *Context) ([]*DeployConfig, error) {
 	// check topology kind
 	kind := topology.Kind
 	roles := []string{}
-	if kind == KIND_CURVEBS {
+	switch kind {
+	case KIND_CURVEBS:
 		roles = append(roles, CURVEBS_ROLES...)
-	} else if kind == KIND_CURVEFS {
+	case KIND_CURVEFS:
 		roles = append(roles, CURVEFS_ROLES...)
-	} else {
+	case KIND_MEMCACHED:
+		roles = append(roles, MEMCACHED_ROLES...)
+	default:
 		return nil, errno.ERR_UNSUPPORT_CLUSTER_KIND
 	}
 
@@ -128,6 +133,8 @@ func ParseTopology(data string, ctx *Context) ([]*DeployConfig, error) {
 			services = topology.SnapshotcloneServices
 		case ROLE_METASERVER:
 			services = topology.MetaserverServices
+		case ROLE_MEMCACHED:
+			services = topology.MemcachedServices
 		}
 
 		// merge global config into services config

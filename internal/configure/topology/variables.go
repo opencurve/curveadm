@@ -84,6 +84,7 @@ type Var struct {
  *   ${cluster_snapshotclone_dummy_port}      "8081,8082,8083"
  *   ${cluster_snapshotclone_nginx_upstream}  "server 10.0.0.1:5555; server 10.0.0.3:5555; server 10.0.0.3:5555;"
  *   ${cluster_metaserver_addr}               "10.0.10.1:6701,10.0.10.2:6701,10.0.10.3:6701"
+ *   ${cluster_memecached_addr}               "10.0.10.1:6801,10.0.10.2:6801,10.0.10.3:6801"
  */
 var (
 	serviceVars = []Var{
@@ -121,6 +122,7 @@ var (
 		{name: "cluster_snapshotclone_dummy_port", kind: []string{KIND_CURVEBS}},
 		{name: "cluster_snapshotclone_nginx_upstream", kind: []string{KIND_CURVEBS}},
 		{name: "cluster_metaserver_addr", kind: []string{KIND_CURVEFS}},
+		{name: "cluster_memcached_addr", kind: []string{KIND_MEMCACHED}},
 	}
 )
 
@@ -297,6 +299,8 @@ func getValue(name string, dcs []*DeployConfig, idx int) string {
 		return joinNginxUpstreamServer(dcs)
 	case "cluster_metaserver_addr":
 		return joinPeer(dcs, ROLE_METASERVER, SELECT_LISTEN_PORT)
+	case "cluster_memcached_addr":
+		return joinPeer(dcs, ROLE_MEMCACHED, SELECT_LISTEN_PORT)
 	}
 
 	return ""

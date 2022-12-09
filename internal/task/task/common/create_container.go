@@ -101,12 +101,7 @@ func (s *step2InsertService) Execute(ctx *context.Context) error {
 	return err
 }
 
-func getArguments(dc *topology.DeployConfig) string {
-	role := dc.GetRole()
-	if role != topology.ROLE_CHUNKSERVER {
-		return ""
-	}
-
+func getChunkServerArg(dc *topology.DeployConfig) string {
 	// only chunkserver need so many arguments, but who cares
 	layout := dc.GetProjectLayout()
 	dataDir := layout.ServiceDataDir
@@ -144,6 +139,35 @@ func getArguments(dc *topology.DeployConfig) string {
 		arguments = append(arguments, fmt.Sprintf("-%s=%v", k, v))
 	}
 	return strings.Join(arguments, " ")
+}
+
+func getMemcachedArg(dc *topology.DeployConfig) string {
+	arguments := []string{}
+	arguments = append(arguments, fmt.Sprintf("--user=%s", "root"))
+	arguments = append(arguments, fmt.Sprintf("--listen=%s", dc.GetListenIp()))
+	arguments = append(arguments, fmt.Sprintf("--port=%d", dc.GetListenPort()))
+	arguments = append(arguments, fmt.Sprintf("--memory-limit=%d", dc.GetMemoryLimit()))
+	arguments = append(arguments, fmt.Sprintf("--max-item-size=%s", dc.GetMaxItemSize()))
+	extened := dc.GetExtended()
+	for k, v := range extened {
+		if k == "ext_path" {
+			v = dc.GetProjectLayout().ServiceExtPathPre+v.(string)
+		}
+		arguments = append(arguments, fmt.Sprintf("--extended %s=%v", k, v))
+	}
+	return strings.Join(arguments, " ")
+}
+
+func getArguments(dc *topology.DeployConfig) string {
+	switch dc.GetRole() {
+	case topology.ROLE_CHUNKSERVER:
+		return getChunkServerArg(dc)
+	case topology.ROLE_MEMCACHED:
+		return getMemcachedArg(dc)
+	default:
+		return ""
+	}
+
 }
 
 func getEnvironments(dc *topology.DeployConfig) []string {
@@ -185,6 +209,18 @@ func getMountVolumes(dc *topology.DeployConfig) []step.Volume {
 		})
 	}
 
+	extended := dc.GetExtended()
+	if len(extended) > 0 && extended["ext_path"] != nil {
+		switch path := extended["ext_path"].(type) {
+		case string:
+			hostPath := strings.Split(path, ":")[0]
+			volumes = append(volumes, step.Volume{
+				HostPath: hostPath,
+				ContainerPath: layout.ServiceExtPathPre+hostPath,
+			})
+		}
+	}
+
 	return volumes
 }
 
@@ -194,8 +230,11 @@ func getRestartPolicy(dc *topology.DeployConfig) string {
 		return POLICY_ALWAYS_RESTART
 	case topology.ROLE_MDS:
 		return POLICY_ALWAYS_RESTART
+	case topology.ROLE_MEMCACHED:
+		return POLICY_ALWAYS_RESTART
+	default:
+		return POLICY_NEVER_RESTART
 	}
-	return POLICY_NEVER_RESTART
 }
 
 func trimContainerId(containerId *string) step.LambdaType {

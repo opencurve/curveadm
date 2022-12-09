@@ -263,6 +263,7 @@ var (
 	ERR_CONFIGURE_VALUE_REQUIRES_NON_EMPTY_STRING = EC(301004, "configure value requires non-empty string")
 	ERR_CONFIGURE_VALUE_REQUIRES_POSITIVE_INTEGER = EC(301005, "configure value requires positive integer")
 	ERR_CONFIGURE_VALUE_REQUIRES_STRING_SLICE     = EC(301006, "configure value requires string array")
+	ERR_CONFIGURE_VALUE_REQUIRES_MAP_STR2INTER    = EC(301007, "configure value requires map[string]interface{}")
 	ERR_UNSUPPORT_VARIABLE_VALUE_TYPE             = EC(301100, "unsupport variable value type")
 	ERR_INVALID_VARIABLE_VALUE                    = EC(301101, "invalid variable value")
 
@@ -411,6 +412,7 @@ var (
 	ERR_CHUNKSERVER_REQUIRES_3_HOSTS      = EC(503007, "chunkserver requires at least 3 hosts to distrubute zones")
 	ERR_SNAPSHOTCLONE_REQUIRES_3_HOSTS    = EC(503008, "snapshotclone requires at least 3 hosts for deploy")
 	ERR_METASERVER_REQUIRES_3_HOSTS       = EC(503009, "metaserver requires at least 3 hosts to distrubute zones")
+	ERR_MEMCACHED_REQUIRES_1_HOSTS       = EC(503010, "memcached requires at least 1 hosts")
 
 	// 510: checker (ssh)
 	ERR_SSH_CONNECT_FAILED = EC(510000, "SSH connect failed")

@@ -51,6 +51,7 @@ const (
 	ROLE_CHUNKSERVER   = topology.ROLE_CHUNKSERVER
 	ROLE_SNAPSHOTCLONE = topology.ROLE_SNAPSHOTCLONE
 	ROLE_METASERVER    = topology.ROLE_METASERVER
+	ROLE_MEMCACHED	   = topology.ROLE_MEMCACHED
 )
 
 var (
@@ -161,6 +162,13 @@ func getServiceListenAddresses(dc *topology.DeployConfig) []Address {
 				Port: dc.GetListenExternalPort(),
 			})
 		}
+
+	case ROLE_MEMCACHED:
+		address = append(address, Address{
+			Role: ROLE_MEMCACHED,
+			IP: dc.GetListenIp(),
+			Port: dc.GetListenPort(),
+		})
 
 	default:
 		// do nothing
