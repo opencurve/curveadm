@@ -52,5 +52,5 @@ debug:
 test:
 	$(GO) test $(TEST_FLAGS) ./...
 
-tar:
-	@NOS=$(NOS) bash build/package/mktar.sh $(VERSION)
+upload:
+	@NOSCMD=$(NOSCMD) bash build/package/upload.sh $(VERSION)

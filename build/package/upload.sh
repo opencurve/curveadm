@@ -1,7 +1,7 @@
-#!/usr/bin/env
+#!/usr/bin/env bash
 
 g_version=$1
-g_nos=${NOS}
+g_nos_cmd=${NOSCMD}
 g_root=$(pwd)/.build
 g_curveadm=${g_root}/curveadm
 g_curveadm_bin=${g_curveadm}/bin
@@ -16,11 +16,11 @@ cp bin/curveadm ${g_curveadm_bin}
 read -p "Do you want to upload curveadm-${g_version}.tar.gz to NOS? " input
 case $input in
     [Yy]* )
-        if [ -z ${g_nos} ]; then
+        if [ -z ${g_nos_cmd} ]; then
             echo "nos: command not found"
             exit 1
         fi
-        ${g_nos} -putfile \
+        ${g_nos_cmd} -putfile \
             ${g_root}/curveadm-${g_version}.tar.gz \
             curveadm \
             -key release/curveadm-${g_version}.tar.gz \
