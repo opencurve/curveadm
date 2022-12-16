@@ -52,6 +52,13 @@ var (
 		nil,
 	)
 
+	CONFIG_SSH_HOSTNAME = itemset.Insert(
+		"ssh_hostname",
+		comm.REQUIRE_STRING,
+		false,
+		nil,
+	)
+
 	CONFIG_USER = itemset.Insert(
 		"user",
 		comm.REQUIRE_STRING,
