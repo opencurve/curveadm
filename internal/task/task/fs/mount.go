@@ -192,6 +192,7 @@ func newToolsMutate(cc *configure.ClientConfig, delimiter string) step.Mutate {
 	clientConfig := cc.GetServiceConfig()
 	tools2client := map[string]string{
 		"mdsAddr": "mdsOpt.rpcRetryOpt.addrs",
+		"volumeCluster" : KEY_CURVEBS_CLUSTER,
 	}
 	return func(in, key, value string) (out string, err error) {
 		if len(key) == 0 {
