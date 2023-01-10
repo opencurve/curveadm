@@ -1,7 +1,7 @@
 chunkserver_services:
   deploy:
     - host: ${machine1}
-      replica: 20
+      replica: 20    # 请注意这里的replica不代表存储池的副本数，而是节点上同类进程的数量，比如这里指的是chunkserver进程的数量，也就是配置的磁盘数，相关问题可以参考：https://github.com/opencurve/curveadm/issues/146
       config:
     - host: ${machine2}
       replica: 20
