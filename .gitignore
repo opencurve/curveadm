@@ -8,4 +8,5 @@ T/*
 logs/*
 .playground
 .build/
+.vscode/
 .CHANGELOG
