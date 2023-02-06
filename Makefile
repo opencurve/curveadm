@@ -33,9 +33,18 @@ GCFLAGS := "all=-N -l"
 
 DEBUG_FLAGS := -gcflags=$(GCFLAGS)
 
+# go test
+GO_TEST ?= $(GO) test
+
 # test flags
+CASE ?= "."
+
 TEST_FLAGS := -v
 TEST_FLAGS += -p 3
+TEST_FLAGS += -cover
+TEST_FLAGS += -count=1
+TEST_FLAGS += $(DEBUG_FLAGS)
+TEST_FLAGS += -run $(CASE)
 
 # packages
 PACKAGES := $(PWD)/cmd/curveadm/main.go
@@ -50,7 +59,7 @@ debug:
 	$(GOENV) $(GO) build -o $(OUTPUT) $(DEBUG_FLAGS) $(PACKAGES)
 
 test:
-	$(GO) test $(TEST_FLAGS) ./...
+	$(GO_TEST) $(TEST_FLAGS) ./...
 
 upload:
 	@NOSCMD=$(NOSCMD) bash build/package/upload.sh $(VERSION)
