@@ -1,0 +1,35 @@
+name: Go
+
+on:
+  push:
+    branches: [ $default-branch, "develop" ]
+  pull_request:
+    branches: [ $default-branch, "develop" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.18
+      - name: Generate SSH key
+        run: ssh-keygen -f ~/.ssh/id_rsa -P ""
+      - name: Test
+        run: make test
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.18
+      - name: Set dependencies
+        run: sudo apt update && sudo apt install musl-tools
+      - name: Build
+        run: make build
