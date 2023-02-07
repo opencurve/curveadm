@@ -4,6 +4,9 @@ g_container_name="memcached-"${PORT}
 g_start_args=""
 g_docker_cmd="${SUDO_ALIAS} docker"
 g_lsof_cmd="${SUDO_ALIAS} lsof"
+g_rm_cmd="${SUDO_ALIAS} rm -rf"
+g_mkdir_cmd="${SUDO_ALIAS} mkdir -p"
+g_touch_cmd="${SUDO_ALIAS} touch"
 g_volume_bind=""
 g_status=""
 g_user=""
@@ -37,11 +40,11 @@ precheck() {
 
     # check ext path
     if [ "${EXT_PATH}" ]; then
-        volume_path=(${EXT_PATH//:/ })
-        if [ -f ${volume_path} ]; then
-            die "no file[${volume_path}]"
-            exit 1
-        fi
+        cachefile_path=(${EXT_PATH//:/ })
+        echo "cachefile: ${cachefile_path}" 
+        ${g_rm_cmd} ${cachefile_path}
+        ${g_mkdir_cmd} $(dirname ${cachefile_path})
+        ${g_touch_cmd} ${cachefile_path}
     fi
 }
 

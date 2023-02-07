@@ -2,6 +2,7 @@
 
 g_container_name="memcached-"${PORT}
 g_docker_cmd="${SUDO_ALIAS} docker"
+g_rm_cmd="${SUDO_ALIAS} rm -rf"
 
 function msg() {
     printf '%b' "$1" >&2
@@ -33,5 +34,11 @@ stop_container() {
     success "rm container[${g_container_name}]\n"
 }
 
+rm_cachefile() {
+    cachefile_path=(${EXT_PATH//:/ })
+    ${g_rm_cmd} ${cachefile_path}
+}
+
 precheck
 stop_container
+rm_cachefile
