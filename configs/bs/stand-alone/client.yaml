@@ -1,3 +1,4 @@
+kind: curvebs
 user: curve
 host: 10.0.1.1
 ssh_port: 22
