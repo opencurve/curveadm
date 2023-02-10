@@ -1,0 +1,268 @@
+#!/usr/bin/env bash
+
+# Copyright (C) Jingli Chen (Wine93)
+
+############################  GLOBAL VARIABLES
+pid=0
+dump_src=0
+
+############################  FUNCTIONS
+msg() {
+    printf '%b' "$1" >&2
+}
+
+die() {
+    msg "\33[31m[✘]\33[0m ${1}${2}"
+    exit 1
+}
+
+gen_bpftrace_src() {
+    local exec_path="$1"
+
+    cat << EOF
+struct fuse_file_info {
+	int flags;
+	unsigned int writepage : 1;
+	unsigned int direct_io : 1;
+	unsigned int keep_cache : 1;
+	unsigned int flush : 1;
+	unsigned int nonseekable : 1;
+	unsigned int flock_release : 1;
+	unsigned int cache_readdir : 1;
+	unsigned int padding : 25;
+	unsigned int padding2 : 32;
+	uint64_t fh;
+	uint64_t lock_owner;
+	uint32_t poll_events;
+};
+
+BEGIN {
+    printf ("Start tracing fuse operation for $exec_path, Hit Ctrl-C to end.\n");
+}
+
+uprobe:$exec_path:FuseOpLookup
+{
+    printf ("%s: pid(%d) tid(%d) parent(%d) name(%s)\n",
+        func, pid, tid, args->parent, str(args->name));
+}
+
+uprobe:$exec_path:FuseOpGetAttr
+{
+    printf ("%s: pid(%d) tid(%d) ino(%d) fi->fh(%d)\n",
+        func, pid, tid, args->ino, args->fi->fh);
+}
+
+uprobe:$exec_path:FuseOpSetAttr
+{
+    printf ("%s: pid(%d) tid(%d) ino(%d) fi->fh(%d) to_set(%d)\n",
+        func, pid, tid, args->ino, args->fi->fh, args->to_set);
+}
+
+uprobe:$exec_path:FuseOpReadLink
+{
+    printf ("%s: pid(%d) tid(%d) ino(%d)\n",
+        func, pid, tid, args->ino);
+}
+
+uprobe:$exec_path:FuseOpMkNod
+{
+    printf ("%s: pid(%d) tid(%d) parent(%d) name(%s)\n",
+        func, pid, tid, args->parent, str(args->name));
+}
+
+uprobe:$exec_path:FuseOpMkDir
+{
+    printf ("%s: pid(%d) tid(%d) parent(%d) name(%s)\n",
+        func, pid, tid, args->parent, str(args->name));
+}
+
+uprobe:$exec_path:FuseOpUnlink
+{
+    printf ("%s: pid(%d) tid(%d) parent(%d) name(%s)\n",
+        func, pid, tid, args->parent, str(args->name));
+}
+
+uprobe:$exec_path:FuseOpRmDir
+{
+    printf ("%s: pid(%d) tid(%d) parent(%d) name(%s)\n",
+        func, pid, tid, args->parent, str(args->name));
+}
+
+uprobe:$exec_path:FuseOpSymlink
+{
+    printf ("%s: pid(%d) tid(%d) parent(%d) name(%s)\n",
+        func, pid, tid, args->parent, str(args->name));
+}
+
+uprobe:$exec_path:FuseOpRename
+{
+    printf ("%s: pid(%d) tid(%d) parent(%d) name(%s) newparent(%d) newname(%s)\n",
+        func, pid, tid, args->parent, str(args->name), args->newparent, str(args->newname));
+}
+
+uprobe:$exec_path:FuseOpLink
+{
+    printf ("%s: pid(%d) tid(%d) ino(%d) newparent(%d) newname(%s)\n",
+        func, pid, tid, args->ino, args->newparent, str(args->newname));
+}
+
+uprobe:$exec_path:FuseOpOpen
+{
+    printf ("%s: pid(%d) tid(%d) ino(%d)\n",
+        func, pid, tid, args->ino);
+}
+
+uprobe:$exec_path:FuseOpRead
+{
+    printf ("%s: pid(%d) tid(%d) ino(%d) size(%d) off(%d)\n",
+        func, pid, tid, args->ino, args->size, args->off);
+}
+
+uprobe:$exec_path:FuseOpWrite
+{
+    printf ("%s: pid(%d) tid(%d) ino(%d) size(%d) off(%d)\n",
+        func, pid, tid, args->ino, args->size, args->off);
+}
+
+uprobe:$exec_path:FuseOpFlush
+{
+    printf ("%s: pid(%d) tid(%d) ino(%d)\n",
+        func, pid, tid, args->ino);
+}
+
+uprobe:$exec_path:FuseOpRelease
+{
+    printf ("%s: pid(%d) tid(%d) ino(%d)\n",
+        func, pid, tid, args->ino);
+}
+
+uprobe:$exec_path:FuseOpFsync
+{
+    printf ("%s: pid(%d) tid(%d) ino(%d)\n",
+        func, pid, tid, args->ino);
+}
+
+uprobe:$exec_path:FuseOpOpenDir
+{
+    printf ("%s: pid(%d) tid(%d) ino(%d) fi->fh(%d)\n",
+        func, pid, tid, args->ino, args->fi->fh);
+}
+
+uprobe:$exec_path:FuseOpReadDir
+{
+    printf ("%s: pid(%d) tid(%d) ino(%d) size(%d) off(%d) fi->fh(%d)\n",
+        func, pid, tid, args->ino, args->size, args->off, args->fi->fh);
+}
+
+uprobe:$exec_path:FuseOpReleaseDir
+{
+    printf ("%s: pid(%d) tid(%d) ino(%d)\n",
+        func, pid, tid, args->ino);
+}
+
+uprobe:$exec_path:FuseOpStatFs
+{
+    printf ("%s: pid(%d) tid(%d) ino(%d)\n",
+        func, pid, tid, args->ino);
+}
+
+uprobe:$exec_path:FuseOpSetXattr
+{
+    printf ("%s: pid(%d) tid(%d) ino(%d) name(%s) value(%s)\n",
+        func, pid, tid, args->ino, str(args->name), str(args->value));
+}
+
+uprobe:$exec_path:FuseOpGetXattr
+{
+    printf ("%s: pid(%d) tid(%d) ino(%d) name(%s)\n",
+        func, pid, tid, args->ino, str(args->name));
+}
+
+uprobe:$exec_path:FuseOpListXattr
+{
+    printf ("%s: pid(%d) tid(%d) ino(%d) size(%d)\n",
+        func, pid, tid, args->ino, args->size);
+}
+
+uprobe:$exec_path:FuseOpCreate
+{
+    printf ("%s: pid(%d) tid(%d) parent(%d) name(%s)\n",
+        func, pid, tid, args->parent, str(args->name));
+}
+
+uprobe:$exec_path:FuseOpReadDirPlus
+{
+    printf ("%s: pid(%d) tid(%d) ino(%d) size(%d) off(%d) fi->fh(%d)\n",
+        func, pid, tid, args->ino, args->size, args->off, args->fi->fh);
+}
+
+uprobe:$exec_path:FuseOpBmap
+{
+    printf ("FuseOpBmap\n")
+}
+
+EOF
+}
+
+get_options() {
+    while getopts "dhp:" opts
+    do
+        case $opts in
+            d)
+                dump_src=1
+                ;;
+            h)
+                usage
+                exit 0
+                ;;
+            p)
+                pid=$OPTARG
+                ;;
+            \?)
+                usage
+                exit 1
+                ;;
+        esac
+    done
+}
+
+usage () {
+    cat << _EOC_
+Usage:
+    curvefs-fuse-bt [options]
+
+Options:
+    -d                  Dump out the bpftrace script source.
+    -h                  Print this usage.
+    -p <pid>            Specify the user process pid.
+
+Examples:
+    curvefs-fuse-bt -p 12345
+    curvefs-fuse-bt -p 12345 -d
+_EOC_
+}
+
+main() {
+    get_options "$@"
+
+    if [ $pid -eq 0 ]; then
+        die "No process pid specified by the -p option.\n";
+    fi
+
+    local exec_path="/proc/${pid}/root/curvefs/client/sbin/curve-fuse"
+    if [ ! -f "$exec_path" ]; then
+        die "Process $pid is not running or " \
+             "you do not have enough permissions.\n"
+    fi
+
+    local bpftrace_src=`gen_bpftrace_src "$exec_path"`
+    if [ $dump_src -eq  1 ]; then
+        echo "$bpftrace_src"
+        exit 0
+    fi
+
+    echo "$bpftrace_src" | bpftrace -
+}
+
+############################  MAIN()
+main "$@"
