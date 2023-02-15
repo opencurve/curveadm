@@ -191,8 +191,8 @@ func newCurveBSMutate(cc *configure.ClientConfig, delimiter string) step.Mutate 
 func newToolsMutate(cc *configure.ClientConfig, delimiter string) step.Mutate {
 	clientConfig := cc.GetServiceConfig()
 	tools2client := map[string]string{
-		"mdsAddr": "mdsOpt.rpcRetryOpt.addrs",
-		"volumeCluster" : KEY_CURVEBS_CLUSTER,
+		"mdsAddr":       "mdsOpt.rpcRetryOpt.addrs",
+		"volumeCluster": KEY_CURVEBS_CLUSTER,
 	}
 	return func(in, key, value string) (out string, err error) {
 		if len(key) == 0 {
@@ -223,6 +223,17 @@ func checkMountStatus(mountPoint string, out *string) step.LambdaType {
 		}
 		return errno.ERR_FS_PATH_ALREADY_MOUNTED.F("mountPath: %s", mountPoint)
 	}
+}
+
+func getEnvironments(cc *configure.ClientConfig) []string {
+	envs := []string{
+		"LD_PRELOAD=/usr/local/lib/libjemalloc.so",
+	}
+	env := cc.GetEnvironments()
+	if len(env) > 0 {
+		envs = append(envs, strings.Split(env, " ")...)
+	}
+	return envs
 }
 
 func (s *step2InsertClient) Execute(ctx *context.Context) error {
@@ -310,7 +321,7 @@ func NewMountFSTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.T
 		Image:             cc.GetContainerImage(),
 		Command:           getMountCommand(cc, mountFSName, mountFSType, mountPoint),
 		Entrypoint:        "/bin/bash",
-		Envs:              []string{"LD_PRELOAD=/usr/local/lib/libjemalloc.so"},
+		Envs:              getEnvironments(cc),
 		Init:              true,
 		Name:              mountPoint2ContainerName(mountPoint),
 		Mount:             fmt.Sprintf(FORMAT_MOUNT_OPTION, mountPoint, containerMountPath),
