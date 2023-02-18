@@ -56,14 +56,14 @@ type (
 	}
 )
 
-func newIfNil(config map[string]interface{}) map[string]interface{} {
+func NewIfNil(config map[string]interface{}) map[string]interface{} {
 	if config == nil {
 		return map[string]interface{}{}
 	}
 	return config
 }
 
-func merge(parent, child map[string]interface{}) {
+func Merge(parent, child map[string]interface{}) {
 	for k, v := range parent {
 		if child[k] == nil {
 			child[k] = v
@@ -198,8 +198,8 @@ func ParseHosts(data string) ([]*HostConfig, error) {
 	hcs := []*HostConfig{}
 	exist := map[string]bool{}
 	for i, host := range hosts.Host {
-		host = newIfNil(host)
-		merge(hosts.Global, host)
+		host = NewIfNil(host)
+		Merge(hosts.Global, host)
 		hc := NewHostConfig(i, host)
 		err = hc.Build()
 		if err != nil {

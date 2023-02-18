@@ -53,6 +53,12 @@ type (
 	step2CheckClientS3Configure struct {
 		config *configure.ClientConfig
 	}
+
+	step2CheckDiskSize struct {
+		dc          *topology.DeployConfig
+		curveadm    *cli.CurveAdm
+		execOptions module.ExecOptions
+	}
 )
 
 func (s *step2CheckChunkfilePool) Execute(ctx *context.Context) error {
@@ -131,6 +137,24 @@ func (s *step2CheckClientS3Configure) Execute(ctx *context.Context) error {
 	return nil
 }
 
+func (s *step2CheckDiskSize) Execute(ctx *context.Context) error {
+	dc := s.dc
+	curveadm := s.curveadm
+	host := dc.GetHost()
+	dataDir := dc.GetDataDir()
+
+	disk, err := curveadm.Storage().GetDiskByDiskFormatMountPoint(host, dataDir)
+	if err != nil {
+		return err
+	}
+	if disk.Size == comm.DISK_DEFAULT_NULL_SIZE {
+		return errno.ERR_DISK_DEVICE_NOT_FORMATTED
+	}
+
+	return nil
+
+}
+
 func NewCheckChunkfilePoolTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task.Task, error) {
 	hc, err := curveadm.GetHost(dc.GetHost())
 	if err != nil {
@@ -142,6 +166,19 @@ func NewCheckChunkfilePoolTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig
 
 	t.AddStep(&step2CheckChunkfilePool{
 		dc:          dc,
+		execOptions: curveadm.ExecOptions(),
+	})
+
+	return t, nil
+}
+
+func NewCheckDiskSizeTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task.Task, error) {
+	subname := fmt.Sprintf("host=%s role=%s", dc.GetHost(), dc.GetRole())
+	t := task.NewTask("Check Disk Size <disk>", subname, nil)
+
+	t.AddStep(&step2CheckDiskSize{
+		dc:          dc,
+		curveadm:    curveadm,
 		execOptions: curveadm.ExecOptions(),
 	})
 

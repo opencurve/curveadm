@@ -226,6 +226,17 @@ func NewCreateContainerTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (
 	hostname := fmt.Sprintf("%s-%s-%s", kind, role, serviceId)
 	options := curveadm.ExecOptions()
 	options.ExecWithSudo = false
+	host := dc.GetHost()
+	dataDir := dc.GetDataDir()
+	diskRecords := curveadm.DiskRecords()
+
+	useDiskRecords := role == topology.ROLE_CHUNKSERVER && len(diskRecords) > 0
+	if useDiskRecords {
+		if err := curveadm.Storage().UpdateDiskChunkServerID(
+			host, dataDir, serviceId); err != nil {
+			return t, err
+		}
+	}
 
 	t.AddStep(&step2GetService{ // if service exist, break task
 		serviceId:   serviceId,

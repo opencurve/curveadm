@@ -64,12 +64,14 @@ type CurveAdm struct {
 	memStorage *utils.SafeMap
 
 	// properties (hosts/cluster)
-	hosts               string // hosts
-	clusterId           int    // current cluster id
-	clusterUUId         string // current cluster uuid
-	clusterName         string // current cluster name
-	clusterTopologyData string // cluster topology
-	clusterPoolData     string // cluster pool
+	hosts               string         // hosts
+	disks               string         // disks of yaml data
+	diskRecords         []storage.Disk // disk records stored in database
+	clusterId           int            // current cluster id
+	clusterUUId         string         // current cluster uuid
+	clusterName         string         // current cluster name
+	clusterTopologyData string         // cluster topology
+	clusterPoolData     string         // cluster pool
 }
 
 /*
@@ -174,6 +176,23 @@ func (curveadm *CurveAdm) init() error {
 			log.Field("ClusterName", cluster.Name))
 	}
 
+	// (8) Get Disks
+	var disks storage.Disks
+	diskses, err := s.GetDisks()
+	if err != nil {
+		log.Error("Get disks failed", log.Field("Error", err))
+		return errno.ERR_GET_DISKS_FAILED.E(err)
+	} else if len(diskses) > 0 {
+		disks = diskses[0]
+	}
+
+	// (9) Get Disk Records
+	diskRecords, err := s.GetDisk("all")
+	if err != nil {
+		log.Error("Get disk records failed", log.Field("Error", err))
+		return errno.ERR_GET_DISK_RECORDS_FAILED.E(err)
+	}
+
 	curveadm.dbpath = dbpath
 	curveadm.logpath = logpath
 	curveadm.config = config
@@ -183,6 +202,8 @@ func (curveadm *CurveAdm) init() error {
 	curveadm.storage = s
 	curveadm.memStorage = utils.NewSafeMap()
 	curveadm.hosts = hosts.Data
+	curveadm.disks = disks.Data
+	curveadm.diskRecords = diskRecords
 	curveadm.clusterId = cluster.Id
 	curveadm.clusterUUId = cluster.UUId
 	curveadm.clusterName = cluster.Name
@@ -264,6 +285,8 @@ func (curveadm *CurveAdm) Err() io.Writer                    { return curveadm.e
 func (curveadm *CurveAdm) Storage() *storage.Storage         { return curveadm.storage }
 func (curveadm *CurveAdm) MemStorage() *utils.SafeMap        { return curveadm.memStorage }
 func (curveadm *CurveAdm) Hosts() string                     { return curveadm.hosts }
+func (curveadm *CurveAdm) Disks() string                     { return curveadm.disks }
+func (curveadm *CurveAdm) DiskRecords() []storage.Disk       { return curveadm.diskRecords }
 func (curveadm *CurveAdm) ClusterId() int                    { return curveadm.clusterId }
 func (curveadm *CurveAdm) ClusterUUId() string               { return curveadm.clusterUUId }
 func (curveadm *CurveAdm) ClusterName() string               { return curveadm.clusterName }

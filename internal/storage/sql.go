@@ -38,7 +38,7 @@
 package storage
 
 var (
-	// tables (hosts/clusters/containers(service)/clients/playrgound/audit)
+	// tables (hosts/clusters/containers(service)/clients/playrgound/audit/disk/disks)
 	CREATE_VERSION_TABLE = `
 		CREATE TABLE IF NOT EXISTS version (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -51,6 +51,29 @@ var (
 		CREATE TABLE IF NOT EXISTS hosts (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			data TEXT NOT NULL,
+			lastmodified_time DATE NOT NULL
+		)
+	`
+	CREATE_DISKS_TABLE = `
+		CREATE TABLE IF NOT EXISTS disks (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			data TEXT NOT NULL,
+			lastmodified_time DATE NOT NULL
+		)
+	`
+
+	CREATE_DISK_TABLE = `
+		CREATE TABLE IF NOT EXISTS disk (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			host TEXT NOT NULL,
+			device TEXT NOT NULL,
+			size TEXT NOT NULL,
+			uri TEXT NOT NULL,
+			disk_format_mount_point TEXT NOT NULL,
+			format_percent TEXT NOT NULL,
+			container_image_location TEXT NOT NULL,
+			direct_mount_in_container TEXT NOT NULL,
+			chunkserver_id TEXT NOT NULL,
 			lastmodified_time DATE NOT NULL
 		)
 	`
@@ -137,6 +160,53 @@ var (
 	SET_HOSTS = `UPDATE hosts SET data = ?, lastmodified_time = datetime('now','localtime') WHERE id = ?`
 
 	SELECT_HOSTS = `SELECT * FROM hosts`
+
+	// disks
+	INSERT_DISKS = `INSERT INTO disks(data, lastmodified_time) VALUES(?, datetime('now','localtime'))`
+
+	SET_DISKS = `UPDATE disks SET data = ?, lastmodified_time = datetime('now','localtime') WHERE id = ?`
+
+	SELECT_DISKS = `SELECT * FROM disks`
+
+	// disk
+	INSERT_DISK = `INSERT INTO disk(
+		host,
+		device,
+		size,
+		uri,
+		disk_format_mount_point,
+		format_percent,
+		container_image_location,
+		direct_mount_in_container,
+		chunkserver_id,
+		lastmodified_time
+		) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now','localtime'))`
+
+	SET_DISK = `UPDATE disk SET disk_format_mount_point = ?, format_percent = ?,
+	container_image_location = ?,lastmodified_time = datetime('now','localtime') WHERE id = ?`
+
+	SET_DISK_URI = `UPDATE disk SET uri = ?,
+		lastmodified_time = datetime('now','localtime') WHERE host = ? AND device = ?`
+
+	SET_DISK_SIZE = `UPDATE disk SET size = ?,
+		lastmodified_time = datetime('now','localtime') WHERE host = ? AND device = ?`
+
+	SET_DISK_CHUNKSERVER_ID = `UPDATE disk SET chunkserver_id = ?,
+	lastmodified_time = datetime('now','localtime') WHERE host = ? AND disk_format_mount_point = ?`
+
+	SELECT_DISK_ALL = `SELECT * FROM disk`
+
+	SELECT_DISK_BY_HOST = `SELECT * FROM disk where host = ?`
+
+	SELECT_DISK_BY_CHUNKSERVER_ID = `SELECT * FROM disk where chunkserver_id = ?`
+
+	SELECT_DISK_BY_DEVICE_PATH = `SELECT * from disk WHERE host = ? AND device = ?`
+
+	SELECT_DISK_BY_DISK_FORMAT_MOUNTPOINT = `SELECT * from disk WHERE host = ? AND disk_format_mount_point = ?`
+
+	DELETE_DISK_HOST = `DELETE from disk WHERE host = ?`
+
+	DELETE_DISK_HOST_DEVICE = `DELETE from disk WHERE host = ? AND device = ?`
 
 	// cluster
 	INSERT_CLUSTER = `INSERT INTO clusters(uuid, name, description, topology, pool, create_time)
