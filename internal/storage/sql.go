@@ -72,7 +72,6 @@ var (
 			disk_format_mount_point TEXT NOT NULL,
 			format_percent TEXT NOT NULL,
 			container_image_location TEXT NOT NULL,
-			direct_mount_in_container TEXT NOT NULL,
 			chunkserver_id TEXT NOT NULL,
 			lastmodified_time DATE NOT NULL
 		)
@@ -177,10 +176,9 @@ var (
 		disk_format_mount_point,
 		format_percent,
 		container_image_location,
-		direct_mount_in_container,
 		chunkserver_id,
 		lastmodified_time
-		) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now','localtime'))`
+		) VALUES(?, ?, ?, ?, ?, ?, ?, ?, datetime('now','localtime'))`
 
 	SET_DISK = `UPDATE disk SET disk_format_mount_point = ?, format_percent = ?,
 	container_image_location = ?,lastmodified_time = datetime('now','localtime') WHERE id = ?`

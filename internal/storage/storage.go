@@ -60,7 +60,6 @@ type Disk struct {
 	MountPoint             string
 	FormatPercent          int
 	ContainerImageLocation string
-	DirectMountInContainer string
 	ChunkServerID          string
 	LastmodifiedTime       time.Time
 }
@@ -316,7 +315,6 @@ func (s *Storage) SetDisk(host, device, mount, containerImag string, format_perc
 			mount,
 			format_percent,
 			containerImag,
-			comm.DISK_DEVICE_MOUNT_IN_CONTAINER_FALSE,
 			comm.DISK_DEFAULT_NULL_CHUNKSERVER_ID,
 		)
 	}
@@ -410,7 +408,6 @@ func (s *Storage) GetDisk(filter string, args ...interface{}) ([]Disk, error) {
 			&disk.MountPoint,
 			&disk.FormatPercent,
 			&disk.ContainerImageLocation,
-			&disk.DirectMountInContainer,
 			&disk.ChunkServerID,
 			&disk.LastmodifiedTime)
 		disks = append(disks, disk)
