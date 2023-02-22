@@ -5,6 +5,7 @@ g_start_args=""
 g_docker_cmd="${SUDO_ALIAS} docker"
 g_volume_bind=""
 g_container_id=""
+g_status="running"
 
 function msg() {
     printf '%b' "$1" >&2
@@ -35,6 +36,14 @@ show_ip_port() {
     printf "memcached addr:\t%s:%d\n" ${LISTEN} ${PORT}
 }
 
+get_status_container() {
+    g_status=`${g_docker_cmd} inspect --format='{{.State.Status}}' ${g_container_name}`
+    if [ ${g_status} != "running" ]; then
+            exit 1
+    fi
+}
+
 precheck
-show_info_container
 show_ip_port
+show_info_container
+get_status_container
