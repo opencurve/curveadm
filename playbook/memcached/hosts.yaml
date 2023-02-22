@@ -18,6 +18,9 @@ hosts:
       - EXT_PATH=/mnt/memcachefile/cachefile:1024G
       - EXT_WBUF_SIZE=8 # size in megabytes of page write buffers.
       - EXT_ITEM_AGE=1 # store items idle at least this long (seconds, default: no age limit)
+      - VERBOSE="v" # v:   verbose (print errors/warnings while in event loop)
+                    # vv:  very verbose (also print client commands/responses)
+                    # vvv: extremely verbose (internal state transitions)
   - host: server-host2
     hostname: 10.0.1.2
     labels:
@@ -32,6 +35,9 @@ hosts:
       - EXT_PATH=/mnt/memcachefile/cachefile:1024G
       - EXT_WBUF_SIZE=8 # size in megabytes of page write buffers.
       - EXT_ITEM_AGE=1 # store items idle at least this long (seconds, default: no age limit)
+      - VERBOSE="v" # v:   verbose (print errors/warnings while in event loop)
+                    # vv:  very verbose (also print client commands/responses)
+                    # vvv: extremely verbose (internal state transitions)
   - host: server-host3
     hostname: 10.0.1.3
     labels:
@@ -46,3 +52,6 @@ hosts:
       - EXT_PATH=/mnt/memcachefile/cachefile:1024G
       - EXT_WBUF_SIZE=8 # size in megabytes of page write buffers.
       - EXT_ITEM_AGE=1 # store items idle at least this long (seconds, default: no age limit)
+      - VERBOSE="v" # v:   verbose (print errors/warnings while in event loop)
+                    # vv:  very verbose (also print client commands/responses)
+                    # vvv: extremely verbose (internal state transitions)
