@@ -44,7 +44,8 @@ import (
 const (
 	FORMAT_MOUNT_OPTION = "type=bind,source=%s,target=%s,bind-propagation=rshared"
 
-	CLIENT_CONFIG_DELIMITER = "="
+	CLIENT_CONFIG_DELIMITER   = "="
+	TOOLS_V2_CONFIG_DELIMITER = ":"
 
 	KEY_CURVEBS_CLUSTER = "curvebs.cluster"
 
@@ -370,6 +371,15 @@ func NewMountFSTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.T
 		ContainerDestPath: topology.GetCurveFSProjectLayout().ToolsConfSystemPath,
 		KVFieldSplit:      CLIENT_CONFIG_DELIMITER,
 		Mutate:            newToolsMutate(cc, CLIENT_CONFIG_DELIMITER),
+		ExecOptions:       curveadm.ExecOptions(),
+	})
+	t.AddStep(&step.TrySyncFile{ // sync tools-v2 config
+		ContainerSrcId:    &containerId,
+		ContainerSrcPath:  fmt.Sprintf("%s/conf/curve.yaml", root),
+		ContainerDestId:   &containerId,
+		ContainerDestPath: topology.GetCurveFSProjectLayout().ToolsV2ConfSystemPath,
+		KVFieldSplit:      TOOLS_V2_CONFIG_DELIMITER,
+		Mutate:            newToolsMutate(cc, TOOLS_V2_CONFIG_DELIMITER),
 		ExecOptions:       curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.InstallFile{ // install client.sh shell

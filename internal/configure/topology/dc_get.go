@@ -34,25 +34,28 @@ import (
 
 const (
 	// service project layout
-	LAYOUT_CURVEFS_ROOT_DIR                 = "/curvefs"
-	LAYOUT_CURVEBS_ROOT_DIR                 = "/curvebs"
-	LAYOUT_PLAYGROUND_ROOT_DIR              = "playground"
-	LAYOUT_CONF_SRC_DIR                     = "/conf"
-	LAYOUT_SERVICE_BIN_DIR                  = "/sbin"
-	LAYOUT_SERVICE_CONF_DIR                 = "/conf"
-	LAYOUT_SERVICE_LOG_DIR                  = "/logs"
-	LAYOUT_SERVICE_DATA_DIR                 = "/data"
-	LAYOUT_TOOLS_DIR                        = "/tools"
-	LAYOUT_CURVEBS_CHUNKFILE_POOL_DIR       = "chunkfilepool"
-	LAYOUT_CURVEBS_COPYSETS_DIR             = "copysets"
-	LAYOUT_CURVEBS_RECYCLER_DIR             = "recycler"
-	LAYOUT_CURVEBS_TOOLS_CONFIG_SYSTEM_PATH = "/etc/curve/tools.conf"
-	LAYOUT_CURVEFS_TOOLS_CONFIG_SYSTEM_PATH = "/etc/curvefs/tools.conf"
-	LAYOUT_CORE_SYSTEM_DIR                  = "/core"
+	LAYOUT_CURVEFS_ROOT_DIR                  = "/curvefs"
+	LAYOUT_CURVEBS_ROOT_DIR                  = "/curvebs"
+	LAYOUT_PLAYGROUND_ROOT_DIR               = "playground"
+	LAYOUT_CONF_SRC_DIR                      = "/conf"
+	LAYOUT_SERVICE_BIN_DIR                   = "/sbin"
+	LAYOUT_SERVICE_CONF_DIR                  = "/conf"
+	LAYOUT_SERVICE_LOG_DIR                   = "/logs"
+	LAYOUT_SERVICE_DATA_DIR                  = "/data"
+	LAYOUT_TOOLS_DIR                         = "/tools"
+	LAYOUT_TOOLS_V2_DIR                      = "/tools-v2"
+	LAYOUT_CURVEBS_CHUNKFILE_POOL_DIR        = "chunkfilepool"
+	LAYOUT_CURVEBS_COPYSETS_DIR              = "copysets"
+	LAYOUT_CURVEBS_RECYCLER_DIR              = "recycler"
+	LAYOUT_CURVEBS_TOOLS_CONFIG_SYSTEM_PATH  = "/etc/curve/tools.conf"
+	LAYOUT_CURVEFS_TOOLS_CONFIG_SYSTEM_PATH  = "/etc/curvefs/tools.conf"
+	LAYOUT_CURVE_TOOLS_V2_CONFIG_SYSTEM_PATH = "/etc/curve/curve.yaml"
+	LAYOUT_CORE_SYSTEM_DIR                   = "/core"
 
 	BINARY_CURVEBS_TOOL     = "curvebs-tool"
 	BINARY_CURVEBS_FORMAT   = "curve_format"
 	BINARY_CURVEFS_TOOL     = "curvefs_tool"
+	BINARY_CURVE_TOOL_V2    = "curve"
 	METAFILE_CHUNKFILE_POOL = "chunkfilepool.meta"
 	METAFILE_CHUNKSERVER_ID = "chunkserver.dat"
 )
@@ -221,6 +224,11 @@ type (
 		ToolsConfSystemPath string // /etc/curve/tools.conf
 		ToolsBinaryPath     string // /curvebs/tools/sbin/curvebs-tool
 
+		// tools-v2
+		ToolsV2ConfSrcPath    string // /curvebs/conf/curve.yaml
+		ToolsV2ConfSystemPath string // /etc/curve/curve.yaml
+		ToolsV2BinaryPath     string // /curvebs/tools-v2/sbin/curve
+
 		// format
 		FormatBinaryPath      string // /curvebs/tools/sbin/curve_format
 		ChunkfilePoolRootDir  string // /curvebs/chunkserver/data
@@ -260,6 +268,12 @@ func (dc *DeployConfig) GetProjectLayout() Layout {
 		LAYOUT_CURVEBS_TOOLS_CONFIG_SYSTEM_PATH,
 		LAYOUT_CURVEFS_TOOLS_CONFIG_SYSTEM_PATH)
 
+	// tools-v2
+	toolsV2RootDir := root + LAYOUT_TOOLS_V2_DIR
+	toolsV2BinDir := toolsV2RootDir + LAYOUT_SERVICE_BIN_DIR
+	toolsV2BinaryName := BINARY_CURVE_TOOL_V2
+	toolsV2ConfSystemPath := LAYOUT_CURVE_TOOLS_V2_CONFIG_SYSTEM_PATH
+
 	// format
 	chunkserverDataDir := fmt.Sprintf("%s/%s%s", root, ROLE_CHUNKSERVER, LAYOUT_SERVICE_DATA_DIR)
 
@@ -289,6 +303,11 @@ func (dc *DeployConfig) GetProjectLayout() Layout {
 		ToolsConfSrcPath:    fmt.Sprintf("%s/tools.conf", confSrcDir),
 		ToolsConfSystemPath: toolsConfSystemPath,
 		ToolsBinaryPath:     fmt.Sprintf("%s/%s", toolsBinDir, toolsBinaryName),
+
+		// toolsv2
+		ToolsV2ConfSrcPath:    fmt.Sprintf("%s/curve.yaml", confSrcDir),
+		ToolsV2ConfSystemPath: toolsV2ConfSystemPath,
+		ToolsV2BinaryPath:     fmt.Sprintf("%s/%s", toolsV2BinDir, toolsV2BinaryName),
 
 		// format
 		FormatBinaryPath:      fmt.Sprintf("%s/%s", toolsBinDir, BINARY_CURVEBS_FORMAT),
