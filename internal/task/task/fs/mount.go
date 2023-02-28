@@ -45,6 +45,7 @@ const (
 	FORMAT_MOUNT_OPTION = "type=bind,source=%s,target=%s,bind-propagation=rshared"
 
 	CLIENT_CONFIG_DELIMITER = "="
+	TOOLSV2_CONFIG_DELIMITER = ":"
 
 	KEY_CURVEBS_CLUSTER = "curvebs.cluster"
 
@@ -212,6 +213,29 @@ func newToolsMutate(cc *configure.ClientConfig, delimiter string) step.Mutate {
 	}
 }
 
+func newToolsV2Mutate(cc *configure.ClientConfig, delimiter string) step.Mutate {
+	clientConfig := cc.GetServiceConfig()
+	tools2client := map[string]string{
+		"mdsAddr":       "mdsOpt.rpcRetryOpt.addrs",
+	}
+	return func(in, key, value string) (out string, err error) {
+		if len(key) == 0 {
+			out = in
+			return
+		}
+		replaceKey := strings.TrimSpace(key)
+		if tools2client[strings.TrimSpace(key)] != "" {
+			replaceKey = tools2client[strings.TrimSpace(key)]
+		}
+		v, ok := clientConfig[strings.ToLower(replaceKey)]
+		if ok {
+			value = v
+		}
+		out = fmt.Sprintf("%s%s %s", key, delimiter, value)
+		return
+	}
+}
+
 func mountPoint2ContainerName(mountPoint string) string {
 	return fmt.Sprintf("curvefs-filesystem-%s", utils.MD5Sum(mountPoint))
 }
@@ -370,6 +394,15 @@ func NewMountFSTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.T
 		ContainerDestPath: topology.GetCurveFSProjectLayout().ToolsConfSystemPath,
 		KVFieldSplit:      CLIENT_CONFIG_DELIMITER,
 		Mutate:            newToolsMutate(cc, CLIENT_CONFIG_DELIMITER),
+		ExecOptions:       curveadm.ExecOptions(),
+	})
+	t.AddStep(&step.TrySyncFile{ // sync toolsv2 config
+		ContainerSrcId:    &containerId,
+		ContainerSrcPath:  fmt.Sprintf("%s/conf/curve.yaml", root),
+		ContainerDestId:   &containerId,
+		ContainerDestPath: topology.GetCurveFSProjectLayout().ToolsV2ConfSystemPath,
+		KVFieldSplit:      TOOLSV2_CONFIG_DELIMITER,
+		Mutate:            newToolsV2Mutate(cc, TOOLSV2_CONFIG_DELIMITER),
 		ExecOptions:       curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.InstallFile{ // install client.sh shell

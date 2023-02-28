@@ -36,6 +36,12 @@ import (
 	"github.com/opencurve/curveadm/internal/task/task"
 )
 
+const (
+	TOOLSV2_CONFIG_DELIMITER = ":"
+	TOOLSV2_CONFIG_SRC_PATH  = "/curvebs/conf/curve.yaml"
+	TOOLSV2_CONFIG_DEST_PATH = "/etc/curve/curve.yaml"
+)
+
 type (
 	MapOptions struct {
 		Host        string
@@ -115,6 +121,15 @@ func NewMapTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.Task,
 		ContainerDestPath: scriptPath,
 		ExecOptions:       curveadm.ExecOptions(),
 	})
+	t.AddStep(&step.TrySyncFile{ // sync toolsv2 config
+		ContainerSrcId:    &containerId,
+		ContainerSrcPath:  TOOLSV2_CONFIG_SRC_PATH,
+		ContainerDestId:   &containerId,
+		ContainerDestPath: TOOLSV2_CONFIG_DEST_PATH,
+		KVFieldSplit:      TOOLSV2_CONFIG_DELIMITER,
+		Mutate:            newToolsV2Mutate(cc, TOOLSV2_CONFIG_DELIMITER),
+		ExecOptions:       curveadm.ExecOptions(),
+	})
 	t.AddStep(&step.ContainerExec{
 		ContainerId: &containerId,
 		Command:     command,
@@ -127,4 +142,27 @@ func NewMapTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.Task,
 	})
 
 	return t, nil
+}
+
+func newToolsV2Mutate(cc *configure.ClientConfig, delimiter string) step.Mutate {
+	clientConfig := cc.GetServiceConfig()
+	tools2client := map[string]string{
+		"mdsAddr": "mdsOpt.rpcRetryOpt.addrs",
+	}
+	return func(in, key, value string) (out string, err error) {
+		if len(key) == 0 {
+			out = in
+			return
+		}
+		replaceKey := strings.TrimSpace(key)
+		if tools2client[strings.TrimSpace(key)] != "" {
+			replaceKey = tools2client[strings.TrimSpace(key)]
+		}
+		v, ok := clientConfig[strings.ToLower(replaceKey)]
+		if ok {
+			value = v
+		}
+		out = fmt.Sprintf("%s%s %s", key, delimiter, value)
+		return
+	}
 }
