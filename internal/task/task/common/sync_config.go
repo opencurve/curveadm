@@ -37,8 +37,9 @@ import (
 )
 
 const (
-	DEFAULT_CONFIG_DELIMITER = "="
-	ETCD_CONFIG_DELIMITER    = ": "
+	DEFAULT_CONFIG_DELIMITER  = "="
+	ETCD_CONFIG_DELIMITER     = ": "
+	TOOLS_V2_CONFIG_DELIMITER = ":"
 
 	CURVE_CRONTAB_FILE = "/tmp/curve_crontab"
 )
@@ -67,6 +68,34 @@ func newMutate(dc *topology.DeployConfig, delimiter string, forceRender bool) st
 		}
 
 		out = fmt.Sprintf("%s%s%s", key, delimiter, value)
+		return
+	}
+}
+
+func newToolV2Mutate(dc *topology.DeployConfig, delimiter string, forceRender bool) step.Mutate {
+	serviceConfig := dc.GetServiceConfig()
+	return func(in, key, value string) (out string, err error) {
+		if len(key) == 0 {
+			out = in
+			if forceRender { // only for nginx.conf
+				out, err = dc.GetVariables().Rendering(in)
+			}
+			return
+		}
+
+		// replace config
+		v, ok := serviceConfig[strings.ToLower(key)]
+		if ok {
+			value = v
+		}
+
+		// replace variable
+		value, err = dc.GetVariables().Rendering(value)
+		if err != nil {
+			return
+		}
+
+		out = fmt.Sprintf("%s%s %s", key, delimiter, value)
 		return
 	}
 }
@@ -144,6 +173,15 @@ func NewSyncConfigTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task
 		ContainerDestPath: layout.ToolsConfSystemPath,
 		KVFieldSplit:      DEFAULT_CONFIG_DELIMITER,
 		Mutate:            newMutate(dc, DEFAULT_CONFIG_DELIMITER, false),
+		ExecOptions:       curveadm.ExecOptions(),
+	})
+	t.AddStep(&step.TrySyncFile{ // sync toolsv2 config
+		ContainerSrcId:    &containerId,
+		ContainerSrcPath:  layout.ToolsV2ConfSrcPath,
+		ContainerDestId:   &containerId,
+		ContainerDestPath: layout.ToolsV2ConfSystemPath,
+		KVFieldSplit:      TOOLS_V2_CONFIG_DELIMITER,
+		Mutate:            newToolV2Mutate(dc, TOOLS_V2_CONFIG_DELIMITER, false),
 		ExecOptions:       curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.InstallFile{ // install report script
