@@ -36,6 +36,12 @@ import (
 	"github.com/opencurve/curveadm/internal/task/task"
 )
 
+const (
+	TOOLS_V2_CONFIG_DELIMITER = ":"
+	TOOLS_V2_CONFIG_SRC_PATH  = "/curvebs/conf/curve.yaml"
+	TOOLS_V2_CONFIG_DEST_PATH = "/etc/curve/curve.yaml"
+)
+
 type (
 	MapOptions struct {
 		Host        string
@@ -112,6 +118,15 @@ func NewMapTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.Task,
 		Content:           &script,
 		ContainerId:       &containerId,
 		ContainerDestPath: scriptPath,
+		ExecOptions:       curveadm.ExecOptions(),
+	})
+	t.AddStep(&step.TrySyncFile{ // sync tools-v2 config
+		ContainerSrcId:    &containerId,
+		ContainerSrcPath:  TOOLS_V2_CONFIG_SRC_PATH,
+		ContainerDestId:   &containerId,
+		ContainerDestPath: TOOLS_V2_CONFIG_DEST_PATH,
+		KVFieldSplit:      TOOLS_V2_CONFIG_DELIMITER,
+		Mutate:            newMutate(cc, TOOLS_V2_CONFIG_DELIMITER),
 		ExecOptions:       curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.ContainerExec{
