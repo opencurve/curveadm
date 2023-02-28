@@ -79,6 +79,16 @@ type (
 		module.ExecOptions
 	}
 
+	TrySyncFile struct {
+		ContainerSrcId    *string
+		ContainerSrcPath  string
+		ContainerDestId   *string
+		ContainerDestPath string
+		KVFieldSplit      string
+		Mutate            func(string, string, string) (string, error)
+		module.ExecOptions
+	}
+
 	DownloadFile struct {
 		RemotePath string
 		LocalPath  string
@@ -243,4 +253,28 @@ func (s *SyncFile) Execute(ctx *context.Context) error {
 
 func (s *DownloadFile) Execute(ctx *context.Context) error {
 	return ctx.Module().File().Download(s.RemotePath, s.LocalPath)
+}
+
+func (s *TrySyncFile) Execute(ctx *context.Context) error {
+	var input string
+	step := &ReadFile{
+		ContainerId:      *s.ContainerSrcId,
+		ContainerSrcPath: s.ContainerSrcPath,
+		Content:          &input,
+		ExecOptions:      s.ExecOptions,
+	}
+	if err := step.Execute(ctx); err != nil {
+		// no this file
+		return nil
+	}
+	sync := SyncFile{
+		ContainerSrcId:    s.ContainerSrcId,
+		ContainerSrcPath:  s.ContainerSrcPath,
+		ContainerDestId:   s.ContainerDestId,
+		ContainerDestPath: s.ContainerDestPath,
+		KVFieldSplit:      s.KVFieldSplit,
+		Mutate:            s.Mutate,
+		ExecOptions:       s.ExecOptions,
+	}
+	return sync.Execute(ctx)
 }
