@@ -29,6 +29,8 @@ import (
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
+	comm "github.com/opencurve/curveadm/internal/common"
+	"github.com/opencurve/curveadm/internal/errno"
 )
 
 type Version struct {
@@ -40,6 +42,25 @@ type Version struct {
 type Hosts struct {
 	Id               int
 	Data             string
+	LastmodifiedTime time.Time
+}
+
+type Disks struct {
+	Id               int
+	Data             string
+	LastmodifiedTime time.Time
+}
+
+type Disk struct {
+	Id               int
+	Host             string
+	Device           string
+	Size             string
+	URI              string
+	MountPoint       string
+	FormatPercent    int
+	ContainerImage   string
+	ChunkServerID    string
 	LastmodifiedTime time.Time
 }
 
@@ -120,6 +141,10 @@ func (s *Storage) init() error {
 	} else if err := s.execSQL(CREATE_PLAYGROUND_TABLE); err != nil {
 		return err
 	} else if err := s.execSQL(CREATE_AUDIT_TABLE); err != nil {
+		return err
+	} else if err := s.execSQL(CREATE_DISKS_TABLE); err != nil {
+		return err
+	} else if err := s.execSQL(CREATE_DISK_TABLE); err != nil {
 		return err
 	} else if err := s.compatible(); err != nil {
 		return err
@@ -244,6 +269,154 @@ func (s *Storage) GetHostses() ([]Hosts, error) {
 		break
 	}
 	return hostses, err
+}
+
+// disks
+func (s *Storage) SetDisks(data string) error {
+	diskses, err := s.GetDisks()
+	if err != nil {
+		return err
+	} else if len(diskses) == 0 {
+		return s.execSQL(INSERT_DISKS, data)
+	}
+	return s.execSQL(SET_DISKS, data, diskses[0].Id)
+}
+
+func (s *Storage) GetDisks() ([]Disks, error) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	rows, err := s.db.Query(SELECT_DISKS)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var diskses []Disks
+	var disks Disks
+	for rows.Next() {
+		err = rows.Scan(&disks.Id, &disks.Data, &disks.LastmodifiedTime)
+		diskses = append(diskses, disks)
+		break
+	}
+	return diskses, err
+}
+
+// disk
+func (s *Storage) SetDisk(host, device, mount, containerImage string, formatPercent int) error {
+	diskRecords, err := s.GetDisk(SELECT_DISK_BY_DEVICE_PATH, host, device)
+	if err != nil {
+		return err
+	} else if len(diskRecords) == 0 {
+		return s.execSQL(
+			INSERT_DISK,
+			host,
+			device,
+			comm.DISK_DEFAULT_NULL_SIZE,
+			comm.DISK_DEFAULT_NULL_URI,
+			mount,
+			formatPercent,
+			containerImage,
+			comm.DISK_DEFAULT_NULL_CHUNKSERVER_ID,
+		)
+	}
+	return s.execSQL(SET_DISK, mount, formatPercent, containerImage, diskRecords[0].Id)
+}
+
+func (s *Storage) UpdateDiskURI(host, device, devUri string) error {
+	return s.execSQL(SET_DISK_URI, devUri, host, device)
+}
+
+func (s *Storage) UpdateDiskSize(host, device, size string) error {
+	return s.execSQL(SET_DISK_SIZE, size, host, device)
+}
+
+func (s *Storage) UpdateDiskChunkServerID(host, mountPoint, chunkserverId string) error {
+	_, err := s.GetDiskByMountPoint(host, mountPoint)
+	if err != nil {
+		return err
+	}
+	return s.execSQL(SET_DISK_CHUNKSERVER_ID, chunkserverId, host, mountPoint)
+}
+
+func (s *Storage) DeleteDisk(host, device string) error {
+	if len(device) > 0 {
+		return s.execSQL(DELETE_DISK_HOST_DEVICE, host, device)
+	} else {
+		return s.execSQL(DELETE_DISK_HOST, host)
+	}
+}
+
+func (s *Storage) GetDiskByMountPoint(host, mountPoint string) (Disk, error) {
+	var disk Disk
+	diskRecords, err := s.GetDisk(comm.DISK_FILTER_MOUNT, host, mountPoint)
+	if len(diskRecords) == 0 {
+		return disk, errno.ERR_DATABASE_EMPTY_QUERY_RESULT.
+			F("The disk[host=%s, disk_format_mount_point=%s] was not found in database.",
+				host, mountPoint)
+	}
+	disk = diskRecords[0]
+	return disk, err
+}
+
+func (s *Storage) CleanDiskChunkServerId(serviceId string) error {
+	diskRecords, err := s.GetDisk(comm.DISK_FILTER_SERVICE, serviceId)
+	if err != nil {
+		return err
+	}
+
+	for _, disk := range diskRecords {
+		if err := s.UpdateDiskChunkServerID(
+			disk.Host,
+			disk.MountPoint,
+			comm.DISK_DEFAULT_NULL_CHUNKSERVER_ID,
+		); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *Storage) GetDisk(filter string, args ...interface{}) ([]Disk, error) {
+	var query string
+	switch filter {
+	case comm.DISK_FILTER_ALL:
+		query = SELECT_DISK_ALL
+	case comm.DISK_FILTER_HOST:
+		query = SELECT_DISK_BY_HOST
+	case comm.DISK_FILTER_DEVICE:
+		query = SELECT_DISK_BY_DEVICE_PATH
+	case comm.DISK_FILTER_MOUNT:
+		query = SELECT_DISK_BY_MOUNTPOINT
+	case comm.DISK_FILTER_SERVICE:
+		query = SELECT_DISK_BY_CHUNKSERVER_ID
+	default:
+		query = filter
+	}
+
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+	var diskRecords []Disk
+	var disk Disk
+
+	for rows.Next() {
+		err = rows.Scan(&disk.Id,
+			&disk.Host,
+			&disk.Device,
+			&disk.Size,
+			&disk.URI,
+			&disk.MountPoint,
+			&disk.FormatPercent,
+			&disk.ContainerImage,
+			&disk.ChunkServerID,
+			&disk.LastmodifiedTime)
+		diskRecords = append(diskRecords, disk)
+	}
+	return diskRecords, err
 }
 
 // cluster

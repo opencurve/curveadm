@@ -51,6 +51,7 @@ type (
 		Device         string
 		MountPoint     string
 		FormtPercent   int
+		UseDiskUri     bool
 	}
 
 	Format struct {
@@ -60,7 +61,7 @@ type (
 	}
 )
 
-func newFormatConfig(containerImage, host, disk string) (*FormatConfig, error) {
+func NewFormatConfig(containerImage, host, disk string) (*FormatConfig, error) {
 	items := strings.Split(disk, ":")
 	if len(items) != 3 {
 		return nil, errno.ERR_INVALID_DISK_FORMAT.S(disk)
@@ -121,7 +122,7 @@ func ParseFormat(filename string) ([]*FormatConfig, error) {
 	fcs := []*FormatConfig{}
 	for _, host := range format.Hosts {
 		for _, disk := range format.Disks {
-			fc, err := newFormatConfig(containerImage, host, disk)
+			fc, err := NewFormatConfig(containerImage, host, disk)
 			if err != nil {
 				return nil, err
 			}
