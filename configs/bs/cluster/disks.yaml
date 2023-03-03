@@ -1,0 +1,23 @@
+global:
+  format_percent: 95
+  container_image: opencurvedocker/curvebs:v1.2
+  host:
+    - curve-1
+    - curve-2
+    - curve-3
+
+disk:
+  - device: /dev/sdb1
+    mount: /data/chunkserver0
+  - device: /dev/sdc1
+    mount: /data/chunkserver1
+    format_percent: 90
+  - device: /dev/sdd1
+    mount: /data/chunkserver2
+    exclude:  # for the use case that some hosts have not certain disk device
+      - curve-3
+  - device: /dev/sde1
+    mount: /data/chunkserver3
+    host:
+      - curve-1
+      - curve-2

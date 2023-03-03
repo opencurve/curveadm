@@ -52,6 +52,7 @@ const (
 	CHECK_ITEM_NERWORK    = "network"
 	CHECK_ITEM_DATE       = "date"
 	CHECK_ITEM_SERVICE    = "service"
+	CHECK_ITEM_DISK       = "disk"
 )
 
 var (
@@ -67,6 +68,7 @@ var (
 		playbook.CHECK_NETWORK_FIREWALL,
 		playbook.GET_HOST_DATE, // date
 		playbook.CHECK_HOST_DATE,
+		playbook.CHECK_DISK_SIZE,      // disk
 		playbook.CHECK_CHUNKFILE_POOL, // service
 		//playbook.CHECK_S3,
 	}
@@ -98,6 +100,7 @@ var (
 		playbook.CHECK_NETWORK_FIREWALL:      CHECK_ITEM_NERWORK,
 		playbook.GET_HOST_DATE:               CHECK_ITEM_DATE,
 		playbook.CHECK_HOST_DATE:             CHECK_ITEM_DATE,
+		playbook.CHECK_DISK_SIZE:             CHECK_ITEM_DISK,
 		playbook.CHECK_CHUNKFILE_POOL:        CHECK_ITEM_SERVICE,
 		playbook.CHECK_S3:                    CHECK_ITEM_SERVICE,
 	}
@@ -189,6 +192,12 @@ func genPrecheckPlaybook(curveadm *cli.CurveAdm,
 		case playbook.CHECK_HOST_DATE:
 			configs = configs[:1]
 		case playbook.CHECK_CHUNKFILE_POOL:
+			configs = curveadm.FilterDeployConfigByRole(dcs, ROLE_CHUNKSERVER)
+		case playbook.CHECK_DISK_SIZE:
+			// skip disk size checking with empty records
+			if len(curveadm.DiskRecords()) == 0 {
+				continue
+			}
 			configs = curveadm.FilterDeployConfigByRole(dcs, ROLE_CHUNKSERVER)
 		}
 

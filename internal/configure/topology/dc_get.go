@@ -121,9 +121,11 @@ func (dc *DeployConfig) GetServiceConfig() map[string]string { return dc.service
 func (dc *DeployConfig) GetVariables() *variable.Variables   { return dc.variables }
 
 // (2): config item
-func (dc *DeployConfig) GetPrefix() string           { return dc.getString(CONFIG_PREFIX) }
-func (dc *DeployConfig) GetReportUsage() bool        { return dc.getBool(CONFIG_REPORT_USAGE) }
-func (dc *DeployConfig) GetContainerImage() string   { return dc.getString(CONFIG_CONTAINER_IMAGE) }
+func (dc *DeployConfig) GetPrefix() string    { return dc.getString(CONFIG_PREFIX) }
+func (dc *DeployConfig) GetReportUsage() bool { return dc.getBool(CONFIG_REPORT_USAGE) }
+func (dc *DeployConfig) GetContainerImage() string {
+	return dc.getString(CONFIG_GLOBAL_CONTAINER_IMAGE)
+}
 func (dc *DeployConfig) GetLogDir() string           { return dc.getString(CONFIG_LOG_DIR) }
 func (dc *DeployConfig) GetDataDir() string          { return dc.getString(CONFIG_DATA_DIR) }
 func (dc *DeployConfig) GetCoreDir() string          { return dc.getString(CONFIG_CORE_DIR) }
