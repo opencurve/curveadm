@@ -163,3 +163,11 @@ func (itemset *ItemSet) Build(key string, value interface{}) (interface{}, error
 
 	return value, nil
 }
+
+func convertSlice[T int | string | any](value any) []T {
+	var slice []T
+	for _, str := range value.([]any) {
+		slice = append(slice, str.(T))
+	}
+	return slice
+}
