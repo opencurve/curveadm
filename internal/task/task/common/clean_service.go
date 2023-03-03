@@ -215,6 +215,11 @@ func NewCleanServiceTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*ta
 			execOptions: curveadm.ExecOptions(),
 		})
 	}
+	t.AddStep(&step2CleanDiskChunkServerId{
+		serviceId:   serviceId,
+		storage:     curveadm.Storage(),
+		execOptions: curveadm.ExecOptions(),
+	})
 
 	return t, nil
 }
