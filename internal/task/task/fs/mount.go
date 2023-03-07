@@ -340,7 +340,7 @@ func NewMountFSTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.T
 		Privileged:        true,
 		Out:               &containerId,
 		ExecOptions:       curveadm.ExecOptions(),
-		Restart:		   common.POLICY_ALWAYS_RESTART,
+		Restart:           common.POLICY_ALWAYS_RESTART,
 	})
 	t.AddStep(&step2InsertClient{
 		curveadm:    curveadm,
@@ -396,19 +396,18 @@ func NewMountFSTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.T
 	})
 	// TODO(P0): wait mount done
 	t.AddStep(&step.Lambda{
-		Lambda: checkMountFsStatus(&containerId, mountPoint),
+		Lambda: checkMountDone(&containerId, mountPoint),
 	})
 
 	return t, nil
 
 }
 
-func checkMountFsStatus(containerId *string, mountPoint string) step.LambdaType {
+func checkMountDone(containerId *string, mountPoint string) step.LambdaType {
 	return func(ctx *context.Context) error {
 		steps := []task.Step{}
 		var success bool
-		var out string
-		var hostname string
+		var out, hostname string
 		// get hostname
 		steps = append(steps, &step.Hostname{
 			Success: &success,
@@ -422,25 +421,18 @@ func checkMountFsStatus(containerId *string, mountPoint string) step.LambdaType 
 				Out:         &out,
 			})
 		}
-		// list fs 3 times to check mounpoint
+		// list fs 3 times to check mountpoint
 		// if no this mountpoint stop container
 		steps = append(steps, &step.StopContainer{
 			ContainerId: *containerId,
 		})
 		mountPoint = configure.GetFSClientMountPath(mountPoint)
 		for _, step := range steps {
+			time.Sleep(time.Duration(1) * time.Second)
 			err := step.Execute(ctx)
-			if err == nil && success {
-				var jsonMap map[string]interface{}
-				err := json.Unmarshal([]byte(out), &jsonMap)
-				if err != nil || jsonMap["fsInfo"] == nil {
-					continue
-				}
-				for _, fsinfo := range jsonMap["fsInfo"].([]interface{}) {
-					if checkFsInfoContainMountpoit(fsinfo.(map[string]interface{}), mountPoint, hostname) {
-						return nil
-					}
-					time.Sleep(time.Duration(1) * time.Second)
+			if err == nil && success && out != "" {
+				if checkMountpointExist(out, mountPoint, hostname) {
+					return nil
 				}
 			}
 		}
@@ -448,15 +440,46 @@ func checkMountFsStatus(containerId *string, mountPoint string) step.LambdaType 
 	}
 }
 
-func checkFsInfoContainMountpoit(fsinfo map[string]interface{}, path, hostname string) bool {
-	if int(fsinfo["mountNum"].(float64)) <= 0 {
+const (
+	JSON_FS_INFO     = "fsInfo"
+	JSON_MOUNT_NUM   = "mountNum"
+	JSON_MOUNT_POINT = "mountPoint"
+	JSON_HOSTNAME    = "hostname"
+	JSON_PATH        = "path"
+)
+
+func checkMountpointExist(out, path, hostname string) bool {
+	var jsonMap map[string]interface{}
+	err := json.Unmarshal([]byte(out), &jsonMap)
+	if err != nil || jsonMap[JSON_FS_INFO] == nil {
 		return false
 	}
-	for _, mountpoint := range fsinfo["mountpoints"].([]interface{}) {
-		point := mountpoint.(map[string]interface{})
-		if point["hostname"] == hostname && point["path"] == path {
-			return true
+
+	if !utils.IsAnySlice(jsonMap[JSON_FS_INFO]) {
+		return false
+	}
+
+	for _, fsinfo := range jsonMap[JSON_FS_INFO].([]interface{}) {
+		if !utils.IsStringAnyMap(fsinfo) {
+			continue
+		}
+		info := fsinfo.(map[string]interface{})
+		if utils.IsFloat64(info[JSON_MOUNT_NUM]) ||
+			int(info[JSON_MOUNT_NUM].(float64)) <= 0 ||
+			!utils.IsAnySlice(info[JSON_MOUNT_POINT].([]interface{})) {
+			fmt.Println("type:", utils.Type(info[JSON_MOUNT_NUM]))
+			continue
+		}
+		for _, mountpoint := range info[JSON_MOUNT_POINT].([]interface{}) {
+			if !utils.IsStringAnyMap(mountpoint) {
+				continue
+			}
+			point := mountpoint.(map[string]interface{})
+			if point[JSON_HOSTNAME] == hostname && point[JSON_PATH] == path {
+				return true
+			}
 		}
 	}
+
 	return false
 }

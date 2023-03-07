@@ -74,6 +74,8 @@ func Type(v interface{}) string {
 		return "string_interface_map"
 	case []interface{}:
 		return "any_slice"
+	case float64:
+		return "float64"
 	default:
 		return "unknown"
 	}
@@ -105,6 +107,10 @@ func IsAnySlice(v interface{}) bool {
 
 func IsFunc(v interface{}) bool {
 	return reflect.TypeOf(v).Kind() == reflect.Func
+}
+
+func IsFloat64(v interface{}) bool {
+	return Type(v) == "float64"
 }
 
 func All2Str(v interface{}) (value string, ok bool) {
