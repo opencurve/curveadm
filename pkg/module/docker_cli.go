@@ -45,6 +45,7 @@ const (
 	TEMPLATE_COPY_INTO_CONTAINER = "docker cp {{.options}}  {{.srcPath}} {{.container}}:{{.destPath}}"
 	TEMPLATE_INSPECT_CONTAINER   = "docker inspect {{.options}} {{.container}}"
 	TEMPLATE_CONTAINER_LOGS      = "docker logs {{.options}} {{.container}}"
+	TEMPLATE_UPDATE_CONTAINER = "docker update {{.options}} {{.container}}"
 )
 
 type DockerCli struct {
@@ -157,6 +158,12 @@ func (cli *DockerCli) InspectContainer(containerId string) *DockerCli {
 
 func (cli *DockerCli) ContainerLogs(containerId string) *DockerCli {
 	cli.tmpl = template.Must(template.New("ContainerLogs").Parse(TEMPLATE_CONTAINER_LOGS))
+	cli.data["container"] = containerId
+	return cli
+}
+
+func (cli *DockerCli) UpdateContainer(containerId string) *DockerCli {
+	cli.tmpl = template.Must(template.New("UpdateContainer").Parse(TEMPLATE_UPDATE_CONTAINER))
 	cli.data["container"] = containerId
 	return cli
 }

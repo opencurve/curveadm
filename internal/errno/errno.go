@@ -539,6 +539,7 @@ var (
 	ERR_COPY_INTO_CONTAINER_FAILED      = EC(630011, "copy file into container failed (docker cp SRC_PATH CONTAINER:DEST_PATH)")
 	ERR_INSPECT_CONTAINER_FAILED        = EC(630012, "get container low-level information failed (docker inspect ID)")
 	ERR_GET_CONTAINER_LOGS_FAILED       = EC(630013, "get container logs failed (docker logs ID)")
+	ERR_UPDATE_CONTAINER_FAILED         = EC(630014, "update container failed (docker update ID)")
 
 	// 690: execuetr task (others)
 	ERR_START_CRONTAB_IN_CONTAINER_FAILED = EC(690000, "start crontab in container failed")

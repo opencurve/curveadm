@@ -26,6 +26,7 @@ import (
 	"github.com/opencurve/curveadm/cli/cli"
 	comm "github.com/opencurve/curveadm/internal/common"
 	"github.com/opencurve/curveadm/internal/playbook"
+	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task/bs"
 	"github.com/opencurve/curveadm/internal/tui"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
@@ -80,10 +81,10 @@ func genListPlaybook(curveadm *cli.CurveAdm, options listOptions) (*playbook.Pla
 }
 
 func displayTargets(curveadm *cli.CurveAdm) {
-	targets := []bs.Target{}
+	targets := []step.Target{}
 	value := curveadm.MemStorage().Get(comm.KEY_ALL_TARGETS)
 	if value != nil {
-		m := value.(map[string]*bs.Target)
+		m := value.(map[string]*step.Target)
 		for _, target := range m {
 			targets = append(targets, *target)
 		}

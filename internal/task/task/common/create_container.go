@@ -40,11 +40,6 @@ import (
 	log "github.com/opencurve/curveadm/pkg/log/glg"
 )
 
-const (
-	POLICY_ALWAYS_RESTART = "always"
-	POLICY_NEVER_RESTART  = "no"
-)
-
 type step2GetService struct {
 	serviceId   string
 	containerId *string
@@ -193,15 +188,15 @@ func getMountVolumes(dc *topology.DeployConfig, serviceMountDevice bool) []step.
 func getRestartPolicy(dc *topology.DeployConfig, serviceMountDevice bool) string {
 	switch dc.GetRole() {
 	case topology.ROLE_ETCD:
-		return POLICY_ALWAYS_RESTART
+		return comm.POLICY_ALWAYS_RESTART
 	case topology.ROLE_MDS:
-		return POLICY_ALWAYS_RESTART
+		return comm.POLICY_ALWAYS_RESTART
 	case topology.ROLE_CHUNKSERVER:
 		if serviceMountDevice {
-			return POLICY_ALWAYS_RESTART
+			return comm.POLICY_ALWAYS_RESTART
 		}
 	}
-	return POLICY_NEVER_RESTART
+	return comm.POLICY_NEVER_RESTART
 }
 
 func trimContainerId(containerId *string) step.LambdaType {

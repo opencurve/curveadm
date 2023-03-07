@@ -152,6 +152,14 @@ type (
 		Success     *bool
 		module.ExecOptions
 	}
+
+	UpdateContainer struct {
+		ContainerId *string
+		Restart     string
+		Out         *string
+		Success     *bool
+		module.ExecOptions
+	}
 )
 
 func (s *DockerInfo) Execute(ctx *context.Context) error {
@@ -311,4 +319,13 @@ func (s *ContainerLogs) Execute(ctx *context.Context) error {
 	cli := ctx.Module().DockerCli().ContainerLogs(s.ContainerId)
 	out, err := cli.Execute(s.ExecOptions)
 	return PostHandle(s.Success, s.Out, out, err, errno.ERR_GET_CONTAINER_LOGS_FAILED)
+}
+
+func (s *UpdateContainer) Execute(ctx *context.Context) error {
+	cli := ctx.Module().DockerCli().UpdateContainer(*s.ContainerId)
+	if len(s.Restart) > 0 {
+		cli.AddOption("--restart %s", s.Restart)
+	}
+	out, err := cli.Execute(s.ExecOptions)
+	return PostHandle(s.Success, s.Out, out, err, errno.ERR_UPDATE_CONTAINER_FAILED)
 }

@@ -24,6 +24,8 @@ package bs
 
 import (
 	"fmt"
+	"regexp"
+	"strconv"
 
 	"github.com/opencurve/curveadm/cli/cli"
 	comm "github.com/opencurve/curveadm/internal/common"
@@ -34,12 +36,12 @@ import (
 )
 
 type TargetOption struct {
-	Host   string
-	User   string
-	Volume string
-	Create bool
-	Size   int
-	Tid    string
+	Host      string
+	User      string
+	Volume    string
+	Create    bool
+	Size      int
+	Tid       string
 	Blocksize uint64
 }
 
@@ -91,5 +93,18 @@ func NewAddTargetTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task
 		ExecOptions: curveadm.ExecOptions(),
 	})
 
+	t.AddStep(&step.AddDaemonTask{ // install addTarget.task
+		ContainerId: &containerId,
+		Cmd:         "/bin/bash",
+		Args:        []string{targetScriptPath, user, volume, strconv.FormatBool(options.Create), strconv.Itoa(options.Size), strconv.FormatUint(options.Blocksize, 10)},
+		TaskName:    "addTarget"+TranslateVolumeName(volume, user),
+		ExecOptions: curveadm.ExecOptions(),
+	})
+
 	return t, nil
+}
+
+func TranslateVolumeName(volume, user string) string {
+	reg, _ := regexp.Compile("[^a-zA-Z0-9]+")
+	return reg.ReplaceAllString(volume, "_") + "_" + user + "_"
 }

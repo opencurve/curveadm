@@ -100,6 +100,7 @@ func NewStartTargetDaemonTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig
 		Privileged:  true,
 		Volumes:     getVolumes(cc),
 		Out:         &containerId,
+		Restart:     comm.POLICY_UNLESS_STOPPED,
 		ExecOptions: curveadm.ExecOptions(),
 	})
 	for _, filename := range []string{"client.conf", "nebd-server.conf"} {
@@ -113,6 +114,15 @@ func NewStartTargetDaemonTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig
 			ExecOptions:       curveadm.ExecOptions(),
 		})
 	}
+	t.AddStep(&step.SyncFile{ // sync client configuration for tgtd
+		ContainerSrcId:    &containerId,
+		ContainerSrcPath:  "/curvebs/conf/client.conf",
+		ContainerDestId:   &containerId,
+		ContainerDestPath: "/etc/curve/client.conf",
+		KVFieldSplit:      CLIENT_CONFIG_DELIMITER,
+		Mutate:            newMutate(cc, CLIENT_CONFIG_DELIMITER),
+		ExecOptions:       curveadm.ExecOptions(),
+	})
 	t.AddStep(&step.SyncFile{ // sync nebd-client config
 		ContainerSrcId:    &containerId,
 		ContainerSrcPath:  "/curvebs/conf/nebd-client.conf",
@@ -128,8 +138,14 @@ func NewStartTargetDaemonTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig
 		ExecOptions: curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.ContainerExec{
-		Command:     "tgtd -f &",
+		Command:     "tgtd",
 		ContainerId: &containerId,
+		ExecOptions: curveadm.ExecOptions(),
+	})
+	t.AddStep(&step.AddDaemonTask{ // install tgtd.task
+		ContainerId: &containerId,
+		Cmd:         "tgtd",
+		TaskName:    "tgtd",
 		ExecOptions: curveadm.ExecOptions(),
 	})
 

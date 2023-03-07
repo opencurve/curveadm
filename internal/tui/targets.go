@@ -25,19 +25,19 @@ package tui
 import (
 	"sort"
 
-	task "github.com/opencurve/curveadm/internal/task/task/bs"
+	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/tui/common"
 	tuicommon "github.com/opencurve/curveadm/internal/tui/common"
 )
 
-func sortTargets(targets []task.Target) {
+func sortTargets(targets []step.Target) {
 	sort.Slice(targets, func(i, j int) bool {
 		t1, t2 := targets[i], targets[j]
 		return t1.Tid < t2.Tid
 	})
 }
 
-func FormatTargets(targets []task.Target) string {
+func FormatTargets(targets []step.Target) string {
 	lines := [][]interface{}{}
 	title := []string{"Tid", "Host", "Target Name", "Store", "Portal"}
 	first, second := tuicommon.FormatTitle(title)

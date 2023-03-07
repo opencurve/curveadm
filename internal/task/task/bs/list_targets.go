@@ -46,22 +46,14 @@ type (
 		output     *string
 		memStorage *utils.SafeMap
 	}
-
-	Target struct {
-		Host   string
-		Tid    string
-		Name   string
-		Store  string
-		Portal string
-	}
 )
 
-func addTarget(memStorage *utils.SafeMap, id string, target *Target) {
+func addTarget(memStorage *utils.SafeMap, id string, target *step.Target) {
 	memStorage.TX(func(kv *utils.SafeMap) error {
-		m := map[string]*Target{}
+		m := map[string]*step.Target{}
 		v := kv.Get(comm.KEY_ALL_TARGETS)
 		if v != nil {
-			m = v.(map[string]*Target)
+			m = v.(map[string]*step.Target)
 		}
 		m[id] = target
 		kv.Set(comm.KEY_ALL_TARGETS, m)
@@ -84,13 +76,13 @@ func (s *step2FormatTarget) Execute(ctx *context.Context) error {
 	output := *s.output
 	lines := strings.Split(output, "\n")
 
-	var target *Target
+	var target *step.Target
 	titlePattern := regexp.MustCompile("^Target ([0-9]+): (.+)$")
 	storePattern := regexp.MustCompile("Backing store path: (cbd:pool//.+)$")
 	for _, line := range lines {
 		mu := titlePattern.FindStringSubmatch(line)
 		if len(mu) > 0 {
-			target = &Target{
+			target = &step.Target{
 				Host: s.host,
 				Tid:    mu[1],
 				Name:   mu[2],
