@@ -77,6 +77,24 @@ func NewDeleteTargetTask(curveadm *cli.CurveAdm, cc *client.ClientConfig) (*task
 	})
 	t.AddStep(&step.ContainerExec{
 		ContainerId: &containerId,
+		Command:     fmt.Sprintf("tgtadm --lld iscsi --mode target --op show"),
+		Out:         &output,
+		ExecOptions: curveadm.ExecOptions(),
+	})
+	t.AddStep(&step2FormatTarget{
+		host:       options.Host,
+		hostname:   hc.GetHostname(),
+		output:     &output,
+		memStorage: curveadm.MemStorage(),
+	})
+	t.AddStep(&step.DelDaemonTask{
+		ContainerId: &containerId,
+		Tid:         tid,
+		MemStorage:  curveadm.MemStorage(),
+		ExecOptions: curveadm.ExecOptions(),
+	})
+	t.AddStep(&step.ContainerExec{
+		ContainerId: &containerId,
 		Command:     fmt.Sprintf("tgtadm --lld iscsi --mode target --op delete --tid %s", tid),
 		ExecOptions: curveadm.ExecOptions(),
 	})

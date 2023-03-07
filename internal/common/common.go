@@ -130,3 +130,10 @@ const (
 	AUDIT_STATUS_FAIL
 	AUDIT_STATUS_CANCEL
 )
+
+// container restart policy
+const (
+	POLICY_ALWAYS_RESTART = "always"
+	POLICY_NEVER_RESTART  = "no"
+	POLICY_UNLESS_STOPPED = "unless-stopped"
+)

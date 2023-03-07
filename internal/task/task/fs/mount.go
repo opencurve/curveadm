@@ -27,8 +27,10 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/opencurve/curveadm/cli/cli"
+	"github.com/opencurve/curveadm/internal/common"
 	comm "github.com/opencurve/curveadm/internal/common"
 	"github.com/opencurve/curveadm/internal/configure"
 	"github.com/opencurve/curveadm/internal/configure/topology"
@@ -39,6 +41,7 @@ import (
 	"github.com/opencurve/curveadm/internal/task/task"
 	"github.com/opencurve/curveadm/internal/task/task/checker"
 	"github.com/opencurve/curveadm/internal/utils"
+	"github.com/opencurve/curveadm/pkg/module"
 )
 
 const (
@@ -50,6 +53,10 @@ const (
 	KEY_CURVEBS_CLUSTER = "curvebs.cluster"
 
 	CURVEBS_CONF_PATH = "/etc/curve/client.conf"
+
+	CURVEFS_LIST_FS = "curvefs_tool list-fs"
+
+	CHECK_MOUTPOINT_TIMES = 3
 )
 
 type (
@@ -71,6 +78,12 @@ type (
 		FSName     string `json:"fsname"`
 		MountPoint string `json:"mount_point,"`
 		Config     string `json:"config,omitempty"` // TODO(P1)
+	}
+
+	CheckMountDone struct {
+		ContainerId *string
+		MountPoint  string
+		module.ExecOptions
 	}
 )
 
@@ -358,6 +371,7 @@ func NewMountFSTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.T
 		Privileged:        true,
 		Out:               &containerId,
 		ExecOptions:       curveadm.ExecOptions(),
+		Restart:           common.POLICY_ALWAYS_RESTART,
 	})
 	t.AddStep(&step2InsertClient{
 		curveadm:    curveadm,
@@ -420,8 +434,98 @@ func NewMountFSTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.T
 	t.AddStep(&step.Lambda{
 		Lambda: checkStartContainerStatus(&success, &out),
 	})
-	// TODO(P0): wait mount done
+	t.AddStep(&CheckMountDone{
+		ContainerId: &containerId,
+		MountPoint:  mountPoint,
+		ExecOptions: curveadm.ExecOptions(),
+	})
+	t.AddStep(&step.UpdateContainer{
+		ContainerId: &containerId,
+		Restart:     comm.POLICY_UNLESS_STOPPED,
+		ExecOptions: curveadm.ExecOptions(),
+	})
 
 	return t, nil
 
+}
+
+func (s *CheckMountDone) Execute(ctx *context.Context) error {
+	steps := []task.Step{}
+	var success bool
+	var out, hostname string
+	// get hostname
+	steps = append(steps, &step.Hostname{
+		Success:     &success,
+		Out:         &hostname,
+		ExecOptions: s.ExecOptions,
+	})
+	for i := 0; i < CHECK_MOUTPOINT_TIMES; i++ {
+		steps = append(steps, &step.ContainerExec{
+			ContainerId: s.ContainerId,
+			Command:     CURVEFS_LIST_FS,
+			Success:     &success,
+			Out:         &out,
+			ExecOptions: s.ExecOptions,
+		})
+	}
+	// list fs 3 times to check mountpoint
+	// if no this mountpoint stop container
+	steps = append(steps, &step.StopContainer{
+		ContainerId: *s.ContainerId,
+		ExecOptions: s.ExecOptions,
+	})
+	mountPoint := configure.GetFSClientMountPath(s.MountPoint)
+	for _, step := range steps {
+		time.Sleep(time.Duration(1) * time.Second)
+		err := step.Execute(ctx)
+		if err == nil && success && out != "" {
+			if checkMountpointExist(out, mountPoint, hostname) {
+				return nil
+			}
+		}
+	}
+	return errno.ERR_MOUNT_FILESYSTEM_FAILED
+}
+
+const (
+	JSON_FS_INFO     = "fsInfo"
+	JSON_MOUNT_NUM   = "mountNum"
+	JSON_MOUNTPOINTS = "mountpoints"
+	JSON_HOSTNAME    = "hostname"
+	JSON_PATH        = "path"
+)
+
+func checkMountpointExist(out, path, hostname string) bool {
+	var jsonMap map[string]interface{}
+	err := json.Unmarshal([]byte(out), &jsonMap)
+	if err != nil || jsonMap[JSON_FS_INFO] == nil {
+		return false
+	}
+
+	if !utils.IsAnySlice(jsonMap[JSON_FS_INFO]) {
+		return false
+	}
+
+	for _, fsinfo := range jsonMap[JSON_FS_INFO].([]interface{}) {
+		if !utils.IsStringAnyMap(fsinfo) {
+			continue
+		}
+		info := fsinfo.(map[string]interface{})
+		if !utils.IsFloat64(info[JSON_MOUNT_NUM]) ||
+			int(info[JSON_MOUNT_NUM].(float64)) <= 0 ||
+			!utils.IsAnySlice(info[JSON_MOUNTPOINTS].([]interface{})) {
+			continue
+		}
+		for _, mountpoint := range info[JSON_MOUNTPOINTS].([]interface{}) {
+			if !utils.IsStringAnyMap(mountpoint) {
+				continue
+			}
+			point := mountpoint.(map[string]interface{})
+			if point[JSON_HOSTNAME] == hostname && point[JSON_PATH] == path {
+				return true
+			}
+		}
+	}
+
+	return false
 }

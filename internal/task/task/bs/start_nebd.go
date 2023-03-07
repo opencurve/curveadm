@@ -194,6 +194,7 @@ func NewStartNEBDServiceTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig)
 		Privileged:  true,
 		Volumes:     getVolumes(cc),
 		Out:         &containerId,
+		Restart:     comm.POLICY_UNLESS_STOPPED,
 		ExecOptions: curveadm.ExecOptions(),
 	})
 	t.AddStep(&step2InsertClient{

@@ -147,6 +147,12 @@ func NewUmountFSTask(curveadm *cli.CurveAdm, v interface{}) (*task.Task, error) 
 		mountPoint:  options.MountPoint,
 		curveadm:    curveadm,
 	})
+	if containerId != "" {
+		t.AddStep(&step.StopContainer{
+			ContainerId: containerId,
+			ExecOptions: curveadm.ExecOptions(),
+		})
+	}
 	t.AddStep(&step2RemoveContainer{
 		status:      &status,
 		containerId: containerId,

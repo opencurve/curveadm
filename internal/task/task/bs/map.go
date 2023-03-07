@@ -106,6 +106,13 @@ func NewMapTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.Task,
 		Args:        []string{"nbds_max=64"},
 		ExecOptions: curveadm.ExecOptions(),
 	})
+	t.AddStep(&step.AddDaemonTask{ // install modprobe.task
+		ContainerId: &containerId,
+		Cmd:         "modprobe",
+		Args:        []string{comm.KERNERL_MODULE_NBD, "nbds_max=64"},
+		TaskName:    "modProbe",
+		ExecOptions: curveadm.ExecOptions(),
+	})
 	t.AddStep(&step.SyncFile{ // sync nebd-client config
 		ContainerSrcId:    &containerId,
 		ContainerSrcPath:  "/curvebs/conf/nebd-client.conf",
@@ -129,6 +136,13 @@ func NewMapTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.Task,
 		KVFieldSplit:      TOOLSV2_CONFIG_DELIMITER,
 		Mutate:            newToolsV2Mutate(cc, TOOLSV2_CONFIG_DELIMITER),
 		ExecOptions:       curveadm.ExecOptions(),
+	})
+	t.AddStep(&step.AddDaemonTask{ // install map.task
+		ContainerId: &containerId,
+		Cmd:         "/bin/bash",
+		Args:        []string{scriptPath, options.User, options.Volume, mapOptions},
+		TaskName:    "map",
+		ExecOptions: curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.ContainerExec{
 		ContainerId: &containerId,
