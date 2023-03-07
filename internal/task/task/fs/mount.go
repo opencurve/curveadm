@@ -27,6 +27,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/opencurve/curveadm/cli/cli"
 	comm "github.com/opencurve/curveadm/internal/common"
@@ -38,6 +39,7 @@ import (
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
 	"github.com/opencurve/curveadm/internal/task/task/checker"
+	"github.com/opencurve/curveadm/internal/task/task/common"
 	"github.com/opencurve/curveadm/internal/utils"
 )
 
@@ -49,6 +51,10 @@ const (
 	KEY_CURVEBS_CLUSTER = "curvebs.cluster"
 
 	CURVEBS_CONF_PATH = "/etc/curve/client.conf"
+
+	CURVEFS_LIST_FS = "curvefs_tool list-fs"
+
+	CHECK_MOUTPOINT_TIMES = 3
 )
 
 type (
@@ -334,6 +340,7 @@ func NewMountFSTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.T
 		Privileged:        true,
 		Out:               &containerId,
 		ExecOptions:       curveadm.ExecOptions(),
+		Restart:		   common.POLICY_ALWAYS_RESTART,
 	})
 	t.AddStep(&step2InsertClient{
 		curveadm:    curveadm,
@@ -388,7 +395,68 @@ func NewMountFSTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.T
 		Lambda: checkStartContainerStatus(&success, &out),
 	})
 	// TODO(P0): wait mount done
+	t.AddStep(&step.Lambda{
+		Lambda: checkMountFsStatus(&containerId, mountPoint),
+	})
 
 	return t, nil
 
+}
+
+func checkMountFsStatus(containerId *string, mountPoint string) step.LambdaType {
+	return func(ctx *context.Context) error {
+		steps := []task.Step{}
+		var success bool
+		var out string
+		var hostname string
+		// get hostname
+		steps = append(steps, &step.Hostname{
+			Success: &success,
+			Out:     &hostname,
+		})
+		for i := 0; i < CHECK_MOUTPOINT_TIMES; i++ {
+			steps = append(steps, &step.ContainerExec{
+				ContainerId: containerId,
+				Command:     CURVEFS_LIST_FS,
+				Success:     &success,
+				Out:         &out,
+			})
+		}
+		// list fs 3 times to check mounpoint
+		// if no this mountpoint stop container
+		steps = append(steps, &step.StopContainer{
+			ContainerId: *containerId,
+		})
+		mountPoint = configure.GetFSClientMountPath(mountPoint)
+		for _, step := range steps {
+			err := step.Execute(ctx)
+			if err == nil && success {
+				var jsonMap map[string]interface{}
+				err := json.Unmarshal([]byte(out), &jsonMap)
+				if err != nil || jsonMap["fsInfo"] == nil {
+					continue
+				}
+				for _, fsinfo := range jsonMap["fsInfo"].([]interface{}) {
+					if checkFsInfoContainMountpoit(fsinfo.(map[string]interface{}), mountPoint, hostname) {
+						return nil
+					}
+					time.Sleep(time.Duration(1) * time.Second)
+				}
+			}
+		}
+		return errno.ERR_MOUNT_FILESYSTEM_FAILED
+	}
+}
+
+func checkFsInfoContainMountpoit(fsinfo map[string]interface{}, path, hostname string) bool {
+	if int(fsinfo["mountNum"].(float64)) <= 0 {
+		return false
+	}
+	for _, mountpoint := range fsinfo["mountpoints"].([]interface{}) {
+		point := mountpoint.(map[string]interface{})
+		if point["hostname"] == hostname && point["path"] == path {
+			return true
+		}
+	}
+	return false
 }

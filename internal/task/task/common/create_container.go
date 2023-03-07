@@ -42,6 +42,7 @@ import (
 const (
 	POLICY_ALWAYS_RESTART = "always"
 	POLICY_NEVER_RESTART  = "no"
+	POLOCY_UNLESS_STOPPED = "unless-stopped"
 )
 
 type step2GetService struct {
