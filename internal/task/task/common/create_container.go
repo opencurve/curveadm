@@ -30,6 +30,7 @@ import (
 
 	"github.com/opencurve/curveadm/cli/cli"
 	comm "github.com/opencurve/curveadm/internal/common"
+	"github.com/opencurve/curveadm/internal/configure/disks"
 	"github.com/opencurve/curveadm/internal/configure/topology"
 	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/storage"
@@ -157,7 +158,7 @@ func getEnvironments(dc *topology.DeployConfig) []string {
 	}
 }
 
-func getMountVolumes(dc *topology.DeployConfig) []step.Volume {
+func getMountVolumes(dc *topology.DeployConfig, serviceMountDevice bool) []step.Volume {
 	volumes := []step.Volume{}
 	layout := dc.GetProjectLayout()
 	logDir := dc.GetLogDir()
@@ -171,7 +172,8 @@ func getMountVolumes(dc *topology.DeployConfig) []step.Volume {
 		})
 	}
 
-	if len(dataDir) > 0 {
+	// add volume binds if not directly mount disk device in container
+	if len(dataDir) > 0 && !serviceMountDevice {
 		volumes = append(volumes, step.Volume{
 			HostPath:      dataDir,
 			ContainerPath: layout.ServiceDataDir,
@@ -188,12 +190,16 @@ func getMountVolumes(dc *topology.DeployConfig) []step.Volume {
 	return volumes
 }
 
-func getRestartPolicy(dc *topology.DeployConfig) string {
+func getRestartPolicy(dc *topology.DeployConfig, serviceMountDevice bool) string {
 	switch dc.GetRole() {
 	case topology.ROLE_ETCD:
 		return POLICY_ALWAYS_RESTART
 	case topology.ROLE_MDS:
 		return POLICY_ALWAYS_RESTART
+	case topology.ROLE_CHUNKSERVER:
+		if serviceMountDevice {
+			return POLICY_ALWAYS_RESTART
+		}
 	}
 	return POLICY_NEVER_RESTART
 }
@@ -230,11 +236,25 @@ func NewCreateContainerTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (
 	dataDir := dc.GetDataDir()
 	diskRecords := curveadm.DiskRecords()
 
+	extraParam := ""
+	serviceMountDevice := false
 	useDiskRecords := role == topology.ROLE_CHUNKSERVER && len(diskRecords) > 0
 	if useDiskRecords {
 		if err := curveadm.Storage().UpdateDiskChunkServerID(
 			host, dataDir, serviceId); err != nil {
 			return t, err
+		}
+		disk, _ := curveadm.Storage().GetDiskByMountPoint(host, dataDir)
+
+		serviceMountDevice = disk.ServiceMountDevice != 0
+		if serviceMountDevice {
+			diskId, diskUriProto, err := disks.GetDiskId(disk)
+			if err != nil {
+				return t, err
+			}
+			if diskUriProto == disks.DISK_URI_PROTO_FS_UUID {
+				extraParam = fmt.Sprintf("--disk UUID=%s", diskId)
+			}
 		}
 	}
 
@@ -249,16 +269,16 @@ func NewCreateContainerTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (
 	})
 	t.AddStep(&step.CreateContainer{
 		Image:       dc.GetContainerImage(),
-		Command:     fmt.Sprintf("--role %s --args='%s'", role, getArguments(dc)),
+		Command:     fmt.Sprintf("--role %s --args='%s' %s", role, getArguments(dc), extraParam),
 		AddHost:     []string{fmt.Sprintf("%s:127.0.0.1", hostname)},
 		Envs:        getEnvironments(dc),
 		Hostname:    hostname,
 		Init:        true,
 		Name:        hostname,
 		Privileged:  true,
-		Restart:     getRestartPolicy(dc),
+		Restart:     getRestartPolicy(dc, serviceMountDevice),
 		Ulimits:     []string{"core=-1"},
-		Volumes:     getMountVolumes(dc),
+		Volumes:     getMountVolumes(dc, serviceMountDevice),
 		Out:         &containerId,
 		ExecOptions: curveadm.ExecOptions(),
 	})

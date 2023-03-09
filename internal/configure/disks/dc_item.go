@@ -48,12 +48,20 @@ var (
 		DEFAULT_FORMAT_PERCENT,
 	)
 
+	CONFIG_GLOBAL_SERVICE_MOUNT_DEVICE = itemset.Insert(
+		common.DISK_SERVICE_MOUNT_DEVICE,
+		comm.REQUIRE_BOOL,
+		false,
+		false,
+	)
+
 	CONFIG_GLOBAL_HOST = itemset.Insert(
 		common.DISK_FILTER_HOST,
-		comm.REQUIRE_SLICE,
+		comm.REQUIRE_STRING_SLICE,
 		false,
 		nil,
 	)
+
 	CONFIG_DISK_DEVICE = itemset.Insert(
 		common.DISK_FILTER_DEVICE,
 		comm.REQUIRE_STRING,
@@ -70,7 +78,7 @@ var (
 
 	CONFIG_DISK_HOST_EXCLUDE = itemset.Insert(
 		common.DISK_EXCLUDE_HOST,
-		comm.REQUIRE_SLICE,
+		comm.REQUIRE_STRING_SLICE,
 		false,
 		nil,
 	)

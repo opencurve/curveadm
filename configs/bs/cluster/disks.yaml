@@ -1,23 +1,24 @@
 global:
   format_percent: 95
   container_image: opencurvedocker/curvebs:v1.2
+  service_mount_device: false # disk device will be mounted by service(chunkserver) container of curvebs if set "true", default "false"
   host:
     - curve-1
     - curve-2
     - curve-3
 
 disk:
-  - device: /dev/sdb1
-    mount: /data/chunkserver0
+  - device: /dev/sdb1 # disk device path
+    mount: /data/chunkserver0 # mount point for disk formatting, consistent with the "data_dir" field fo topology chunkserver service
   - device: /dev/sdc1
     mount: /data/chunkserver1
-    format_percent: 90
+    format_percent: 90 # use a different value of disk format percent
   - device: /dev/sdd1
     mount: /data/chunkserver2
-    exclude:  # for the use case that some hosts have not certain disk device
+    exclude:  # for the use case that disk device does not exist in some hosts
       - curve-3
   - device: /dev/sde1
     mount: /data/chunkserver3
-    host:
+    host:    # override global host config, for the use case tht disk device only exists in some hosts
       - curve-1
       - curve-2

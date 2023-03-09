@@ -272,6 +272,7 @@ var (
 	ERR_CONFIGURE_VALUE_REQUIRES_NON_EMPTY_STRING = EC(301004, "configure value requires non-empty string")
 	ERR_CONFIGURE_VALUE_REQUIRES_POSITIVE_INTEGER = EC(301005, "configure value requires positive integer")
 	ERR_CONFIGURE_VALUE_REQUIRES_STRING_SLICE     = EC(301006, "configure value requires string array")
+	ERR_CONFIGURE_VALUE_REQUIRES_NONEMPTY_SLICE   = EC(301007, "configure value requires nonempty array")
 	ERR_UNSUPPORT_VARIABLE_VALUE_TYPE             = EC(301100, "unsupport variable value type")
 	ERR_INVALID_VARIABLE_VALUE                    = EC(301101, "invalid variable value")
 
@@ -543,7 +544,7 @@ var (
 	ERR_START_CRONTAB_IN_CONTAINER_FAILED = EC(690000, "start crontab in container failed")
 
 	// 800: deploy
-	ERR_DISK_DEVICE_NOT_FORMATTED = EC(800000, "disk device not formatted")
+	ERR_DISK_DEVICE_NOT_FORMATTED = EC(800000, "disk device is unformatted")
 
 	// 900: others
 	ERR_CANCEL_OPERATION = EC(CODE_CANCEL_OPERATION, "cancel operation")

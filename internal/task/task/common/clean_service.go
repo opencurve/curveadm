@@ -169,6 +169,26 @@ func NewCleanServiceTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*ta
 	recyleScriptPath := utils.RandFilename(TEMP_DIR)
 
 	if dc.GetKind() == topology.KIND_CURVEBS {
+		// clean disk service id
+		diskRecords, _ := curveadm.Storage().GetDisk(comm.DISK_FILTER_SERVICE, serviceId)
+		if len(diskRecords) > 0 {
+			t.AddStep(&step2CleanDiskChunkServerId{
+				serviceId:   serviceId,
+				storage:     curveadm.Storage(),
+				execOptions: curveadm.ExecOptions(),
+			})
+			disk := diskRecords[0]
+
+			// mount disk device back to host for data cleaning
+			if disk.ServiceMountDevice != 0 {
+				t.AddStep(&step.MountFilesystem{
+					Source:      disk.Device,
+					Directory:   disk.MountPoint,
+					ExecOptions: curveadm.ExecOptions(),
+				})
+			}
+		}
+
 		t.AddStep(&step.Scp{
 			Content:     &recyleScript,
 			RemotePath:  recyleScriptPath,
@@ -195,11 +215,6 @@ func NewCleanServiceTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*ta
 			execOptions: curveadm.ExecOptions(),
 		})
 	}
-	t.AddStep(&step2CleanDiskChunkServerId{
-		serviceId:   serviceId,
-		storage:     curveadm.Storage(),
-		execOptions: curveadm.ExecOptions(),
-	})
 
 	return t, nil
 }

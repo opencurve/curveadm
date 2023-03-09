@@ -57,8 +57,8 @@ const (
 	DISK_FILTER_MOUNT                 = "mount"
 	DISK_FILTER_SERVICE               = "service"
 	DISK_EXCLUDE_HOST                 = "exclude"
-
-	DISK_FORMAT_PERCENT = "format_percent"
+	DISK_SERVICE_MOUNT_DEVICE         = "service_mount_device"
+	DISK_FORMAT_PERCENT               = "format_percent"
 
 	DISK_FORMAT_MOUNT_POINT     = "mount"
 	DISK_FORMAT_CONTAINER_IMAGE = "container_image"
