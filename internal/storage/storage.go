@@ -52,16 +52,17 @@ type Disks struct {
 }
 
 type Disk struct {
-	Id               int
-	Host             string
-	Device           string
-	Size             string
-	URI              string
-	MountPoint       string
-	FormatPercent    int
-	ContainerImage   string
-	ChunkServerID    string
-	LastmodifiedTime time.Time
+	Id                 int
+	Host               string
+	Device             string
+	Size               string
+	URI                string
+	MountPoint         string
+	FormatPercent      int
+	ContainerImage     string
+	ChunkServerID      string
+	ServiceMountDevice int
+	LastmodifiedTime   time.Time
 }
 
 type Cluster struct {
@@ -301,11 +302,13 @@ func (s *Storage) GetDisks() ([]Disks, error) {
 }
 
 // disk
-func (s *Storage) SetDisk(host, device, mount, containerImage string, formatPercent int) error {
+func (s *Storage) SetDisk(host, device, mount, containerImage string,
+	formatPercent, serviceMountDevice int) error {
 	diskRecords, err := s.GetDisk(SELECT_DISK_BY_DEVICE_PATH, host, device)
 	if err != nil {
 		return err
-	} else if len(diskRecords) == 0 {
+	}
+	if len(diskRecords) == 0 {
 		return s.execSQL(
 			INSERT_DISK,
 			host,
@@ -316,16 +319,23 @@ func (s *Storage) SetDisk(host, device, mount, containerImage string, formatPerc
 			formatPercent,
 			containerImage,
 			comm.DISK_DEFAULT_NULL_CHUNKSERVER_ID,
+			serviceMountDevice,
 		)
 	}
-	return s.execSQL(SET_DISK, mount, formatPercent, containerImage, diskRecords[0].Id)
+	return s.execSQL(
+		SET_DISK,
+		mount,
+		formatPercent,
+		containerImage,
+		serviceMountDevice,
+		diskRecords[0].Id)
 }
 
-func (s *Storage) UpdateDiskURI(host, device, devUri string) error {
+func (s *Storage) UpdateDiskURI(devUri, host, device string) error {
 	return s.execSQL(SET_DISK_URI, devUri, host, device)
 }
 
-func (s *Storage) UpdateDiskSize(host, device, size string) error {
+func (s *Storage) UpdateDiskSize(size, host, device string) error {
 	return s.execSQL(SET_DISK_SIZE, size, host, device)
 }
 
@@ -413,6 +423,7 @@ func (s *Storage) GetDisk(filter string, args ...interface{}) ([]Disk, error) {
 			&disk.FormatPercent,
 			&disk.ContainerImage,
 			&disk.ChunkServerID,
+			&disk.ServiceMountDevice,
 			&disk.LastmodifiedTime)
 		diskRecords = append(diskRecords, disk)
 	}

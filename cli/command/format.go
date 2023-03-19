@@ -155,9 +155,17 @@ func runFormat(curveadm *cli.CurveAdm, options formatOptions) error {
 			if err != nil {
 				return err
 			}
-			fc.UseDiskUri = true
-			chunkserverId := dr.ChunkServerID
-			if len(chunkserverId) > 1 {
+
+			fc.FromDiskRecord = true
+
+			// "ServiceMountDevice=0" means write disk UUID into /etc/fstab for host mounting.
+			// "ServiceMountDevice=1" means not to update /etc/fstab, the disk UUID will be wrote
+			// into the config of service(chunkserver) container for disk automatic mounting.
+			if dr.ServiceMountDevice != 0 {
+				fc.ServiceMountDevice = true
+			}
+
+			if dr.ChunkServerID != comm.DISK_DEFAULT_NULL_CHUNKSERVER_ID {
 				// skip formatting the disk with nonempty chunkserver id
 				continue
 			}

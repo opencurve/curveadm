@@ -209,11 +209,11 @@ func (s *step2UpdateDiskSizeUri) Execute(ctx *context.Context) error {
 		diskUri = disks.GenDiskURI(disks.DISK_URI_PROTO_FS_UUID, s.diskId)
 	}
 
-	if err := curveadm.Storage().UpdateDiskSize(s.host, s.device, s.size); err != nil {
+	if err := curveadm.Storage().UpdateDiskSize(s.size, s.host, s.device); err != nil {
 		return err
 	}
 
-	if err := curveadm.Storage().UpdateDiskURI(s.host, s.device, diskUri); err != nil {
+	if err := curveadm.Storage().UpdateDiskURI(diskUri, s.host, s.device); err != nil {
 		return err
 	}
 	return nil
@@ -287,14 +287,22 @@ func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *configure.FormatConf
 		Directory:   mountPoint,
 		ExecOptions: curveadm.ExecOptions(),
 	})
-	t.AddStep(&step2EditFSTab{
-		host:       host,
-		device:     device,
-		oldUUID:    &oldUUID,
-		mountPoint: mountPoint,
-		curveadm:   curveadm,
-	})
-	if fc.UseDiskUri {
+
+	// "ServiceMountDevice=false" means write disk UUID into /etc/fstab for host mounting.
+	// "ServiceMountDevice=true" means not to update /etc/fstab, the disk UUID will be wrote
+	// into the config of service(chunkserver) container for disk automatic mounting.
+	if !fc.ServiceMountDevice {
+		t.AddStep(&step2EditFSTab{
+			host:       host,
+			device:     device,
+			oldUUID:    &oldUUID,
+			mountPoint: mountPoint,
+			curveadm:   curveadm,
+		})
+	}
+
+	// update disk size and uri(diskId) when use disk records commited by disks yaml
+	if fc.FromDiskRecord {
 		t.AddStep(&step2UpdateDiskSizeUri{
 			host:     host,
 			device:   device,

@@ -27,7 +27,6 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/opencurve/curveadm/cli/cli"
-	"github.com/opencurve/curveadm/internal/common"
 	comm "github.com/opencurve/curveadm/internal/common"
 	"github.com/opencurve/curveadm/internal/configure/disks"
 	"github.com/opencurve/curveadm/internal/configure/topology"
@@ -40,7 +39,8 @@ import (
 )
 
 const (
-	COMMIT_EXAMPLE = `Examples:
+	HOST_DEVICE_SEP = ":"
+	COMMIT_EXAMPLE  = `Examples:
   $ curveadm disks commit /path/to/disks.yaml  # Commit disks`
 )
 
@@ -89,35 +89,55 @@ func readAndCheckDisks(curveadm *cli.CurveAdm, options commitOptions) (string, [
 	}
 
 	// 3) check disks data
-	dcs, err = disks.ParseDisks(data, curveadm)
+	dcs, err = disks.ParseDisks(data)
 	return data, dcs, err
 }
 
 func assambleNewDiskRecords(dcs []*disks.DiskConfig,
 	oldDiskRecords []storage.Disk) ([]storage.Disk, []storage.Disk) {
-	keySep := ":"
 	newDiskMap := make(map[string]bool)
 
+	// "ServiceMountDevice=0" means write disk UUID into /etc/fstab for host mounting.
+	// "ServiceMountDevice=1" means not to update /etc/fstab, the disk UUID will be wrote
+	// into the config of service(chunkserver) container for disk automatic mounting.
+	serviceMountDevice := 0 // 0: false, 1: true
 	var newDiskRecords, diskRecordDeleteList []storage.Disk
 	for _, dc := range dcs {
 		for _, host := range dc.GetHost() {
-			key := strings.Join([]string{host, dc.GetDevice()}, keySep)
+			device := dc.GetDevice()
+			key := strings.Join([]string{host, device}, HOST_DEVICE_SEP)
 			newDiskMap[key] = true
+			if dc.GetServiceMount() {
+				serviceMountDevice = 1
+			}
+			diskSize := comm.DISK_DEFAULT_NULL_SIZE
+			diskUri := comm.DISK_DEFAULT_NULL_URI
+			diskChunkserverId := comm.DISK_DEFAULT_NULL_CHUNKSERVER_ID
+			for _, dr := range oldDiskRecords {
+				if dr.Host == host && device == dr.Device {
+					diskSize = dr.Size
+					diskUri = dr.URI
+					diskChunkserverId = dr.ChunkServerID
+					break
+				}
+			}
 			newDiskRecords = append(
 				newDiskRecords, storage.Disk{
-					Host:          host,
-					Device:        dc.GetDevice(),
-					Size:          comm.DISK_DEFAULT_NULL_SIZE,
-					URI:           comm.DISK_DEFAULT_NULL_URI,
-					MountPoint:    dc.GetMountPoint(),
-					FormatPercent: dc.GetFormatPercent(),
-					ChunkServerID: comm.DISK_DEFAULT_NULL_CHUNKSERVER_ID,
+					Host:               host,
+					Device:             device,
+					Size:               diskSize,
+					URI:                diskUri,
+					MountPoint:         dc.GetMountPoint(),
+					ContainerImage:     dc.GetContainerImage(),
+					FormatPercent:      dc.GetFormatPercent(),
+					ChunkServerID:      diskChunkserverId,
+					ServiceMountDevice: serviceMountDevice,
 				})
 		}
 	}
 
 	for _, dr := range oldDiskRecords {
-		key := strings.Join([]string{dr.Host, dr.Device}, keySep)
+		key := strings.Join([]string{dr.Host, dr.Device}, HOST_DEVICE_SEP)
 		if _, ok := newDiskMap[key]; !ok {
 			diskRecordDeleteList = append(diskRecordDeleteList, dr)
 		}
@@ -127,19 +147,16 @@ func assambleNewDiskRecords(dcs []*disks.DiskConfig,
 }
 
 func writeDiskRecord(dr storage.Disk, curveadm *cli.CurveAdm) error {
-	if diskRecords, err := curveadm.Storage().GetDisk(
-		common.DISK_FILTER_DEVICE, dr.Host, dr.Device); err != nil {
+	if err := curveadm.Storage().SetDisk(
+		dr.Host,
+		dr.Device,
+		dr.MountPoint,
+		dr.ContainerImage,
+		dr.FormatPercent,
+		dr.ServiceMountDevice); err != nil {
 		return err
-	} else if len(diskRecords) == 0 {
-		if err := curveadm.Storage().SetDisk(
-			dr.Host,
-			dr.Device,
-			dr.MountPoint,
-			dr.ContainerImage,
-			dr.FormatPercent); err != nil {
-			return err
-		}
 	}
+
 	return nil
 }
 
@@ -153,15 +170,17 @@ func syncDiskRecords(data string, dcs []*disks.DiskConfig,
 	oldDiskRecordsString := tui.FormatDisks(oldDiskRecords)
 	newDiskRecordsString := tui.FormatDisks(newDiskRecords)
 
-	if !options.slient {
-		diff := utils.Diff(oldDiskRecordsString, newDiskRecordsString)
-		curveadm.WriteOutln(diff)
-	}
+	if len(newDiskRecords) != len(oldDiskRecords) {
+		if !options.slient {
+			diff := utils.Diff(oldDiskRecordsString, newDiskRecordsString)
+			curveadm.WriteOutln(diff)
+		}
 
-	pass := tuicomm.ConfirmYes("Disk changes are showing above. Do you want to continue?")
-	if !pass {
-		curveadm.WriteOut(tuicomm.PromptCancelOpetation("commit disk table"))
-		return errno.ERR_CANCEL_OPERATION
+		pass := tuicomm.ConfirmYes("Disk changes are showing above. Do you want to continue?")
+		if !pass {
+			curveadm.WriteOut(tuicomm.PromptCancelOpetation("commit disk table"))
+			return errno.ERR_CANCEL_OPERATION
+		}
 	}
 
 	// write new disk records
