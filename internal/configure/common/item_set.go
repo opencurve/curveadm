@@ -35,7 +35,7 @@ const (
 	REQUIRE_BOOL
 	REQUIRE_INT
 	REQUIRE_POSITIVE_INTEGER
-	REQUIRE_SLICE
+	REQUIRE_STRING_SLICE
 )
 
 type (
@@ -80,6 +80,25 @@ func (itemset *ItemSet) Get(key string) *Item {
 
 func (itemset *ItemSet) GetAll() []*Item {
 	return itemset.items
+}
+
+func convertSlice[T int | string | any](key, value any) ([]T, error) {
+	var slice []T
+	if !utils.IsAnySlice(value) || len(value.([]any)) == 0 {
+		return slice, errno.ERR_CONFIGURE_VALUE_REQUIRES_NONEMPTY_SLICE
+	}
+	anySlice := value.([]any)
+	switch anySlice[0].(type) {
+	case T:
+		for _, str := range anySlice {
+			slice = append(slice, str.(T))
+		}
+	default:
+		return slice, errno.ERR_UNSUPPORT_CONFIGURE_VALUE_TYPE.
+			F("%s: %v", key, value)
+	}
+
+	return slice, nil
 }
 
 func (itemset *ItemSet) Build(key string, value interface{}) (interface{}, error) {
@@ -135,34 +154,12 @@ func (itemset *ItemSet) Build(key string, value interface{}) (interface{}, error
 			return v, nil
 		}
 
-	case REQUIRE_SLICE:
-		anySlice := value.([]any)
-		if len(anySlice) > 0 {
-			switch anySlice[0].(type) {
-			case string:
-				return convertSlice[string](value), nil
-			case int:
-				return convertSlice[int](value), nil
-			case bool:
-				return convertSlice[bool](value), nil
-			default:
-				return []any{}, errno.ERR_UNSUPPORT_CONFIGURE_VALUE_TYPE.
-					F("%s: %v", key, value)
-			}
-		}
-		return []any{}, nil
+	case REQUIRE_STRING_SLICE:
+		return convertSlice[string](key, value)
 
 	default:
 		// do nothing
 	}
 
 	return value, nil
-}
-
-func convertSlice[T int | string | any](value any) []T {
-	var slice []T
-	for _, str := range value.([]any) {
-		slice = append(slice, str.(T))
-	}
-	return slice
 }

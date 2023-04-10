@@ -46,12 +46,13 @@ const (
  */
 type (
 	FormatConfig struct {
-		ContainerIamge string
-		Host           string
-		Device         string
-		MountPoint     string
-		FormtPercent   int
-		UseDiskUri     bool
+		ContainerIamge     string
+		Host               string
+		Device             string
+		MountPoint         string
+		FormtPercent       int
+		FromDiskRecord     bool
+		ServiceMountDevice bool
 	}
 
 	Format struct {

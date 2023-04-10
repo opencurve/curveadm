@@ -55,6 +55,14 @@ func (dc *DiskConfig) getInt(i *comm.Item) int {
 	return v.(int)
 }
 
+func (hc *DiskConfig) getBool(i *comm.Item) bool {
+	v := hc.get(i)
+	if v == nil {
+		return false
+	}
+	return v.(bool)
+}
+
 func (dc *DiskConfig) getStrSlice(i *comm.Item) []string {
 	v := dc.get(i)
 	if v == nil {
@@ -65,6 +73,7 @@ func (dc *DiskConfig) getStrSlice(i *comm.Item) []string {
 
 func (dc *DiskConfig) GetContainerImage() string { return dc.getString(CONFIG_GLOBAL_CONTAINER_IMAGE) }
 func (dc *DiskConfig) GetFormatPercent() int     { return dc.getInt(CONFIG_GLOBAL_FORMAT_PERCENT) }
+func (dc *DiskConfig) GetServiceMount() bool     { return dc.getBool(CONFIG_GLOBAL_SERVICE_MOUNT_DEVICE) }
 func (dc *DiskConfig) GetHost() []string         { return dc.getStrSlice(CONFIG_GLOBAL_HOST) }
 func (dc *DiskConfig) GetDevice() string         { return dc.getString(CONFIG_DISK_DEVICE) }
 func (dc *DiskConfig) GetMountPoint() string     { return dc.getString(CONFIG_DISK_MOUNT_POINT) }

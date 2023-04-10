@@ -28,6 +28,7 @@ import (
 	"fmt"
 
 	"github.com/opencurve/curveadm/cli/cli"
+	"github.com/opencurve/curveadm/internal/common"
 	"github.com/opencurve/curveadm/internal/configure/topology"
 	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/task/context"
@@ -94,6 +95,19 @@ func NewStartServiceTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*ta
 	// add step to task
 	var out string
 	var success bool
+
+	deviceToUmount := ""
+	if len(curveadm.DiskRecords()) > 0 {
+		disks, err := curveadm.Storage().GetDisk(common.DISK_FILTER_SERVICE, serviceId)
+		if err != nil {
+			return nil, err
+		}
+		if len(disks) > 0 && disks[0].ServiceMountDevice != 0 {
+			deviceToUmount = disks[0].Device
+		}
+
+	}
+
 	host, role := dc.GetHost(), dc.GetRole()
 	t.AddStep(&step.ListContainers{
 		ShowAll:     true,
@@ -105,6 +119,17 @@ func NewStartServiceTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*ta
 	t.AddStep(&step.Lambda{
 		Lambda: checkContainerExist(host, role, containerId, &out),
 	})
+
+	// unmount disk device from host as it will be mounted in service(chunkserver) container
+	if deviceToUmount != "" {
+		t.AddStep(&step.UmountFilesystem{
+			Directorys:     []string{deviceToUmount},
+			IgnoreUmounted: true,
+			IgnoreNotFound: false, // should not start service if disk device was not found
+			ExecOptions:    curveadm.ExecOptions(),
+		})
+	}
+
 	t.AddStep(&step.StartContainer{
 		ContainerId: &containerId,
 		ExecOptions: curveadm.ExecOptions(),
