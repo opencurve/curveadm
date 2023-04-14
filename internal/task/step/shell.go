@@ -142,6 +142,7 @@ type (
 		Filter    string
 		Listening bool // display listening sockets
 		NoHeader  bool // Suppress header line
+		TCP       bool // display only TCP sockets
 		Success   *bool
 		Out       *string
 		module.ExecOptions
@@ -413,6 +414,9 @@ func (s *SocketStatistics) Execute(ctx *context.Context) error {
 	}
 	if s.NoHeader {
 		cmd.AddOption("--no-header")
+	}
+	if s.TCP {
+		cmd.AddOption("--tcp")
 	}
 
 	out, err := cmd.Execute(s.ExecOptions)
