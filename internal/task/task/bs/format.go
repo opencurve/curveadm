@@ -220,7 +220,7 @@ func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *configure.FormatConf
 	})
 	t.AddStep(&step.CreateDirectory{
 		Paths:       []string{mountPoint},
-		ExecOptions: curveadm.ExecOptions(),
+		ExecOptions: curveadm.MkdirOptions(),
 	})
 	t.AddStep(&step.CreateFilesystem{ // mkfs.ext4 MOUNT_POINT
 		Device:      device,
