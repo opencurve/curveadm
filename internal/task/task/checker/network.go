@@ -89,6 +89,7 @@ func NewCheckPortInUseTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*
 			Filter:      fmt.Sprintf(FORMAT_FILTER_SPORT, address.Port),
 			Listening:   true,
 			NoHeader:    true,
+			TCP:         true,
 			Success:     &success,
 			Out:         &out,
 			ExecOptions: curveadm.ExecOptions(),
