@@ -159,12 +159,11 @@ func NewCleanServiceTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*ta
 	recyleScriptPath := utils.RandFilename(TEMP_DIR)
 
 	if dc.GetKind() == topology.KIND_CURVEBS {
-		t.AddStep(&step.Scp{
-			Content:     &recyleScript,
-			RemotePath:  recyleScriptPath,
-			Mode:        0777,
-			ExecOptions: curveadm.ExecOptions(),
-		})
+		t.AddStep((&step.InstallFile{
+			Content:      &recyleScript,
+			HostDestPath: recyleScriptPath,
+			ExecOptions:  curveadm.ExecOptions(),
+		}))
 		t.AddStep(&step2RecycleChunk{
 			dc:                dc,
 			clean:             clean,
