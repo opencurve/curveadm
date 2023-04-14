@@ -224,8 +224,6 @@ func NewCreateContainerTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (
 	kind := dc.GetKind()
 	role := dc.GetRole()
 	hostname := fmt.Sprintf("%s-%s-%s", kind, role, serviceId)
-	options := curveadm.ExecOptions()
-	options.ExecWithSudo = false
 
 	t.AddStep(&step2GetService{ // if service exist, break task
 		serviceId:   serviceId,
@@ -234,7 +232,7 @@ func NewCreateContainerTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (
 	})
 	t.AddStep(&step.CreateDirectory{
 		Paths:       []string{dc.GetLogDir(), dc.GetDataDir()},
-		ExecOptions: options,
+		ExecOptions: curveadm.MkdirOptions(),
 	})
 	t.AddStep(&step.CreateContainer{
 		Image:       dc.GetContainerImage(),
