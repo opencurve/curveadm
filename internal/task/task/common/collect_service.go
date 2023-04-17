@@ -97,15 +97,14 @@ func NewCollectServiceTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*
 
 	// add step to task
 	var out string
-	//var files []string
 	secret := curveadm.MemStorage().Get(comm.KEY_SECRET).(string)
 	urlFormat := curveadm.MemStorage().Get(comm.KEY_SUPPORT_UPLOAD_URL_FORMAT).(string)
 	baseDir := TEMP_DIR
 	vname := utils.NewVariantName(fmt.Sprintf("%s_%s", serviceId, utils.RandString(5)))
 	remoteSaveDir := fmt.Sprintf("%s/%s", baseDir, vname.Name)                // /tmp/7b510fb63730_ox1fe
 	remoteTarbllPath := path.Join(baseDir, vname.CompressName)                // /tmp/7b510fb63730_ox1fe.tar.gz
-	localTarballPath := path.Join(baseDir, vname.CompressName)                // /tmp/7b510fb63730_ox1fe.tar.gz
-	localEncryptdTarballPath := path.Join(baseDir, vname.EncryptCompressName) // // /tmp/7b510fb63730_ox1fe-encrypted.tar.gz
+	localTarballPath := path.Join(baseDir, vname.LocalCompressName)           // /tmp/7b510fb63730_ox1fe.local.tar.gz
+	localEncryptdTarballPath := path.Join(baseDir, vname.EncryptCompressName) // /tmp/7b510fb63730_ox1fe-encrypted.tar.gz
 	httpSavePath := path.Join("/", encodeSecret(secret), "service", dc.GetRole())
 	layout := dc.GetProjectLayout()
 	containerLogDir := layout.ServiceLogDir   // /curvebs/etcd/logs
@@ -114,7 +113,7 @@ func NewCollectServiceTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*
 	localOptions.ExecInLocal = true
 
 	t.AddStep(&step.CreateDirectory{
-		Paths:       []string{remoteSaveDir /*, hostLogDir, hostConfDir*/},
+		Paths:       []string{remoteSaveDir},
 		ExecOptions: curveadm.ExecOptions(),
 	})
 	t.AddStep(&step2CopyFilesFromContainer{ // copy logs directory
