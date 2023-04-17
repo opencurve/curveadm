@@ -291,7 +291,7 @@ func NewMountFSTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.T
 	prefix := configure.GetFSClientPrefix()
 	containerMountPath := configure.GetFSClientMountPath(mountPoint)
 	containerName := mountPoint2ContainerName(mountPoint)
-	createfsScript := scripts.SCRIPT_CREATEFS
+	createfsScript := scripts.CREATE_FS
 	createfsScriptPath := "/client.sh"
 
 	t.AddStep(&step.DockerInfo{

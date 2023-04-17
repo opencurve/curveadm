@@ -155,7 +155,7 @@ func NewCleanServiceTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*ta
 	// add step to task
 	clean := utils.Slice2Map(only)
 	files := getCleanFiles(clean, dc, recycle) // directorys which need cleaned
-	recyleScript := scripts.SCRIPT_RECYCLE
+	recyleScript := scripts.RECYCLE
 	recyleScriptPath := utils.RandFilename(TEMP_DIR)
 
 	if dc.GetKind() == topology.KIND_CURVEBS {
