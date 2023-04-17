@@ -24,6 +24,8 @@ package common
 
 import (
 	"fmt"
+	"path"
+
 	"github.com/opencurve/curveadm/cli/cli"
 	comm "github.com/opencurve/curveadm/internal/common"
 	"github.com/opencurve/curveadm/internal/configure/topology"
@@ -32,7 +34,6 @@ import (
 	"github.com/opencurve/curveadm/internal/task/task"
 	tui "github.com/opencurve/curveadm/internal/tui/common"
 	"github.com/opencurve/curveadm/internal/utils"
-	"path"
 )
 
 const (
