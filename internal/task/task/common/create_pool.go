@@ -199,7 +199,7 @@ func NewCreateTopologyTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*
 	host, role := dc.GetHost(), dc.GetRole()
 	layout := dc.GetProjectLayout()
 	poolJSONPath := fmt.Sprintf("%s/topology.json", layout.ToolsConfDir)
-	waitScript := scripts.SCRIPT_WAIT
+	waitScript := scripts.WAIT
 	waitScriptPath := fmt.Sprintf("%s/wait.sh", layout.ToolsBinDir)
 	clusterPoolJson, clusterMDSAddrs, err := prepare(curveadm, dc)
 	if err != nil {
@@ -242,7 +242,7 @@ func NewCreateTopologyTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*
 	})
 
 	if dc.GetKind() == topology.KIND_CURVEBS && pooltype == comm.POOL_TYPE_LOGICAL {
-		waitChunkserversScript := scripts.SCRIPT_WAIT_CHUNKSERVERS
+		waitChunkserversScript := scripts.WAIT_CHUNKSERVERS
 		waitChunkserversScriptPath := fmt.Sprintf("%s/wait_chunkservers.sh", layout.ToolsBinDir)
 		t.AddStep(&step.InstallFile{ // install wait_chunkservers script
 			ContainerId:       &containerId,
