@@ -33,6 +33,7 @@ import (
 type VariantName struct {
 	Name                string
 	CompressName        string
+	LocalCompressName   string
 	EncryptCompressName string
 }
 
@@ -44,6 +45,7 @@ func NewVariantName(name string) VariantName {
 	return VariantName{
 		Name:                name,
 		CompressName:        fmt.Sprintf("%s.tar.gz", name),
+		LocalCompressName:   fmt.Sprintf("%s.local.tar.gz", name),
 		EncryptCompressName: fmt.Sprintf("%s-encrypted.tar.gz", name),
 	}
 }
