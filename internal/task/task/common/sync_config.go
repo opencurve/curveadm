@@ -108,7 +108,7 @@ func NewSyncConfigTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task
 	var out string
 	layout := dc.GetProjectLayout()
 	role := dc.GetRole()
-	reportScript := scripts.SCRIPT_REPORT
+	reportScript := scripts.REPORT
 	reportScriptPath := fmt.Sprintf("%s/report.sh", layout.ToolsBinDir)
 	crontab := newCrontab(curveadm.ClusterUUId(), dc, reportScriptPath)
 	delimiter := DEFAULT_CONFIG_DELIMITER
