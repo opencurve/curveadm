@@ -186,7 +186,7 @@ func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *configure.FormatConf
 	containerName := device2ContainerName(device)
 	layout := topology.GetCurveBSProjectLayout()
 	chunkfilePoolRootDir := layout.ChunkfilePoolRootDir
-	formatScript := scripts.SCRIPT_FORMAT
+	formatScript := scripts.FORMAT
 	formatScriptPath := fmt.Sprintf("%s/format.sh", layout.ToolsBinDir)
 	formatCommand := fmt.Sprintf("%s %s %d %d %s %s", formatScriptPath, layout.FormatBinaryPath,
 		usagePercent, DEFAULT_CHUNKFILE_SIZE, layout.ChunkfilePoolDir, layout.ChunkfilePoolMetaPath)

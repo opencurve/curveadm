@@ -22,6 +22,10 @@
 
 package scripts
 
+import (
+	_ "embed"
+)
+
 const (
 	STATUS_OK      = "CURVEADM_OK"
 	STATUS_FAIL    = "CURVEADM_FAIL"
@@ -29,15 +33,32 @@ const (
 )
 
 var (
-	SCRIPT_WAIT              string = WAIT
-	SCRIPT_COLLECT           string = COLLECT
-	SCRIPT_REPORT            string = REPORT
-	SCRIPT_FORMAT            string = FORMAT
-	SCRIPT_MAP               string = MAP
-	SCRIPT_TARGET            string = TARGET
-	SCRIPT_RECYCLE           string = RECYCLE
-	SCRIPT_CREATEFS          string = CREATEFS
-	SCRIPT_CREATE_VOLUME     string = CREATE_VOLUME
-	SCRIPT_WAIT_CHUNKSERVERS string = WAIT_CHUNKSERVERS
-	SCRIPT_START_NGINX       string = START_NGINX
+	// Common
+
+	//go:embed shell/wait.sh
+	WAIT string
+	//go:embed shell/report.sh
+	REPORT string
+
+	// CurveBS
+
+	//go:embed shell/format.sh
+	FORMAT string
+	//go:embed shell/wait_chunkserver.sh
+	WAIT_CHUNKSERVERS string
+	//go:embed shell/start_nginx.sh
+	START_NGINX string
+	//go:embed shell/create_volume.sh
+	CREATE_VOLUME string
+	//go:embed shell/map.sh
+	MAP string
+	//go:embed shell/target.sh
+	TARGET string
+	//go:embed shell/recycle.sh
+	RECYCLE string
+
+	// CurveFS
+
+	//go:embed shell/create_fs.sh
+	CREATE_FS string
 )
