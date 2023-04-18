@@ -41,13 +41,15 @@ const (
 	DEFAULT_ETCD_LISTEN_CLIENT_PORT         = 2379
 	DEFAULT_MDS_LISTEN_PORT                 = 6700
 	DEFAULT_MDS_LISTEN_DUMMY_PORT           = 7700
-	DEFAULT_CHUNKSERVER_LISTN_PORT          = 8200
+	DEFAULT_CHUNKSERVER_LISTEN_PORT         = 8200
+	DEFAULT_CHUNKSERVER_LISTEN_UCP_PORT     = 9200
 	DEFAULT_SNAPSHOTCLONE_LISTEN_PORT       = 5555
 	DEFAULT_SNAPSHOTCLONE_LISTEN_DUMMY_PORT = 8081
 	DEFAULT_SNAPSHOTCLONE_LISTEN_PROXY_PORT = 8080
 	DEFAULT_METASERVER_LISTN_PORT           = 6800
 	DEFAULT_METASERVER_LISTN_EXTARNAL_PORT  = 7800
 	DEFAULT_ENABLE_EXTERNAL_SERVER          = false
+	DEFAULT_ENABLE_EXTERNAL_UCP_SERVER      = false
 	DEFAULT_CHUNKSERVER_COPYSETS            = 100 // copysets per chunkserver
 	DEFAULT_METASERVER_COPYSETS             = 100 // copysets per metaserver
 )
@@ -68,9 +70,10 @@ type (
 )
 
 // you should add config item to itemset iff you want to:
-//   (1) check the configuration item value, like type, valid value OR
-//   (2) filter out the configuration item for service config OR
-//   (3) set the default value for configuration item
+//
+//	(1) check the configuration item value, like type, valid value OR
+//	(2) filter out the configuration item for service config OR
+//	(3) set the default value for configuration item
 var (
 	itemset = &itemSet{
 		items:    []*item{},
@@ -138,6 +141,33 @@ var (
 		},
 	)
 
+	CONFIG_LISTEN_EXTERNAL_IP = itemset.insert(
+		"listen.external_ip",
+		REQUIRE_STRING,
+		true,
+		func(dc *DeployConfig) interface{} {
+			return dc.GetHostname()
+		},
+	)
+
+	CONFIG_LISTEN_UCP_IP = itemset.insert(
+		"listen.ucp_ip",
+		REQUIRE_STRING,
+		true,
+		func(dc *DeployConfig) interface{} {
+			return dc.GetHostname()
+		},
+	)
+
+	CONFIG_LISTEN_EXTERNAL_UCP_IP = itemset.insert(
+		"listen.external_ucp_ip",
+		REQUIRE_STRING,
+		true,
+		func(dc *DeployConfig) interface{} {
+			return dc.GetHostname()
+		},
+	)
+
 	CONFIG_LISTEN_PORT = itemset.insert(
 		"listen.port",
 		REQUIRE_POSITIVE_INTEGER,
@@ -149,11 +179,47 @@ var (
 			case ROLE_MDS:
 				return DEFAULT_MDS_LISTEN_PORT
 			case ROLE_CHUNKSERVER:
-				return DEFAULT_CHUNKSERVER_LISTN_PORT
+				return DEFAULT_CHUNKSERVER_LISTEN_PORT
 			case ROLE_SNAPSHOTCLONE:
 				return DEFAULT_SNAPSHOTCLONE_LISTEN_PORT
 			case ROLE_METASERVER:
 				return DEFAULT_METASERVER_LISTN_PORT
+			}
+			return nil
+		},
+	)
+
+	CONFIG_LISTEN_UCP_PORT = itemset.insert(
+		"listen.ucp_port",
+		REQUIRE_POSITIVE_INTEGER,
+		true,
+		func(dc *DeployConfig) interface{} {
+			if dc.GetRole() == ROLE_CHUNKSERVER {
+				return DEFAULT_CHUNKSERVER_LISTEN_UCP_PORT
+			}
+			return nil
+		},
+	)
+
+	CONFIG_LISTEN_EXTERNAL_PORT = itemset.insert(
+		"listen.external_port",
+		REQUIRE_POSITIVE_INTEGER,
+		true,
+		func(dc *DeployConfig) interface{} {
+			if dc.GetRole() == ROLE_METASERVER {
+				return DEFAULT_METASERVER_LISTN_EXTARNAL_PORT
+			}
+			return dc.GetListenPort()
+		},
+	)
+
+	CONFIG_LISTEN_EXTERNAL_UCP_PORT = itemset.insert(
+		"listen.external_ucp_port",
+		REQUIRE_POSITIVE_INTEGER,
+		true,
+		func(dc *DeployConfig) interface{} {
+			if dc.GetRole() == ROLE_CHUNKSERVER {
+				return dc.GetListenUcpPort()
 			}
 			return nil
 		},
@@ -188,25 +254,11 @@ var (
 		DEFAULT_SNAPSHOTCLONE_LISTEN_PROXY_PORT,
 	)
 
-	CONFIG_LISTEN_EXTERNAL_IP = itemset.insert(
-		"listen.external_ip",
-		REQUIRE_STRING,
+	CONFIG_USE_UCP = itemset.insert(
+		"use_ucp",
+		REQUIRE_BOOL,
 		true,
-		func(dc *DeployConfig) interface{} {
-			return dc.GetHostname()
-		},
-	)
-
-	CONFIG_LISTEN_EXTERNAL_PORT = itemset.insert(
-		"listen.external_port",
-		REQUIRE_POSITIVE_INTEGER,
-		true,
-		func(dc *DeployConfig) interface{} {
-			if dc.GetRole() == ROLE_METASERVER {
-				return DEFAULT_METASERVER_LISTN_EXTARNAL_PORT
-			}
-			return dc.GetListenPort()
-		},
+		false,
 	)
 
 	CONFIG_ENABLE_EXTERNAL_SERVER = itemset.insert(
@@ -214,6 +266,13 @@ var (
 		REQUIRE_BOOL,
 		false,
 		DEFAULT_ENABLE_EXTERNAL_SERVER,
+	)
+
+	CONFIG_ENABLE_EXTERNAL_UCP_SERVER = itemset.insert(
+		"global.ucp_enable_external_server",
+		REQUIRE_BOOL,
+		false,
+		DEFAULT_ENABLE_EXTERNAL_UCP_SERVER,
 	)
 
 	CONFIG_COPYSETS = itemset.insert(
@@ -254,13 +313,6 @@ var (
 		REQUIRE_STRING,
 		false,
 		nil,
-	)
-
-	CONFIG_ENABLE_RDMA = itemset.insert(
-		"enable_rdma",
-		REQUIRE_BOOL,
-		true,
-		false,
 	)
 
 	CONFIG_ENABLE_RENAMEAT2 = itemset.insert(

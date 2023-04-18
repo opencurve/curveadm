@@ -52,20 +52,25 @@ type (
 		Replicas     int    `json:"replicasnum"`
 		Zones        int    `json:"zonenum"`
 		Copysets     int    `json:"copysetnum"`
-		Type         int    `json:"type"`         // curvebs
-		ScatterWidth int    `json:"scatterwidth"` // curvebs
-		PhysicalPool string `json:"physicalpool"` // curvebs
+		UseUcp       bool   `json:"use_ucp,omitempty"`      // ucp only
+		Type         int    `json:"type,omitempty"`         // curvebs
+		ScatterWidth int    `json:"scatterwidth,omitempty"` // curvebs
+		PhysicalPool string `json:"physicalpool,omitempty"` // curvebs
 	}
 
 	Server struct {
-		Name         string `json:"name"`
-		InternalIp   string `json:"internalip"`
-		InternalPort int    `json:"internalport"`
-		ExternalIp   string `json:"externalip"`
-		ExternalPort int    `json:"externalport"`
-		Zone         string `json:"zone"`
-		PhysicalPool string `json:"physicalpool,omitempty"` // curvebs
-		Pool         string `json:"pool,omitempty"`         // curvefs
+		Name            string `json:"name"`
+		InternalIp      string `json:"internalip"`
+		InternalPort    int    `json:"internalport"`
+		ExternalIp      string `json:"externalip"`
+		ExternalPort    int    `json:"externalport"`
+		InternalUcpIp   string `json:"ucp_internalip,omitempty"`   // ucp only
+		InternalUcpPort int    `json:"ucp_internalport,omitempty"` // ucp only
+		ExternalUcpIp   string `json:"ucp_externalip,omitempty"`   // ucp only
+		ExternalUcpPort int    `json:"ucp_externalport,omitempty"` // ucp only
+		Zone            string `json:"zone"`
+		PhysicalPool    string `json:"physicalpool,omitempty"` // curvebs
+		Pool            string `json:"pool,omitempty"`         // curvefs
 	}
 
 	CurveClusterTopo struct {
@@ -81,12 +86,16 @@ type (
  *   servers:
  *     - name: server1
  *       internalip: 127.0.0.1
- *       internalport: 16701
+ *       internalport: 8200
  *       externalip: 127.0.0.1
- *       externalport: 16701
+ *       externalport: 8201
+ *       ucp_internalip: 127.0.0.1  # ucp only
+ *       ucp_internalport: 9200     # ucp only
+ *       ucp_externalip: 127.0.0.1  # ucp only
+ *       ucp_externalport: 9201     # ucp only
  *       zone: zone1
  *       physicalpool: pool1
- *    ...
+ *     ...
  *   logicalpools:
  *     - name: pool1
  *       physicalpool: pool1
@@ -113,7 +122,9 @@ type (
  *       replicasnum: 3
  *       copysetnum: 100
  *       zonenum: 3
+ *     ...
  */
+
 func genNextZone(zones int) func() string {
 	idx := 0
 	return func() string {
@@ -140,6 +151,49 @@ func formatName(dc *topology.DeployConfig) string {
 	return fmt.Sprintf("%s_%s_%d", dc.GetHost(), dc.GetName(), dc.GetReplicasSequence())
 }
 
+func genServer(pool, zone string, dc *topology.DeployConfig) Server {
+	// NOTE: if we deploy chunkservers with replica feature
+	// and the value of replica greater than 1, we should
+	// set internal port and external port to 0 for let MDS
+	// attribute them as services on the same machine.
+	// see issue: https://github.com/opencurve/curve/issues/1441
+	kind := dc.GetKind()
+	internalPort := dc.GetListenPort()
+	externalPort := dc.GetListenExternalPort()
+	internalUcpPort := dc.GetListenUcpPort()
+	externalUcpPort := dc.GetListenExternalUcpPort()
+	if dc.GetReplicas() > 1 {
+		internalPort = 0
+		externalPort = 0
+		internalUcpPort = 0
+		externalUcpPort = 0
+	}
+
+	server := Server{
+		Name:         formatName(dc),
+		InternalIp:   dc.GetListenIp(),
+		InternalPort: internalPort,
+		ExternalIp:   dc.GetListenExternalIp(),
+		ExternalPort: externalPort,
+		Zone:         zone,
+	}
+
+	if kind == KIND_CURVEBS && dc.GetUseUCP() {
+		server.InternalUcpIp = dc.GetListenUcpIp()
+		server.InternalUcpPort = internalUcpPort
+		server.ExternalUcpIp = dc.GetListenExternalUcpIp()
+		server.ExternalUcpPort = externalUcpPort
+	}
+
+	if kind == KIND_CURVEBS {
+		server.PhysicalPool = pool
+	} else {
+		server.Pool = pool
+	}
+
+	return server
+}
+
 func createLogicalPool(dcs []*topology.DeployConfig, logicalPool string) (LogicalPool, []Server) {
 	var zone string
 	copysets := 0
@@ -156,32 +210,7 @@ func createLogicalPool(dcs []*topology.DeployConfig, logicalPool string) (Logica
 			if dc.GetParentId() == dc.GetId() {
 				zone = nextZone()
 			}
-
-			// NOTE: if we deploy chunkservers with replica feature
-			// and the value of replica greater than 1, we should
-			// set internal port and external port to 0 for let MDS
-			// attribute them as services on the same machine.
-			// see issue: https://github.com/opencurve/curve/issues/1441
-			internalPort := dc.GetListenPort()
-			externalPort := dc.GetListenExternalPort()
-			if dc.GetReplicas() > 1 {
-				internalPort = 0
-				externalPort = 0
-			}
-
-			server := Server{
-				Name:         formatName(dc),
-				InternalIp:   dc.GetListenIp(),
-				InternalPort: internalPort,
-				ExternalIp:   dc.GetListenExternalIp(),
-				ExternalPort: externalPort,
-				Zone:         zone,
-			}
-			if kind == KIND_CURVEBS {
-				server.PhysicalPool = physicalPool
-			} else {
-				server.Pool = logicalPool
-			}
+			server := genServer(logicalPool, zone, dc)
 			copysets += dc.GetCopysets()
 			servers = append(servers, server)
 		}
