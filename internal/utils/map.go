@@ -67,3 +67,19 @@ func (m *SafeMap) TX(callback func(m *SafeMap) error) error {
 	m.Unlock()
 	return err
 }
+
+func (m *SafeMap) GetBool(key string) bool {
+	v := m.Get(key)
+	if IsBool(m.Get(key)) {
+		return v.(bool)
+	}
+	return false
+}
+
+func (m *SafeMap) GetString(key string) string {
+	v := m.Get(key)
+	if IsString(v) {
+		return v.(string)
+	}
+	return ""
+}

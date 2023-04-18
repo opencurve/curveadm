@@ -26,6 +26,7 @@ package common
 
 import (
 	"fmt"
+	"path"
 	"strings"
 
 	"github.com/opencurve/curveadm/cli/cli"
@@ -36,6 +37,7 @@ import (
 	"github.com/opencurve/curveadm/internal/task/context"
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
+	"github.com/opencurve/curveadm/internal/utils"
 	log "github.com/opencurve/curveadm/pkg/log/glg"
 	"golang.org/x/exp/maps"
 )
@@ -44,6 +46,11 @@ const (
 	POLICY_ALWAYS_RESTART = "always"
 	POLICY_NEVER_RESTART  = "no"
 )
+
+type AdditionContext struct {
+	namespace  string
+	controller string
+}
 
 type step2GetService struct {
 	serviceId   string
@@ -102,10 +109,39 @@ func (s *step2InsertService) Execute(ctx *context.Context) error {
 	return err
 }
 
-func getChunkserverArgs(dc *topology.DeployConfig) map[string]interface{} {
+func parseNVMeStatus(dc *topology.DeployConfig, addition *AdditionContext) step.LambdaType {
+	return func(ctx *context.Context) error {
+		if !dc.GetUseSPDK() {
+			return nil
+		}
+
+		dataDir := dc.GetDataDir()
+		content, err := utils.ReadFile(path.Join(dataDir, topology.SPDK_CONTROLLER_SAVED))
+		if err != nil {
+			return errno.ERR_UNKNOWN.S(err.Error())
+		}
+
+		items := strings.Split(content, " ")
+		if len(items) != 2 {
+			return errno.ERR_UNKNOWN.S("invalid controller saved file")
+		}
+
+		addition.controller = items[0]
+		addition.namespace = items[1]
+		return nil
+	}
+}
+
+func getChunkserverArgs(dc *topology.DeployConfig, addition *AdditionContext) map[string]interface{} {
 	// only chunkserver need so many arguments, but who cares
+	var dataDir string
 	layout := dc.GetProjectLayout()
-	dataDir := layout.ServiceDataDir
+	if dc.GetUseSPDK() {
+		dataDir = addition.namespace
+	} else {
+		dataDir = layout.ServiceDataDir
+	}
+
 	arguments := map[string]interface{}{
 		// chunkserver
 		"conf":                  layout.ServiceConfPath,
@@ -145,14 +181,22 @@ func getChunkserverArgs(dc *topology.DeployConfig) map[string]interface{} {
 			"enableUcpExternalServer": dc.GetEnableExternalUcpServer(),
 		})
 	}
+	// spdk only
+	if dc.GetUseSPDK() {
+		maps.Copy(arguments, map[string]interface{}{
+			"pfs_pbd_name":         addition.namespace,
+			"spdk_nvme_controller": addition.controller,
+			"raftMetaUri":          fmt.Sprintf("curve://%s/copysets", dataDir),
+		})
+	}
 	return arguments
 }
 
-func getArguments(dc *topology.DeployConfig) string {
+func getArguments(dc *topology.DeployConfig, addition *AdditionContext) string {
 	serviceArgs := map[string]interface{}{}
 	role := dc.GetRole()
 	if role == topology.ROLE_CHUNKSERVER {
-		serviceArgs = getChunkserverArgs(dc)
+		serviceArgs = getChunkserverArgs(dc, addition)
 	}
 
 	arguments := []string{}
@@ -239,6 +283,7 @@ func NewCreateContainerTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (
 
 	// add step to task
 	var oldContainerId, containerId string
+	var addition AdditionContext
 	clusterId := curveadm.ClusterId()
 	dcId := dc.GetId()
 	serviceId := curveadm.GetServiceId(dcId)
@@ -255,9 +300,12 @@ func NewCreateContainerTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (
 		Paths:       []string{dc.GetLogDir(), dc.GetDataDir()},
 		ExecOptions: curveadm.MkdirOptions(),
 	})
+	t.AddStep(&step.Lambda{ // spdk only
+		Lambda: parseNVMeStatus(dc, &addition),
+	})
 	t.AddStep(&step.CreateContainer{
 		Image:       dc.GetContainerImage(),
-		Command:     fmt.Sprintf("--role %s --args='%s'", role, getArguments(dc)),
+		Command:     fmt.Sprintf("--role %s --args='%s'", role, getArguments(dc, &addition)),
 		AddHost:     []string{fmt.Sprintf("%s:127.0.0.1", hostname)},
 		Devices:     getDevices(dc),
 		Envs:        getEnvironments(dc),

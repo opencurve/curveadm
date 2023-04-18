@@ -24,11 +24,13 @@ package bs
 
 import (
 	"fmt"
+	"path"
 	"regexp"
 	"strings"
 	"time"
 
 	"github.com/opencurve/curveadm/cli/cli"
+	comm "github.com/opencurve/curveadm/internal/common"
 	"github.com/opencurve/curveadm/internal/configure"
 	os "github.com/opencurve/curveadm/internal/configure/os"
 	"github.com/opencurve/curveadm/internal/configure/topology"
@@ -167,6 +169,26 @@ func device2ContainerName(device string) string {
 	return fmt.Sprintf("curvebs-format-%s", utils.MD5Sum(device))
 }
 
+func genFormatScript(fc *configure.FormatConfig, spdk bool) (string, error) {
+	device := fc.GetDevice()
+	percent := fc.GetFormatPercent()
+	layout := topology.GetCurveBSProjectLayout()
+	template := utils.Choose(spdk, scripts.TMPL_FORMAT_PFS, scripts.TMPL_FORMAT_EXT4)
+	return scripts.GetScript(template, map[string]interface{}{
+		"curve_format":             layout.FormatBinaryPath,
+		"percent":                  percent,
+		"chunkfile_size":           DEFAULT_CHUNKFILE_SIZE,
+		"chunkfile_pool_root_dir":  layout.ChunkfilePoolRootDir,
+		"chunkfile_pool_dir":       layout.ChunkfilePoolDir,
+		"chunkfile_pool_meta_path": layout.ChunkfilePoolMetaPath,
+		// spdk only
+		"pfs":              layout.PFSBinaryPath,
+		"setup_script":     layout.SPDKSetupScriptPath,
+		"device":           device,
+		"controller_saved": layout.SPDKControllerSavedPath,
+	})
+}
+
 func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *configure.FormatConfig) (*task.Task, error) {
 	host := fc.GetHost()
 	hc, err := curveadm.GetHost(host)
@@ -177,9 +199,9 @@ func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *configure.FormatConf
 	// new task
 	device := fc.GetDevice()
 	mountPoint := fc.GetMountPoint()
-	usagePercent := fc.GetFormatPercent()
+	percent := fc.GetFormatPercent()
 	subname := fmt.Sprintf("host=%s device=%s mountPoint=%s usage=%d%%",
-		fc.GetHost(), device, mountPoint, usagePercent)
+		fc.GetHost(), device, mountPoint, percent)
 	t := task.NewTask("Start Format Chunkfile Pool", subname, hc.GetSSHConfig())
 
 	// add step to task
@@ -187,10 +209,12 @@ func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *configure.FormatConf
 	containerName := device2ContainerName(device)
 	layout := topology.GetCurveBSProjectLayout()
 	chunkfilePoolRootDir := layout.ChunkfilePoolRootDir
-	formatScript := scripts.FORMAT
-	formatScriptPath := fmt.Sprintf("%s/format.sh", layout.ToolsBinDir)
-	formatCommand := fmt.Sprintf("%s %s %d %d %s %s", formatScriptPath, layout.FormatBinaryPath,
-		usagePercent, DEFAULT_CHUNKFILE_SIZE, layout.ChunkfilePoolDir, layout.ChunkfilePoolMetaPath)
+	spdk := curveadm.MemStorage().GetBool(comm.KEY_FORMAT_BY_SPDK)
+	formatScriptPath := path.Join(layout.ToolsBinDir, "format.sh")
+	formatScript, err := genFormatScript(fc, spdk)
+	if err != nil {
+		return nil, err
+	}
 
 	// 1: skip if formating container exist
 	t.AddStep(&step.ListContainers{
@@ -204,7 +228,7 @@ func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *configure.FormatConf
 	t.AddStep(&step.Lambda{
 		Lambda: skipFormat(&oldContainerId),
 	})
-	// 2: mkfs, mount device, edit fstab
+	// 2: mkfs, mount device, edit fstab (only ext4)
 	t.AddStep(&step.ListBlockDevice{
 		Device:      []string{device},
 		Format:      "UUID",
@@ -220,24 +244,26 @@ func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *configure.FormatConf
 	})
 	t.AddStep(&step.CreateDirectory{
 		Paths:       []string{mountPoint},
-		ExecOptions: curveadm.MkdirOptions(),
-	})
-	t.AddStep(&step.CreateFilesystem{ // mkfs.ext4 MOUNT_POINT
-		Device:      device,
 		ExecOptions: curveadm.ExecOptions(),
 	})
-	t.AddStep(&step.MountFilesystem{
-		Source:      device,
-		Directory:   mountPoint,
-		ExecOptions: curveadm.ExecOptions(),
-	})
-	t.AddStep(&step2EditFSTab{
-		host:       host,
-		device:     device,
-		oldUUID:    &oldUUID,
-		mountPoint: mountPoint,
-		curveadm:   curveadm,
-	})
+	if !spdk {
+		t.AddStep(&step.CreateFilesystem{ // mkfs.ext4 MOUNT_POINT
+			Device:      device,
+			ExecOptions: curveadm.ExecOptions(),
+		})
+		t.AddStep(&step.MountFilesystem{
+			Source:      device,
+			Directory:   mountPoint,
+			ExecOptions: curveadm.ExecOptions(),
+		})
+		t.AddStep(&step2EditFSTab{
+			host:       host,
+			device:     device,
+			oldUUID:    &oldUUID,
+			mountPoint: mountPoint,
+			curveadm:   curveadm,
+		})
+	}
 	// 3: run container to format chunkfile pool
 	t.AddStep(&step.PullImage{
 		Image:       fc.GetContainerImage(),
@@ -245,7 +271,7 @@ func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *configure.FormatConf
 	})
 	t.AddStep(&step.CreateContainer{
 		Image:       fc.GetContainerImage(),
-		Command:     formatCommand,
+		Command:     formatScriptPath,
 		Entrypoint:  "/bin/bash",
 		Name:        containerName,
 		Remove:      true,

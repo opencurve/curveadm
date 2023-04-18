@@ -23,7 +23,11 @@
 package scripts
 
 import (
+	"bytes"
 	_ "embed"
+	"html/template"
+
+	"github.com/opencurve/curveadm/internal/utils"
 )
 
 const (
@@ -32,18 +36,13 @@ const (
 	STATUS_TIMEOUT = "CURVEADM_TIMEOUT"
 )
 
+// scripts
 var (
-	// Common
-
 	//go:embed shell/wait.sh
 	WAIT string
 	//go:embed shell/report.sh
 	REPORT string
 
-	// CurveBS
-
-	//go:embed shell/format.sh
-	FORMAT string
 	//go:embed shell/wait_chunkserver.sh
 	WAIT_CHUNKSERVERS string
 	//go:embed shell/start_nginx.sh
@@ -57,8 +56,22 @@ var (
 	//go:embed shell/recycle.sh
 	RECYCLE string
 
-	// CurveFS
-
 	//go:embed shell/create_fs.sh
 	CREATE_FS string
 )
+
+// template
+var (
+	//go:embed template/format_ext4.sh
+	TMPL_FORMAT_EXT4 string
+	//go:embed template/format_pfs.sh
+	TMPL_FORMAT_PFS string
+)
+
+func GetScript(text string, data map[string]interface{}) (string, error) {
+	buffer := bytes.NewBufferString("")
+	name := utils.MD5Sum(text)
+	tmpl := template.Must(template.New(name).Parse(text))
+	err := tmpl.Execute(buffer, data)
+	return buffer.String(), err
+}

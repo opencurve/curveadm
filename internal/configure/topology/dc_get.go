@@ -48,6 +48,8 @@ const (
 	LAYOUT_CURVEBS_RECYCLER_DIR             = "recycler"
 	LAYOUT_CURVEBS_TOOLS_CONFIG_SYSTEM_PATH = "/etc/curve/tools.conf"
 	LAYOUT_CURVEFS_TOOLS_CONFIG_SYSTEM_PATH = "/etc/curvefs/tools.conf"
+	LAYOUT_PFS_BINARY_PATH                  = "/usr/local/curvestore/bin/pfs"
+	LAYOUT_SPDK_SETUP_SCRIPT_PATH           = "/usr/local/spdk/setup.sh"
 	LAYOUT_CORE_SYSTEM_DIR                  = "/core"
 
 	BINARY_CURVEBS_TOOL     = "curvebs-tool"
@@ -55,6 +57,7 @@ const (
 	BINARY_CURVEFS_TOOL     = "curvefs_tool"
 	METAFILE_CHUNKFILE_POOL = "chunkfilepool.meta"
 	METAFILE_CHUNKSERVER_ID = "chunkserver.dat"
+	SPDK_CONTROLLER_SAVED   = ".curveadm_spdk_controller"
 )
 
 var (
@@ -135,6 +138,7 @@ func (dc *DeployConfig) GetListenClientPort() int  { return dc.getInt(CONFIG_LIS
 func (dc *DeployConfig) GetListenDummyPort() int   { return dc.getInt(CONFIG_LISTEN_DUMMY_PORT) }
 func (dc *DeployConfig) GetListenProxyPort() int   { return dc.getInt(CONFIG_LISTEN_PROXY_PORT) }
 func (dc *DeployConfig) GetUseUCP() bool           { return dc.getBool(CONFIG_USE_UCP) }
+func (dc *DeployConfig) GetUseSPDK() bool          { return dc.getBool(CONFIG_USE_SPDK) }
 func (dc *DeployConfig) GetCopysets() int          { return dc.getInt(CONFIG_COPYSETS) }
 func (dc *DeployConfig) GetS3AccessKey() string    { return dc.getString(CONFIG_S3_ACCESS_KEY) }
 func (dc *DeployConfig) GetS3SecretKey() string    { return dc.getString(CONFIG_S3_SECRET_KEY) }
@@ -246,6 +250,10 @@ type (
 		ChunkfilePoolRootDir  string // /curvebs/chunkserver/data
 		ChunkfilePoolDir      string // /curvebs/chunkserver/data/chunkfilepool
 		ChunkfilePoolMetaPath string // /curvebs/chunkserver/data/chunkfilepool.meta
+		// spdk only
+		PFSBinaryPath           string // /usr/local/curvestore/bin/pfs  // FIXME: move to /curvebs/tools
+		SPDKSetupScriptPath     string // /usr/local/spdk/setup.sh       // FIXME: move to /curvebs/tools
+		SPDKControllerSavedPath string // /curvebs/chunkserver/data/.curveadm_spdk_controller
 
 		// core
 		CoreSystemDir string
@@ -315,6 +323,10 @@ func (dc *DeployConfig) GetProjectLayout() Layout {
 		ChunkfilePoolRootDir:  chunkserverDataDir,
 		ChunkfilePoolDir:      fmt.Sprintf("%s/%s", chunkserverDataDir, LAYOUT_CURVEBS_CHUNKFILE_POOL_DIR),
 		ChunkfilePoolMetaPath: fmt.Sprintf("%s/%s", chunkserverDataDir, METAFILE_CHUNKFILE_POOL),
+		// spdk only
+		PFSBinaryPath:           LAYOUT_PFS_BINARY_PATH,
+		SPDKSetupScriptPath:     LAYOUT_SPDK_SETUP_SCRIPT_PATH,
+		SPDKControllerSavedPath: path.Join(chunkserverDataDir, SPDK_CONTROLLER_SAVED),
 
 		// core
 		CoreSystemDir: LAYOUT_CORE_SYSTEM_DIR,

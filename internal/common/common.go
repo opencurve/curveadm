@@ -48,6 +48,7 @@ const (
 
 	// format
 	KEY_ALL_FORMAT_STATUS = "ALL_FORMAT_STATUS"
+	KEY_FORMAT_BY_SPDK    = "FORMAT_BY_SPDK"
 
 	// check
 	KEY_CHECK_WITH_WEAK          = "CHECK_WITH_WEAK"

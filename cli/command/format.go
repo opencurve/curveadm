@@ -39,7 +39,7 @@ const (
 	FORMAT_EXAMPLE = `Examples:
   $ curveadm format -f /path/to/format.yaml           # Format chunkfile pool with specified configure file
   $ curveadm format --status -f /path/to/format.yaml  # Display formatting status
-  $ curveadm format --stop   -f /path/to/format.yaml  # Stop formatting progress`
+  $ curveadm format --stop -f /path/to/format.yaml    # Stop formatting progress`
 )
 
 var (
@@ -50,7 +50,7 @@ var (
 	FORMAT_STATUS_PLAYBOOK_STEPS = []int{
 		playbook.GET_FORMAT_STATUS,
 	}
-	// FORMAT_STOP_PLAYBOOK_STEPS stop formatting step
+
 	FORMAT_STOP_PLAYBOOK_STEPS = []int{
 		playbook.STOP_FORMAT,
 	}
@@ -60,6 +60,7 @@ type formatOptions struct {
 	filename   string
 	showStatus bool
 	stopFormat bool
+	spdk       bool
 }
 
 func NewFormatCommand(curveadm *cli.CurveAdm) *cobra.Command {
@@ -78,6 +79,7 @@ func NewFormatCommand(curveadm *cli.CurveAdm) *cobra.Command {
 
 	flags := cmd.Flags()
 	flags.StringVarP(&options.filename, "formatting", "f", "format.yaml", "Specify the configure file for formatting chunkfile pool")
+	flags.BoolVar(&options.spdk, "spdk", false, "Format chunkfile pool by SPDK")
 	flags.BoolVar(&options.showStatus, "status", false, "Show formatting status")
 	flags.BoolVar(&options.stopFormat, "stop", false, "Stop formatting progress")
 
@@ -107,6 +109,9 @@ func genFormatPlaybook(curveadm *cli.CurveAdm,
 		pb.AddStep(&playbook.PlaybookStep{
 			Type:    step,
 			Configs: fcs,
+			Options: map[string]interface{}{
+				comm.KEY_FORMAT_BY_SPDK: options.spdk,
+			},
 			ExecOptions: playbook.ExecOptions{
 				SilentSubBar: options.showStatus,
 			},
@@ -128,7 +133,6 @@ func displayFormatStatus(curveadm *cli.CurveAdm, fcs []*configure.FormatConfig, 
 	output := tui.FormatStatus(statuses)
 	curveadm.WriteOutln("")
 	curveadm.WriteOut("%s", output)
-	return
 }
 
 func runFormat(curveadm *cli.CurveAdm, options formatOptions) error {
@@ -138,7 +142,7 @@ func runFormat(curveadm *cli.CurveAdm, options formatOptions) error {
 		return err
 	}
 
-	// 2) generate start playbook
+	// 2) generate format playbook
 	pb, err := genFormatPlaybook(curveadm, fcs, options)
 	if err != nil {
 		return err

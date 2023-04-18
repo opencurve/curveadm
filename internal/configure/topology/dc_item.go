@@ -261,6 +261,13 @@ var (
 		false,
 	)
 
+	CONFIG_USE_SPDK = itemset.insert(
+		"use_spdk",
+		REQUIRE_BOOL,
+		true,
+		false,
+	)
+
 	CONFIG_ENABLE_EXTERNAL_SERVER = itemset.insert(
 		"global.enable_external_server",
 		REQUIRE_BOOL,
