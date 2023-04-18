@@ -37,6 +37,7 @@ import (
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
 	log "github.com/opencurve/curveadm/pkg/log/glg"
+	"golang.org/x/exp/maps"
 )
 
 const (
@@ -101,22 +102,17 @@ func (s *step2InsertService) Execute(ctx *context.Context) error {
 	return err
 }
 
-func getArguments(dc *topology.DeployConfig) string {
-	role := dc.GetRole()
-	if role != topology.ROLE_CHUNKSERVER {
-		return ""
-	}
-
+func getChunkserverArgs(dc *topology.DeployConfig) map[string]interface{} {
 	// only chunkserver need so many arguments, but who cares
 	layout := dc.GetProjectLayout()
 	dataDir := layout.ServiceDataDir
-	chunkserverArguments := map[string]interface{}{
+	arguments := map[string]interface{}{
 		// chunkserver
 		"conf":                  layout.ServiceConfPath,
 		"chunkServerIp":         dc.GetListenIp(),
-		"enableExternalServer":  dc.GetEnableExternalServer(),
-		"chunkServerExternalIp": dc.GetListenExternalIp(),
 		"chunkServerPort":       dc.GetListenPort(),
+		"chunkServerExternalIp": dc.GetListenExternalIp(),
+		"enableExternalServer":  dc.GetEnableExternalServer(),
 		"chunkFilePoolDir":      dataDir,
 		"chunkFilePoolMetaPath": fmt.Sprintf("%s/chunkfilepool.meta", dataDir),
 		"walFilePoolDir":        dataDir,
@@ -138,23 +134,58 @@ func getArguments(dc *topology.DeployConfig) string {
 		"raft_max_install_snapshot_tasks_num":  1,
 		"raft_use_fsync_rather_than_fdatasync": false,
 	}
+	// ucp only
+	if dc.GetUseUCP() {
+		maps.Copy(arguments, map[string]interface{}{
+			"enableUcp":               true,
+			"ucpIp":                   dc.GetListenUcpIp(),
+			"ucpPort":                 dc.GetListenUcpPort(),
+			"ucpExternalIp":           dc.GetListenExternalUcpIp(),
+			"ucpExternalPort":         dc.GetListenExternalUcpPort(),
+			"enableUcpExternalServer": dc.GetEnableExternalUcpServer(),
+		})
+	}
+	return arguments
+}
+
+func getArguments(dc *topology.DeployConfig) string {
+	serviceArgs := map[string]interface{}{}
+	role := dc.GetRole()
+	if role == topology.ROLE_CHUNKSERVER {
+		serviceArgs = getChunkserverArgs(dc)
+	}
 
 	arguments := []string{}
-	for k, v := range chunkserverArguments {
+	for k, v := range serviceArgs {
 		arguments = append(arguments, fmt.Sprintf("-%s=%v", k, v))
 	}
 	return strings.Join(arguments, " ")
 }
 
+func getDevices(dc *topology.DeployConfig) []string {
+	devices := []string{}
+	if dc.GetUseUCP() {
+		devices = append(devices, "/dev/infiniband/rdma_cm")
+		devices = append(devices, "/dev/infiniband/uverbs")
+	}
+	return devices
+}
+
 func getEnvironments(dc *topology.DeployConfig) []string {
 	preloads := []string{"/usr/local/lib/libjemalloc.so"}
-	if dc.GetEnableRDMA() {
-		preloads = append(preloads, "/usr/local/lib/libsmc-preload.so")
-	}
-
 	return []string{
 		fmt.Sprintf("'LD_PRELOAD=%s'", strings.Join(preloads, " ")),
 	}
+}
+
+func getRestartPolicy(dc *topology.DeployConfig) string {
+	switch dc.GetRole() {
+	case topology.ROLE_ETCD:
+		return POLICY_ALWAYS_RESTART
+	case topology.ROLE_MDS:
+		return POLICY_ALWAYS_RESTART
+	}
+	return POLICY_NEVER_RESTART
 }
 
 func getMountVolumes(dc *topology.DeployConfig) []step.Volume {
@@ -186,16 +217,6 @@ func getMountVolumes(dc *topology.DeployConfig) []step.Volume {
 	}
 
 	return volumes
-}
-
-func getRestartPolicy(dc *topology.DeployConfig) string {
-	switch dc.GetRole() {
-	case topology.ROLE_ETCD:
-		return POLICY_ALWAYS_RESTART
-	case topology.ROLE_MDS:
-		return POLICY_ALWAYS_RESTART
-	}
-	return POLICY_NEVER_RESTART
 }
 
 func trimContainerId(containerId *string) step.LambdaType {
@@ -238,13 +259,14 @@ func NewCreateContainerTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (
 		Image:       dc.GetContainerImage(),
 		Command:     fmt.Sprintf("--role %s --args='%s'", role, getArguments(dc)),
 		AddHost:     []string{fmt.Sprintf("%s:127.0.0.1", hostname)},
+		Devices:     getDevices(dc),
 		Envs:        getEnvironments(dc),
 		Hostname:    hostname,
 		Init:        true,
 		Name:        hostname,
 		Privileged:  true,
 		Restart:     getRestartPolicy(dc),
-		Ulimits:     []string{"core=-1"},
+		Ulimits:     []string{"core=-1", "memlock=-1"},
 		Volumes:     getMountVolumes(dc),
 		Out:         &containerId,
 		ExecOptions: curveadm.ExecOptions(),
