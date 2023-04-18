@@ -121,25 +121,26 @@ func (dc *DeployConfig) GetServiceConfig() map[string]string { return dc.service
 func (dc *DeployConfig) GetVariables() *variable.Variables   { return dc.variables }
 
 // (2): config item
-func (dc *DeployConfig) GetPrefix() string           { return dc.getString(CONFIG_PREFIX) }
-func (dc *DeployConfig) GetReportUsage() bool        { return dc.getBool(CONFIG_REPORT_USAGE) }
-func (dc *DeployConfig) GetContainerImage() string   { return dc.getString(CONFIG_CONTAINER_IMAGE) }
-func (dc *DeployConfig) GetLogDir() string           { return dc.getString(CONFIG_LOG_DIR) }
-func (dc *DeployConfig) GetDataDir() string          { return dc.getString(CONFIG_DATA_DIR) }
-func (dc *DeployConfig) GetCoreDir() string          { return dc.getString(CONFIG_CORE_DIR) }
-func (dc *DeployConfig) GetListenIp() string         { return dc.getString(CONFIG_LISTEN_IP) }
-func (dc *DeployConfig) GetListenPort() int          { return dc.getInt(CONFIG_LISTEN_PORT) }
-func (dc *DeployConfig) GetListenClientPort() int    { return dc.getInt(CONFIG_LISTEN_CLIENT_PORT) }
-func (dc *DeployConfig) GetListenDummyPort() int     { return dc.getInt(CONFIG_LISTEN_DUMMY_PORT) }
-func (dc *DeployConfig) GetListenProxyPort() int     { return dc.getInt(CONFIG_LISTEN_PROXY_PORT) }
-func (dc *DeployConfig) GetListenExternalIp() string { return dc.getString(CONFIG_LISTEN_EXTERNAL_IP) }
-func (dc *DeployConfig) GetCopysets() int            { return dc.getInt(CONFIG_COPYSETS) }
-func (dc *DeployConfig) GetS3AccessKey() string      { return dc.getString(CONFIG_S3_ACCESS_KEY) }
-func (dc *DeployConfig) GetS3SecretKey() string      { return dc.getString(CONFIG_S3_SECRET_KEY) }
-func (dc *DeployConfig) GetS3Address() string        { return dc.getString(CONFIG_S3_ADDRESS) }
-func (dc *DeployConfig) GetS3BucketName() string     { return dc.getString(CONFIG_S3_BUCKET_NAME) }
-func (dc *DeployConfig) GetEnableRDMA() bool         { return dc.getBool(CONFIG_ENABLE_RDMA) }
-func (dc *DeployConfig) GetEnableRenameAt2() bool    { return dc.getBool(CONFIG_ENABLE_RENAMEAT2) }
+func (dc *DeployConfig) GetPrefix() string         { return dc.getString(CONFIG_PREFIX) }
+func (dc *DeployConfig) GetReportUsage() bool      { return dc.getBool(CONFIG_REPORT_USAGE) }
+func (dc *DeployConfig) GetContainerImage() string { return dc.getString(CONFIG_CONTAINER_IMAGE) }
+func (dc *DeployConfig) GetLogDir() string         { return dc.getString(CONFIG_LOG_DIR) }
+func (dc *DeployConfig) GetDataDir() string        { return dc.getString(CONFIG_DATA_DIR) }
+func (dc *DeployConfig) GetCoreDir() string        { return dc.getString(CONFIG_CORE_DIR) }
+func (dc *DeployConfig) GetListenIp() string       { return dc.getString(CONFIG_LISTEN_IP) }
+func (dc *DeployConfig) GetListenUcpIp() string    { return dc.getString(CONFIG_LISTEN_UCP_IP) }
+func (dc *DeployConfig) GetListenPort() int        { return dc.getInt(CONFIG_LISTEN_PORT) }
+func (dc *DeployConfig) GetListenUcpPort() int     { return dc.getInt(CONFIG_LISTEN_UCP_PORT) }
+func (dc *DeployConfig) GetListenClientPort() int  { return dc.getInt(CONFIG_LISTEN_CLIENT_PORT) }
+func (dc *DeployConfig) GetListenDummyPort() int   { return dc.getInt(CONFIG_LISTEN_DUMMY_PORT) }
+func (dc *DeployConfig) GetListenProxyPort() int   { return dc.getInt(CONFIG_LISTEN_PROXY_PORT) }
+func (dc *DeployConfig) GetUseUCP() bool           { return dc.getBool(CONFIG_USE_UCP) }
+func (dc *DeployConfig) GetCopysets() int          { return dc.getInt(CONFIG_COPYSETS) }
+func (dc *DeployConfig) GetS3AccessKey() string    { return dc.getString(CONFIG_S3_ACCESS_KEY) }
+func (dc *DeployConfig) GetS3SecretKey() string    { return dc.getString(CONFIG_S3_SECRET_KEY) }
+func (dc *DeployConfig) GetS3Address() string      { return dc.getString(CONFIG_S3_ADDRESS) }
+func (dc *DeployConfig) GetS3BucketName() string   { return dc.getString(CONFIG_S3_BUCKET_NAME) }
+func (dc *DeployConfig) GetEnableRenameAt2() bool  { return dc.getBool(CONFIG_ENABLE_RENAMEAT2) }
 func (dc *DeployConfig) GetEnableChunkfilePool() bool {
 	return dc.getBool(CONFIG_ENABLE_CHUNKFILE_POOL)
 }
@@ -148,11 +149,30 @@ func (dc *DeployConfig) GetEnableExternalServer() bool {
 	return dc.getBool(CONFIG_ENABLE_EXTERNAL_SERVER)
 }
 
+func (dc *DeployConfig) GetEnableExternalUcpServer() bool {
+	return dc.getBool(CONFIG_ENABLE_EXTERNAL_UCP_SERVER)
+}
+
+func (dc *DeployConfig) GetListenExternalIp() string {
+	return dc.getString(CONFIG_LISTEN_EXTERNAL_IP)
+}
+
+func (dc *DeployConfig) GetListenExternalUcpIp() string {
+	return dc.getString(CONFIG_LISTEN_EXTERNAL_UCP_IP)
+}
+
 func (dc *DeployConfig) GetListenExternalPort() int {
 	if dc.GetEnableExternalServer() {
 		return dc.getInt(CONFIG_LISTEN_EXTERNAL_PORT)
 	}
 	return dc.GetListenPort()
+}
+
+func (dc *DeployConfig) GetListenExternalUcpPort() int {
+	if dc.GetEnableExternalUcpServer() {
+		return dc.getInt(CONFIG_LISTEN_EXTERNAL_UCP_PORT)
+	}
+	return dc.GetListenUcpPort()
 }
 
 // (3): service project layout
