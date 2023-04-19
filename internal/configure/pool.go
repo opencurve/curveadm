@@ -53,8 +53,8 @@ type (
 		Zones        int    `json:"zonenum"`
 		Copysets     int    `json:"copysetnum"`
 		UseUcp       bool   `json:"use_ucp,omitempty"`      // ucp only
-		Type         int    `json:"type,omitempty"`         // curvebs
-		ScatterWidth int    `json:"scatterwidth,omitempty"` // curvebs
+		Type         int    `json:"type"`                   // curvebs
+		ScatterWidth int    `json:"scatterwidth"`           // curvebs
 		PhysicalPool string `json:"physicalpool,omitempty"` // curvebs
 	}
 
@@ -64,10 +64,10 @@ type (
 		InternalPort    int    `json:"internalport"`
 		ExternalIp      string `json:"externalip"`
 		ExternalPort    int    `json:"externalport"`
-		InternalUcpIp   string `json:"ucp_internalip,omitempty"`   // ucp only
-		InternalUcpPort int    `json:"ucp_internalport,omitempty"` // ucp only
-		ExternalUcpIp   string `json:"ucp_externalip,omitempty"`   // ucp only
-		ExternalUcpPort int    `json:"ucp_externalport,omitempty"` // ucp only
+		InternalUcpIp   string `json:"ucp_internalip,omitempty"` // ucp only
+		InternalUcpPort int    `json:"ucp_internalport"`         // ucp only
+		ExternalUcpIp   string `json:"ucp_externalip,omitempty"` // ucp only
+		ExternalUcpPort int    `json:"ucp_externalport"`         // ucp only
 		Zone            string `json:"zone"`
 		PhysicalPool    string `json:"physicalpool,omitempty"` // curvebs
 		Pool            string `json:"pool,omitempty"`         // curvefs
@@ -233,6 +233,9 @@ func createLogicalPool(dcs []*topology.DeployConfig, logicalPool string) (Logica
 		lpool.ScatterWidth = DEFAULT_SCATTER_WIDTH
 		lpool.Type = DEFAULT_TYPE
 		lpool.PhysicalPool = physicalPool
+		if dcs[0].GetUseUCP() {
+			lpool.UseUcp = true
+		}
 	}
 
 	return lpool, servers

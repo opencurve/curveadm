@@ -51,6 +51,7 @@ type (
 	CreateContainer struct {
 		Image             string
 		Command           string
+		DynamicCommand    *string
 		AddHost           []string
 		Devices           []string
 		Entrypoint        string
@@ -167,7 +168,13 @@ func (s *PullImage) Execute(ctx *context.Context) error {
 }
 
 func (s *CreateContainer) Execute(ctx *context.Context) error {
-	cli := ctx.Module().DockerCli().CreateContainer(s.Image, s.Command)
+	var cli *module.DockerCli
+	if s.DynamicCommand != nil {
+		cli = ctx.Module().DockerCli().CreateContainer(s.Image, *s.DynamicCommand)
+	} else {
+		cli = ctx.Module().DockerCli().CreateContainer(s.Image, s.Command)
+	}
+
 	for _, host := range s.AddHost {
 		cli.AddOption("--add-host %s", host)
 	}

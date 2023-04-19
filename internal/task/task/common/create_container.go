@@ -37,7 +37,6 @@ import (
 	"github.com/opencurve/curveadm/internal/task/context"
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
-	"github.com/opencurve/curveadm/internal/utils"
 	log "github.com/opencurve/curveadm/pkg/log/glg"
 	"golang.org/x/exp/maps"
 )
@@ -109,21 +108,13 @@ func (s *step2InsertService) Execute(ctx *context.Context) error {
 	return err
 }
 
-func parseNVMeStatus(dc *topology.DeployConfig, addition *AdditionContext) step.LambdaType {
+func parseNVMeStatus(content *string, addition *AdditionContext) step.LambdaType {
 	return func(ctx *context.Context) error {
-		if !dc.GetUseSPDK() {
-			return nil
-		}
-
-		dataDir := dc.GetDataDir()
-		content, err := utils.ReadFile(path.Join(dataDir, topology.SPDK_CONTROLLER_SAVED))
-		if err != nil {
-			return errno.ERR_UNKNOWN.S(err.Error())
-		}
-
-		items := strings.Split(content, " ")
-		if len(items) != 2 {
+		items := strings.Split(*content, " ")
+		if len(items) != 4 {
 			return errno.ERR_UNKNOWN.S("invalid controller saved file")
+		} else if items[3] != "SUCCESS" {
+			return errno.ERR_UNKNOWN.S(items[3])
 		}
 
 		addition.controller = items[0]
@@ -137,7 +128,7 @@ func getChunkserverArgs(dc *topology.DeployConfig, addition *AdditionContext) ma
 	var dataDir string
 	layout := dc.GetProjectLayout()
 	if dc.GetUseSPDK() {
-		dataDir = addition.namespace
+		dataDir = "/" + addition.namespace
 	} else {
 		dataDir = layout.ServiceDataDir
 	}
@@ -163,9 +154,9 @@ func getChunkserverArgs(dc *topology.DeployConfig, addition *AdditionContext) ma
 		"bthread_concurrency":      18,
 		"graceful_quit_on_sigterm": true,
 		// raft
-		"raft_sync":                            true,
-		"raft_sync_meta":                       true,
-		"raft_sync_segments":                   true,
+		"raft_sync":                            false,
+		"raft_sync_meta":                       false,
+		"raft_sync_segments":                   false,
 		"raft_max_segment_size":                8388608,
 		"raft_max_install_snapshot_tasks_num":  1,
 		"raft_use_fsync_rather_than_fdatasync": false,
@@ -271,6 +262,19 @@ func trimContainerId(containerId *string) step.LambdaType {
 	}
 }
 
+func genCommand(dc *topology.DeployConfig, addition *AdditionContext, command *string) step.LambdaType {
+	return func(ctx *context.Context) error {
+		role := dc.GetRole()
+		if dc.GetRole() != topology.ROLE_CHUNKSERVER {
+			*command = fmt.Sprintf("--role %s", role)
+		} else {
+			*command = fmt.Sprintf("--role %s --args='%s'", role, getArguments(dc, addition))
+		}
+		//Command:        fmt.Sprintf("--role %s --args='%s'", role, getArguments(dc, &addition)),
+		return nil
+	}
+}
+
 func NewCreateContainerTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task.Task, error) {
 	hc, err := curveadm.GetHost(dc.GetHost())
 	if err != nil {
@@ -282,8 +286,10 @@ func NewCreateContainerTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (
 	t := task.NewTask("Create Container", subname, hc.GetSSHConfig())
 
 	// add step to task
+	var success bool
 	var oldContainerId, containerId string
 	var addition AdditionContext
+	var out, command string
 	clusterId := curveadm.ClusterId()
 	dcId := dc.GetId()
 	serviceId := curveadm.GetServiceId(dcId)
@@ -300,24 +306,36 @@ func NewCreateContainerTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (
 		Paths:       []string{dc.GetLogDir(), dc.GetDataDir()},
 		ExecOptions: curveadm.MkdirOptions(),
 	})
-	t.AddStep(&step.Lambda{ // spdk only
-		Lambda: parseNVMeStatus(dc, &addition),
+	if dc.GetRole() == topology.ROLE_CHUNKSERVER {
+		t.AddStep(&step.Cat{
+			Files:       []string{path.Join(dc.GetDataDir(), topology.FORMAT_STATUS_FILE)},
+			Success:     &success,
+			Out:         &out,
+			ExecOptions: curveadm.ExecOptions(),
+		})
+		t.AddStep(&step.Lambda{ // spdk only
+			Lambda: parseNVMeStatus(&out, &addition),
+		})
+	}
+	t.AddStep(&step.Lambda{
+		Lambda: genCommand(dc, &addition, &command),
 	})
 	t.AddStep(&step.CreateContainer{
-		Image:       dc.GetContainerImage(),
-		Command:     fmt.Sprintf("--role %s --args='%s'", role, getArguments(dc, &addition)),
-		AddHost:     []string{fmt.Sprintf("%s:127.0.0.1", hostname)},
-		Devices:     getDevices(dc),
-		Envs:        getEnvironments(dc),
-		Hostname:    hostname,
-		Init:        true,
-		Name:        hostname,
-		Privileged:  true,
-		Restart:     getRestartPolicy(dc),
-		Ulimits:     []string{"core=-1", "memlock=-1"},
-		Volumes:     getMountVolumes(dc),
-		Out:         &containerId,
-		ExecOptions: curveadm.ExecOptions(),
+		Image:          dc.GetContainerImage(),
+		DynamicCommand: &command,
+		AddHost:        []string{fmt.Sprintf("%s:127.0.0.1", hostname)},
+		Devices:        getDevices(dc),
+		Envs:           getEnvironments(dc),
+		Entrypoint:     "/entrypoint.sh",
+		Hostname:       hostname,
+		Init:           true,
+		Name:           hostname,
+		Privileged:     true,
+		Restart:        getRestartPolicy(dc),
+		Ulimits:        []string{"core=-1", "memlock=-1"},
+		Volumes:        getMountVolumes(dc),
+		Out:            &containerId,
+		ExecOptions:    curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.Lambda{
 		Lambda: trimContainerId(&containerId),

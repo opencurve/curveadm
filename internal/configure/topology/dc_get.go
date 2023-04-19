@@ -49,15 +49,17 @@ const (
 	LAYOUT_CURVEBS_TOOLS_CONFIG_SYSTEM_PATH = "/etc/curve/tools.conf"
 	LAYOUT_CURVEFS_TOOLS_CONFIG_SYSTEM_PATH = "/etc/curvefs/tools.conf"
 	LAYOUT_PFS_BINARY_PATH                  = "/usr/local/curvestore/bin/pfs"
-	LAYOUT_SPDK_SETUP_SCRIPT_PATH           = "/usr/local/spdk/setup.sh"
+	LAYOUT_PFSD_BINARY_PATH                 = "/usr/local/curvestore/pfsd/bin/pfsdaemon"
+	LAYOUT_SPDK_SETUP_SCRIPT_PATH           = "/usr/local/spdk/scripts/setup.sh"
 	LAYOUT_CORE_SYSTEM_DIR                  = "/core"
 
-	BINARY_CURVEBS_TOOL     = "curvebs-tool"
-	BINARY_CURVEBS_FORMAT   = "curve_format"
-	BINARY_CURVEFS_TOOL     = "curvefs_tool"
-	METAFILE_CHUNKFILE_POOL = "chunkfilepool.meta"
-	METAFILE_CHUNKSERVER_ID = "chunkserver.dat"
-	SPDK_CONTROLLER_SAVED   = ".curveadm_spdk_controller"
+	BINARY_CURVEBS_TOOL        = "curvebs_tool" // FIXME
+	BINARY_CURVEBS_FORMAT      = "curve_format"
+	BINARY_SPDK_CURVEBS_FORMAT = "curve-format" // FIXME: rename to curve_format
+	BINARY_CURVEFS_TOOL        = "curvefs_tool"
+	METAFILE_CHUNKFILE_POOL    = "chunkfilepool.meta"
+	METAFILE_CHUNKSERVER_ID    = "chunkserver.dat"
+	FORMAT_STATUS_FILE         = ".curveadm_format_status"
 )
 
 var (
@@ -251,9 +253,11 @@ type (
 		ChunkfilePoolDir      string // /curvebs/chunkserver/data/chunkfilepool
 		ChunkfilePoolMetaPath string // /curvebs/chunkserver/data/chunkfilepool.meta
 		// spdk only
-		PFSBinaryPath           string // /usr/local/curvestore/bin/pfs  // FIXME: move to /curvebs/tools
-		SPDKSetupScriptPath     string // /usr/local/spdk/setup.sh       // FIXME: move to /curvebs/tools
-		SPDKControllerSavedPath string // /curvebs/chunkserver/data/.curveadm_spdk_controller
+		PfsdBinaryPath           string // /usr/local/curvestore/pfsd/bin/pfsdaemon  // FIXME: move to /curvebs/tools
+		PfsBinaryPath            string // /usr/local/curvestore/bin/pfs  // FIXME: move to /curvebs/tools
+		SpdkFormatBinaryPath     string // /curvebs/tools/sbin/curve-format // FIXME: rename to curve_format
+		SpdkSetupScriptPath      string // /usr/local/spdk/scripts/setup.sh  // FIXME: move to /curvebs/tools
+		SpdkFormatStatusFilePath string // /curvebs/chunkserver/data/.curveadm_format_status
 
 		// core
 		CoreSystemDir string
@@ -324,9 +328,11 @@ func (dc *DeployConfig) GetProjectLayout() Layout {
 		ChunkfilePoolDir:      fmt.Sprintf("%s/%s", chunkserverDataDir, LAYOUT_CURVEBS_CHUNKFILE_POOL_DIR),
 		ChunkfilePoolMetaPath: fmt.Sprintf("%s/%s", chunkserverDataDir, METAFILE_CHUNKFILE_POOL),
 		// spdk only
-		PFSBinaryPath:           LAYOUT_PFS_BINARY_PATH,
-		SPDKSetupScriptPath:     LAYOUT_SPDK_SETUP_SCRIPT_PATH,
-		SPDKControllerSavedPath: path.Join(chunkserverDataDir, SPDK_CONTROLLER_SAVED),
+		PfsBinaryPath:            LAYOUT_PFS_BINARY_PATH,
+		PfsdBinaryPath:           LAYOUT_PFSD_BINARY_PATH,
+		SpdkFormatBinaryPath:     path.Join(toolsBinDir, BINARY_SPDK_CURVEBS_FORMAT),
+		SpdkSetupScriptPath:      LAYOUT_SPDK_SETUP_SCRIPT_PATH,
+		SpdkFormatStatusFilePath: path.Join(chunkserverDataDir, FORMAT_STATUS_FILE),
 
 		// core
 		CoreSystemDir: LAYOUT_CORE_SYSTEM_DIR,

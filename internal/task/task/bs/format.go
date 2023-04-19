@@ -40,6 +40,7 @@ import (
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
 	"github.com/opencurve/curveadm/internal/utils"
+	log "github.com/opencurve/curveadm/pkg/log/glg"
 )
 
 const (
@@ -182,11 +183,41 @@ func genFormatScript(fc *configure.FormatConfig, spdk bool) (string, error) {
 		"chunkfile_pool_dir":       layout.ChunkfilePoolDir,
 		"chunkfile_pool_meta_path": layout.ChunkfilePoolMetaPath,
 		// spdk only
-		"pfs":              layout.PFSBinaryPath,
-		"setup_script":     layout.SPDKSetupScriptPath,
-		"device":           device,
-		"controller_saved": layout.SPDKControllerSavedPath,
+		"device":            device,
+		"setup_script":      layout.SpdkSetupScriptPath,
+		"pfs":               layout.PfsBinaryPath,
+		"spdk_curve_format": layout.SpdkFormatBinaryPath,
+		"status_file":       layout.SpdkFormatStatusFilePath,
 	})
+}
+
+func getDevices(spdk bool) []string {
+	devices := []string{}
+	if !spdk {
+		return devices
+	}
+
+	return append(devices, "/dev/infiniband/rdma_cm", "/dev/infiniband/uverbs")
+}
+
+func getFVolumes(fc *configure.FormatConfig) []step.Volume {
+	layout := topology.GetCurveBSProjectLayout()
+	chunkfilePoolRootDir := layout.ChunkfilePoolRootDir
+	volumes := []step.Volume{
+		{
+			HostPath:      fc.GetMountPoint(),
+			ContainerPath: chunkfilePoolRootDir,
+		},
+		{
+			HostPath:      "/dev",
+			ContainerPath: "/dev",
+		},
+		{
+			HostPath:      "/lib/modules",
+			ContainerPath: "/lib/modules",
+		},
+	}
+	return volumes
 }
 
 func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *configure.FormatConfig) (*task.Task, error) {
@@ -208,13 +239,15 @@ func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *configure.FormatConf
 	var oldContainerId, containerId, oldUUID string
 	containerName := device2ContainerName(device)
 	layout := topology.GetCurveBSProjectLayout()
-	chunkfilePoolRootDir := layout.ChunkfilePoolRootDir
 	spdk := curveadm.MemStorage().GetBool(comm.KEY_FORMAT_BY_SPDK)
 	formatScriptPath := path.Join(layout.ToolsBinDir, "format.sh")
 	formatScript, err := genFormatScript(fc, spdk)
 	if err != nil {
 		return nil, err
 	}
+
+	log.Error("spdk", log.Field("spdk", spdk))
+	log.Error("format script", log.Field("content", formatScript))
 
 	// 1: skip if formating container exist
 	t.AddStep(&step.ListContainers{
@@ -229,24 +262,26 @@ func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *configure.FormatConf
 		Lambda: skipFormat(&oldContainerId),
 	})
 	// 2: mkfs, mount device, edit fstab (only ext4)
-	t.AddStep(&step.ListBlockDevice{
-		Device:      []string{device},
-		Format:      "UUID",
-		NoHeadings:  true,
-		Out:         &oldUUID,
-		ExecOptions: curveadm.ExecOptions(),
-	})
 	t.AddStep(&step.UmountFilesystem{
-		Directorys:     []string{device},
-		IgnoreUmounted: true,
-		IgnoreNotFound: true,
-		ExecOptions:    curveadm.ExecOptions(),
+		Directorys:         []string{device},
+		IgnoreUmounted:     true,
+		IgnoreNotFound:     true,
+		IgnoreNoMountpoint: true,
+		ExecOptions:        curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.CreateDirectory{
 		Paths:       []string{mountPoint},
 		ExecOptions: curveadm.ExecOptions(),
 	})
 	if !spdk {
+		t.AddStep(&step.ListBlockDevice{
+			Device:      []string{device},
+			Format:      "UUID",
+			NoHeadings:  true,
+			Out:         &oldUUID,
+			ExecOptions: curveadm.ExecOptions(),
+		})
+
 		t.AddStep(&step.CreateFilesystem{ // mkfs.ext4 MOUNT_POINT
 			Device:      device,
 			ExecOptions: curveadm.ExecOptions(),
@@ -272,10 +307,14 @@ func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *configure.FormatConf
 	t.AddStep(&step.CreateContainer{
 		Image:       fc.GetContainerImage(),
 		Command:     formatScriptPath,
+		Devices:     getDevices(spdk),
 		Entrypoint:  "/bin/bash",
 		Name:        containerName,
+		Network:     "host",
+		Privileged:  true,
 		Remove:      true,
-		Volumes:     []step.Volume{{HostPath: mountPoint, ContainerPath: chunkfilePoolRootDir}},
+		Ulimits:     []string{"memlock=-1"},
+		Volumes:     getFVolumes(fc),
 		Out:         &containerId,
 		ExecOptions: curveadm.ExecOptions(),
 	})

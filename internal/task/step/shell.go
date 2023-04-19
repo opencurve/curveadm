@@ -36,9 +36,10 @@ import (
 )
 
 const (
-	ERR_NOT_MOUNTED          = "not mounted"
-	ERR_MOUNTPOINT_NOT_FOUND = "mountpoint not found"
-	ERROR_DEVICE_BUSY        = "Device or resource busy"
+	ERR_NOT_MOUNTED             = "not mounted"
+	ERR_MOUNTPOINT_NOT_FOUND    = "mountpoint not found"
+	ERROR_DEVICE_BUSY           = "Device or resource busy"
+	ERR_NO_MOUNTPOINT_SPECIFIED = "no mount point specified"
 )
 
 type (
@@ -107,10 +108,11 @@ type (
 	}
 
 	UmountFilesystem struct {
-		Directorys     []string
-		IgnoreUmounted bool
-		IgnoreNotFound bool
-		Out            *string
+		Directorys         []string
+		IgnoreUmounted     bool
+		IgnoreNotFound     bool
+		IgnoreNoMountpoint bool
+		Out                *string
 		module.ExecOptions
 	}
 
@@ -368,7 +370,8 @@ func (s *UmountFilesystem) Execute(ctx *context.Context) error {
 		err = PostHandle(nil, s.Out, out, err, errno.ERR_UNMOUNT_FILE_SYSTEMS_FAILED)
 
 		if (s.IgnoreUmounted && strings.Contains(out, ERR_NOT_MOUNTED)) ||
-			(s.IgnoreNotFound && strings.Contains(out, ERR_MOUNTPOINT_NOT_FOUND)) {
+			(s.IgnoreNotFound && strings.Contains(out, ERR_MOUNTPOINT_NOT_FOUND)) ||
+			(s.IgnoreNoMountpoint && strings.Contains(out, ERR_NO_MOUNTPOINT_SPECIFIED)) {
 			continue
 		} else if err != nil {
 			return err
