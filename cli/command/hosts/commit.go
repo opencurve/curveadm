@@ -112,3 +112,18 @@ func runCommit(curveadm *cli.CurveAdm, options commitOptions) error {
 	curveadm.WriteOutln(color.GreenString("Hosts updated"))
 	return nil
 }
+
+// for http service
+func Commit(curveadm *cli.CurveAdm, data string) error {
+	// check hosts data
+	_, err := hosts.ParseHosts(data)
+	if err != nil {
+		return err
+	}
+	// update hosts in database
+	err = curveadm.Storage().SetHosts(data)
+	if err != nil {
+		return errno.ERR_UPDATE_HOSTS_FAILED.E(err)
+	}
+	return nil
+}

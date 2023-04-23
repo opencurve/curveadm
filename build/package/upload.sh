@@ -5,10 +5,12 @@ g_nos_cmd=${NOSCMD}
 g_root=$(pwd)/.build
 g_curveadm=${g_root}/curveadm
 g_curveadm_bin=${g_curveadm}/bin
+g_curveadm_http_bin=${g_curveadm}/http
 rm -rf ${g_root}
 
-mkdir -p ${g_curveadm_bin}
+mkdir -p ${g_curveadm_bin} ${g_curveadm_http_bin}
 cp bin/curveadm ${g_curveadm_bin}
+cp bin/pigeon ${g_curveadm_http_bin}
 [[ -f .CHANGELOG ]] && cp .CHANGELOG ${g_curveadm}/CHANGELOG
 (cd ${g_curveadm} && ./bin/curveadm -v && ls -ls bin/curveadm && [[ -f CHANGELOG ]] && cat CHANGELOG)
 (cd ${g_root} && tar -zcf curveadm-${g_version}.tar.gz curveadm)

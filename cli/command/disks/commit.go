@@ -161,7 +161,7 @@ func writeDiskRecord(dr storage.Disk, curveadm *cli.CurveAdm) error {
 }
 
 func syncDiskRecords(data string, dcs []*disks.DiskConfig,
-	curveadm *cli.CurveAdm, options commitOptions) error {
+	curveadm *cli.CurveAdm, slient bool) error {
 	oldDiskRecords := curveadm.DiskRecords()
 	tui.SortDiskRecords(oldDiskRecords)
 
@@ -171,7 +171,7 @@ func syncDiskRecords(data string, dcs []*disks.DiskConfig,
 	newDiskRecordsString := tui.FormatDisks(newDiskRecords)
 
 	if len(newDiskRecords) != len(oldDiskRecords) {
-		if !options.slient {
+		if !slient {
 			diff := utils.Diff(oldDiskRecordsString, newDiskRecordsString)
 			curveadm.WriteOutln(diff)
 		}
@@ -214,14 +214,16 @@ func runCommit(curveadm *cli.CurveAdm, options commitOptions) error {
 	}
 
 	// 2) confirm by user
-	pass := tuicomm.ConfirmYes("Do you want to continue?")
-	if !pass {
-		curveadm.WriteOut(tuicomm.PromptCancelOpetation("commit disks"))
-		return errno.ERR_CANCEL_OPERATION
+	if !options.slient {
+		pass := tuicomm.ConfirmYes("Do you want to continue?")
+		if !pass {
+			curveadm.WriteOut(tuicomm.PromptCancelOpetation("commit disks"))
+			return errno.ERR_CANCEL_OPERATION
+		}
 	}
 
 	// 3) add disk records
-	err = syncDiskRecords(data, dcs, curveadm, options)
+	err = syncDiskRecords(data, dcs, curveadm, options.slient)
 	if err != nil {
 		return err
 	}
@@ -235,5 +237,26 @@ func runCommit(curveadm *cli.CurveAdm, options commitOptions) error {
 
 	// 5) print success prompt
 	curveadm.WriteOutln(color.GreenString("Disks updated"))
+	return nil
+}
+
+func Commit(curveadm *cli.CurveAdm, data string) error {
+	// parse disk
+	dcs, err := disks.ParseDisks(data)
+	if err != nil {
+		return err
+	}
+	// add disk records
+	err = syncDiskRecords(data, dcs, curveadm, true)
+	if err != nil {
+		return err
+	}
+
+	// add disks data
+	err = curveadm.Storage().SetDisks(data)
+	if err != nil {
+		return errno.ERR_UPDATE_DISKS_FAILED.
+			F("commit disks failed")
+	}
 	return nil
 }
