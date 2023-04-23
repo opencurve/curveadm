@@ -27,6 +27,7 @@ package cluster
 import (
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/errno"
+	"github.com/opencurve/curveadm/internal/storage"
 	"github.com/opencurve/curveadm/internal/tui"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
 	log "github.com/opencurve/curveadm/pkg/log/glg"
@@ -71,4 +72,14 @@ func runList(curveadm *cli.CurveAdm, options listOptions) error {
 	output := tui.FormatClusters(clusters, options.verbose)
 	curveadm.WriteOut(output)
 	return nil
+}
+
+// for http service
+func List(curveadm *cli.CurveAdm) ([]storage.Cluster, error) {
+	storage := curveadm.Storage()
+	clusters, err := storage.GetClusters("%")
+	if err != nil {
+		return nil, errno.ERR_GET_ALL_CLUSTERS_FAILED.E(err)
+	}
+	return clusters, nil
 }

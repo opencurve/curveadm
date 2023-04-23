@@ -236,6 +236,8 @@ var (
 
 	SET_CLUSTER_TOPOLOGY = `UPDATE clusters SET topology = ? WHERE id = ?`
 
+	SET_CLUSTER_TOPOLOGY_BY_NAME = `UPDATE clusters SET topology = ? WHERE name = ?`
+
 	SET_CLUSTER_POOL = `UPDATE clusters SET topology = ?, pool = ? WHERE id = ?`
 
 	// service

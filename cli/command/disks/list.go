@@ -25,6 +25,7 @@ package disks
 import (
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/common"
+	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/storage"
 	"github.com/opencurve/curveadm/internal/tui"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
@@ -70,4 +71,16 @@ func runList(curveadm *cli.CurveAdm, options listOptions) error {
 	output := tui.FormatDisks(diskRecords)
 	curveadm.WriteOut(output)
 	return nil
+}
+
+// for http service
+func List(curveadm *cli.CurveAdm) (string, error) {
+	disks, err := curveadm.Storage().GetDisks()
+	if err != nil {
+		return "", errno.ERR_GET_DISK_RECORDS_FAILED.E(err)
+	}
+	if len(disks) > 0 {
+		return disks[0].Data, nil
+	}
+	return "", nil
 }

@@ -114,6 +114,14 @@ func (e *ErrorCode) Error() string {
 	return tui.PromptErrorCode(e.code, e.description, e.clue, gLogpath)
 }
 
+func (e *ErrorCode) IsHttpErr() bool {
+	return e.code/10000 == 70
+}
+
+func (e *ErrorCode) HttpCode() int {
+	return e.code % 1000
+}
+
 /*
  * 0xx: init curveadm
  *
@@ -555,6 +563,13 @@ var (
 
 	// 690: execuetr task (others)
 	ERR_START_CRONTAB_IN_CONTAINER_FAILED = EC(690000, "start crontab in container failed")
+
+	// 70: http service
+	ERR_UNSUPPORT_REQUEST_URI     = EC(701400, "unsupport request uri")
+	ERR_UNSUPPORT_METHOD_ARGUMENT = EC(702400, "unsupport method argument")
+	ERR_HTTP_METHOD_MISMATCHED    = EC(703400, "http method mismatch")
+	ERR_BAD_REQUEST_FORM_PARAM    = EC(704400, "bad request form param")
+	ERR_UNSUPPORT_HTTP_METHOD     = EC(705405, "unsupport http method")
 
 	// 800: deploy
 	ERR_DISK_DEVICE_NOT_FORMATTED = EC(800000, "disk device is unformatted")

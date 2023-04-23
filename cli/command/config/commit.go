@@ -105,8 +105,7 @@ func checkDiff(curveadm *cli.CurveAdm, newData string) error {
 }
 
 func genCheckTopologyPlaybook(curveadm *cli.CurveAdm,
-	dcs []*topology.DeployConfig,
-	options commitOptions) (*playbook.Playbook, error) {
+	dcs []*topology.DeployConfig) (*playbook.Playbook, error) {
 	steps := CHECK_TOPOLOGY_PLAYBOOK_STEPS
 	pb := playbook.NewPlaybook(curveadm)
 	for _, step := range steps {
@@ -161,7 +160,7 @@ func checkTopology(curveadm *cli.CurveAdm, data string, options commitOptions) e
 		return err
 	}
 
-	pb, err := genCheckTopologyPlaybook(curveadm, dcs, options)
+	pb, err := genCheckTopologyPlaybook(curveadm, dcs)
 	if err != nil {
 		return err
 	}
@@ -215,5 +214,27 @@ func runCommit(curveadm *cli.CurveAdm, options commitOptions) error {
 
 	// 6) print success prompt
 	curveadm.WriteOutln("Cluster '%s' topology updated", curveadm.ClusterName())
+	return err
+}
+
+// for http service
+func Commit(curveadm *cli.CurveAdm, name, conf string) error {
+	// parse cluster topology
+	_, err := curveadm.ParseTopology()
+	if err != nil && !skipError(err) {
+		return err
+	}
+
+	// check topology
+	err = checkTopology(curveadm, conf, commitOptions{force: false})
+	if err != nil {
+		return err
+	}
+
+	// update cluster topology in database
+	err = curveadm.Storage().SetClusterTopologyByName(name, conf)
+	if err != nil {
+		return errno.ERR_UPDATE_CLUSTER_TOPOLOGY_FAILED.E(err)
+	}
 	return err
 }

@@ -72,7 +72,7 @@ func parseMonitorConfig(curveadm *cli.CurveAdm) ([]*configure.MonitorConfig, err
 	if curveadm.ClusterId() == -1 {
 		return nil, errno.ERR_NO_CLUSTER_SPECIFIED
 	}
-	hosts, hostIps, dcs, err := parseTopology(curveadm)
+	hosts, hostIps, dcs, err := ParseTopology(curveadm)
 	if err != nil {
 		return nil, err
 	}

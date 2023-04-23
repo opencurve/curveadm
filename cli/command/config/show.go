@@ -97,3 +97,12 @@ func runShow(curveadm *cli.CurveAdm, options showOptions) error {
 	curveadm.WriteOutln(data)
 	return nil
 }
+
+// for http service
+func Show(curveadm *cli.CurveAdm) (string, string, error) {
+	cluster, err := curveadm.Storage().GetCurrentCluster()
+	if err != nil {
+		return "", "", errno.ERR_GET_CURRENT_CLUSTER_FAILED.E(err)
+	}
+	return cluster.Name, cluster.Topology, nil
+}

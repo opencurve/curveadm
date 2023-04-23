@@ -108,7 +108,7 @@ func genDeployPlaybook(curveadm *cli.CurveAdm,
 	return pb, nil
 }
 
-func parseTopology(curveadm *cli.CurveAdm) ([]string, []string, []*topology.DeployConfig, error) {
+func ParseTopology(curveadm *cli.CurveAdm) ([]string, []string, []*topology.DeployConfig, error) {
 	dcs, err := curveadm.ParseTopology()
 	if err != nil || len(dcs) == 0 {
 		return nil, nil, nil, err
@@ -132,7 +132,7 @@ func parseTopology(curveadm *cli.CurveAdm) ([]string, []string, []*topology.Depl
 
 func runDeploy(curveadm *cli.CurveAdm, options deployOptions) error {
 	// 1) parse cluster topology and get services' hosts
-	hosts, hostIps, dcs, err := parseTopology(curveadm)
+	hosts, hostIps, dcs, err := ParseTopology(curveadm)
 	if err != nil {
 		return err
 	}
