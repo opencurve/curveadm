@@ -34,6 +34,7 @@ import (
 	"github.com/opencurve/curveadm/cli/command/disks"
 	"github.com/opencurve/curveadm/cli/command/hosts"
 	"github.com/opencurve/curveadm/cli/command/monitor"
+	"github.com/opencurve/curveadm/cli/command/http"
 	"github.com/opencurve/curveadm/cli/command/pfs"
 	"github.com/opencurve/curveadm/cli/command/playground"
 	"github.com/opencurve/curveadm/cli/command/target"
@@ -68,6 +69,7 @@ func addSubCommands(cmd *cobra.Command, curveadm *cli.CurveAdm) {
 		target.NewTargetCommand(curveadm),         // curveadm target ...
 		pfs.NewPFSCommand(curveadm),               // curveadm pfs ...
 		monitor.NewMonitorCommand(curveadm),       // curveadm monitor ...
+		http.NewHttpCommand(curveadm),             // curveadm http
 
 		NewAuditCommand(curveadm),      // curveadm audit
 		NewCleanCommand(curveadm),      // curveadm clean

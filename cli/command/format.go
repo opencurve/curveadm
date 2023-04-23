@@ -117,7 +117,7 @@ func genFormatPlaybook(curveadm *cli.CurveAdm,
 	return pb, nil
 }
 
-func displayFormatStatus(curveadm *cli.CurveAdm, fcs []*configure.FormatConfig, options formatOptions) {
+func displayFormatStatus(curveadm *cli.CurveAdm) string {
 	statuses := []bs.FormatStatus{}
 	v := curveadm.MemStorage().Get(comm.KEY_ALL_FORMAT_STATUS)
 	if v != nil {
@@ -126,11 +126,7 @@ func displayFormatStatus(curveadm *cli.CurveAdm, fcs []*configure.FormatConfig, 
 			statuses = append(statuses, status)
 		}
 	}
-
-	output := tui.FormatStatus(statuses)
-	curveadm.WriteOutln("")
-	curveadm.WriteOut("%s", output)
-	return
+	return tui.FormatStatus(statuses)
 }
 
 func runFormat(curveadm *cli.CurveAdm, options formatOptions) error {
@@ -187,9 +183,58 @@ func runFormat(curveadm *cli.CurveAdm, options formatOptions) error {
 
 	// 4) print status or prompt
 	if options.showStatus {
-		displayFormatStatus(curveadm, fcs, options)
+		output := displayFormatStatus(curveadm)
+		curveadm.WriteOutln("")
+		curveadm.WriteOut("%s", output)
 	} else {
 		tuicomm.PromptFormat()
 	}
 	return nil
+}
+
+// for http service
+func Format(curveadm *cli.CurveAdm, status bool) (string, error) {
+	var output string
+	var err error
+	var fcs []*configure.FormatConfig
+	diskRecords, err := curveadm.Storage().GetDisk(comm.DISK_FILTER_ALL)
+	if err != nil {
+		return output, errno.ERR_GET_DISK_RECORDS_FAILED.E(err)
+	}
+
+	if len(diskRecords) != 0 {
+		for _, dr := range diskRecords {
+			containerImage := configure.DEFAULT_CONTAINER_IMAGE
+			if len(dr.ContainerImage) > 0 {
+				containerImage = dr.ContainerImage
+			}
+			disk := fmt.Sprintf("%s:%s:%d", dr.Device, dr.MountPoint, dr.FormatPercent)
+			fc, err := configure.NewFormatConfig(containerImage, dr.Host, disk)
+			if err != nil {
+				return output, err
+			}
+			fc.FromDiskRecord = true
+			if dr.ServiceMountDevice != 0 {
+				fc.ServiceMountDevice = true
+			}
+
+			if dr.ChunkServerID != comm.DISK_DEFAULT_NULL_CHUNKSERVER_ID {
+				// skip formatting the disk with nonempty chunkserver id
+				continue
+			}
+			fcs = append(fcs, fc)
+		}
+	}
+	// gen playbook
+	pb, err := genFormatPlaybook(curveadm, fcs, formatOptions{showStatus: status})
+	if err != nil {
+		return output, err
+	}
+	// run playbook
+	err = pb.Run()
+	if err != nil {
+		return output, err
+	}
+	output = displayFormatStatus(curveadm)
+	return output, nil
 }

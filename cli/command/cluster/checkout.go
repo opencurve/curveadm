@@ -77,3 +77,22 @@ func runCheckout(curveadm *cli.CurveAdm, options checkoutOptions) error {
 	curveadm.WriteOutln("Switched to cluster '%s'", clusterName)
 	return nil
 }
+
+// for http service
+func Checkout(curveadm *cli.CurveAdm, clusterName string) error {
+	storage := curveadm.Storage()
+	clusters, err := storage.GetClusters(clusterName)
+	if err != nil {
+		return errno.ERR_GET_ALL_CLUSTERS_FAILED.E(err)
+	} else if len(clusters) == 0 {
+		return errno.ERR_CLUSTER_NOT_FOUND.
+			F("cluster name: %s", clusterName)
+	}
+
+	// 2) switch current cluster in database
+	err = storage.CheckoutCluster(clusterName)
+	if err != nil {
+		return errno.ERR_CHECKOUT_CLUSTER_FAILED.E(err)
+	}
+	return nil
+}
