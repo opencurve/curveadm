@@ -486,6 +486,10 @@ func (s *Storage) SetClusterTopology(id int, topology string) error {
 	return s.execSQL(SET_CLUSTER_TOPOLOGY, topology, id)
 }
 
+func (s *Storage) SetClusterTopologyByName(name string, topology string) error {
+	return s.execSQL(SET_CLUSTER_TOPOLOGY_BY_NAME, topology, name)
+}
+
 func (s *Storage) SetClusterPool(id int, topology, pool string) error {
 	return s.execSQL(SET_CLUSTER_POOL, topology, pool, id)
 }

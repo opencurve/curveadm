@@ -37,9 +37,9 @@ import (
 
 const (
 	ADD_EXAMPLE = `Examples:
-  $ curveadm add my-cluster                            # Add a cluster named 'my-cluster'
-  $ curveadm add my-cluster -m "deploy for test"       # Add a cluster with description
-  $ curveadm add my-cluster -f /path/to/topology.yaml  # Add a cluster with specified topology`
+  $ curveadm cluster add my-cluster                            # Add a cluster named 'my-cluster'
+  $ curveadm cluster add my-cluster -m "deploy for test"       # Add a cluster with description
+  $ curveadm cluster add my-cluster -f /path/to/topology.yaml  # Add a cluster with specified topology`
 )
 
 var (
@@ -92,8 +92,7 @@ func readTopology(filename string) (string, error) {
 }
 
 func genCheckTopologyPlaybook(curveadm *cli.CurveAdm,
-	dcs []*topology.DeployConfig,
-	options addOptions) (*playbook.Playbook, error) {
+	dcs []*topology.DeployConfig) (*playbook.Playbook, error) {
 	steps := CHECK_TOPOLOGY_PLAYBOOK_STEPS
 	pb := playbook.NewPlaybook(curveadm)
 	for _, step := range steps {
@@ -116,8 +115,8 @@ func genCheckTopologyPlaybook(curveadm *cli.CurveAdm,
 	return pb, nil
 }
 
-func checkTopology(curveadm *cli.CurveAdm, data string, options addOptions) error {
-	if len(options.filename) == 0 {
+func checkTopology(curveadm *cli.CurveAdm, data string, filename string) error {
+	if len(filename) == 0 {
 		return nil
 	}
 
@@ -126,7 +125,7 @@ func checkTopology(curveadm *cli.CurveAdm, data string, options addOptions) erro
 		return err
 	}
 
-	pb, err := genCheckTopologyPlaybook(curveadm, dcs, options)
+	pb, err := genCheckTopologyPlaybook(curveadm, dcs)
 	if err != nil {
 		return err
 	}
@@ -155,7 +154,7 @@ func runAdd(curveadm *cli.CurveAdm, options addOptions) error {
 	}
 
 	// 3) check topology
-	err = checkTopology(curveadm, data, options)
+	err = checkTopology(curveadm, data, options.filename)
 	if err != nil {
 		return err
 	}
@@ -168,5 +167,30 @@ func runAdd(curveadm *cli.CurveAdm, options addOptions) error {
 
 	// 5) print success prompt
 	curveadm.WriteOutln("Added cluster '%s'", name)
+	return nil
+}
+
+// for http service
+func Add(curveadm *cli.CurveAdm, name, desc, topo string) error {
+	storage := curveadm.Storage()
+	clusters, err := storage.GetClusters(name)
+	if err != nil {
+		return errno.ERR_GET_ALL_CLUSTERS_FAILED.E(err)
+	} else if len(clusters) > 0 {
+		return errno.ERR_CLUSTER_ALREADY_EXIST.
+			F("cluster name: %s", name)
+	}
+
+	// check topology
+	err = checkTopology(curveadm, topo, topo)
+	if err != nil {
+		return err
+	}
+
+	// 4) insert cluster (with topology) into database
+	err = storage.InsertCluster(name, desc, topo)
+	if err != nil {
+		return errno.ERR_INSERT_CLUSTER_FAILED.E(err)
+	}
 	return nil
 }

@@ -6,6 +6,7 @@ g_color_red=`printf '\033[31m'`
 g_color_normal=`printf '\033[0m'`
 g_curveadm_home="$HOME/.curveadm"
 g_bin_dir="$g_curveadm_home/bin"
+g_http_bin_dir="$g_curveadm_home/http"
 g_profile="${HOME}/.profile"
 g_root_url="https://curveadm.nos-eastchina1.126.net/release"
 g_latest_url="${g_root_url}/__version"
@@ -49,7 +50,7 @@ backup() {
 }
 
 setup() {
-    mkdir -p $g_curveadm_home/{bin,data,plugins,logs,temp}
+    mkdir -p $g_curveadm_home/{bin,data,plugins,logs,http/logs,http/conf,temp}
 
     # generate config file
     local confpath="$g_curveadm_home/curveadm.cfg"
@@ -66,6 +67,16 @@ retries = 3
 timeout = 10
 __EOF__
     fi
+
+    # generate http service config file
+    local httpConfpath="$g_curveadm_home/http/conf/pigeon.yaml"
+    if [ ! -f $httpConfpath ]; then
+        cat << __EOF__ > $httpConfpath
+servers:
+  - name: curveadm
+    listen: :11000
+__EOF__
+    fi
 }
 
 install_binray() {
@@ -79,7 +90,7 @@ install_binray() {
 
     rm  $tempfile
     if [ $ret -eq 0 ]; then
-        chmod 755 "$g_bin_dir/curveadm"
+        chmod 755 "$g_bin_dir/curveadm" "$g_http_bin_dir/pigeon"
     else
         die "Download curveadm failed\n"
     fi

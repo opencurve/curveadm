@@ -25,6 +25,7 @@ package hosts
 import (
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/configure/hosts"
+	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/tui"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/cobra"
@@ -165,4 +166,16 @@ func runList(curveadm *cli.CurveAdm, options listOptions) error {
 	output := tui.FormatHosts(hcs, options.verbose)
 	curveadm.WriteOut(output)
 	return nil
+}
+
+// for http service
+func List(curveadm *cli.CurveAdm) (string, error) {
+	hostsData, err := curveadm.Storage().GetHostses()
+	if err != nil {
+		return "", errno.ERR_GET_HOSTS_FAILED.E(err)
+	}
+	if len(hostsData) == 1 {
+		return hostsData[0].Data, nil
+	}
+	return "", nil
 }
