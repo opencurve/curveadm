@@ -81,6 +81,7 @@ func getClusterPool(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (configur
 	if dc.GetKind() == topology.KIND_CURVEBS {
 		for i, pool := range pool.LogicalPools {
 			oldPool.LogicalPools[i].Copysets = pool.Copysets
+			oldPool.LogicalPools[i].UseUcp = pool.UseUcp
 		}
 	}
 

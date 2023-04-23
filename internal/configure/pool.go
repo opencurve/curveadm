@@ -52,7 +52,7 @@ type (
 		Replicas     int    `json:"replicasnum"`
 		Zones        int    `json:"zonenum"`
 		Copysets     int    `json:"copysetnum"`
-		UseUcp       bool   `json:"use_ucp,omitempty"`      // ucp only
+		UseUcp       string `json:"use_ucp,omitempty"`      // ucp only
 		Type         int    `json:"type"`                   // curvebs
 		ScatterWidth int    `json:"scatterwidth"`           // curvebs
 		PhysicalPool string `json:"physicalpool,omitempty"` // curvebs
@@ -234,7 +234,7 @@ func createLogicalPool(dcs []*topology.DeployConfig, logicalPool string) (Logica
 		lpool.Type = DEFAULT_TYPE
 		lpool.PhysicalPool = physicalPool
 		if dcs[0].GetUseUCP() {
-			lpool.UseUcp = true
+			lpool.UseUcp = "true"
 		}
 	}
 

@@ -23,10 +23,10 @@
 package client
 
 import (
-	"github.com/dustin/go-humanize"
 	"strconv"
 	"strings"
 
+	"github.com/dustin/go-humanize"
 	"github.com/fatih/color"
 	"github.com/opencurve/curveadm/cli/cli"
 	comm "github.com/opencurve/curveadm/internal/common"
@@ -64,6 +64,7 @@ type mapOptions struct {
 	create      bool
 	filename    string
 	noExclusive bool
+	sdk         bool
 }
 
 func ParseImage(image string) (user, name string, err error) {
@@ -156,6 +157,7 @@ func NewMapCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	flags := cmd.Flags()
 	flags.StringVar(&options.host, "host", "localhost", "Specify target host")
 	flags.BoolVar(&options.create, "create", false, "Create volume iff not exist")
+	flags.BoolVar(&options.sdk, "sdk", false, "Use curve sdk")
 	flags.BoolVar(&options.noExclusive, "no-exclusive", false, "Map volume non exclusive")
 	flags.StringVar(&options.size, "size", "10GiB", "Specify volume size")
 	flags.StringVarP(&options.filename, "conf", "c", "client.yaml", "Specify client configuration file")
@@ -181,6 +183,7 @@ func genMapPlaybook(curveadm *cli.CurveAdm,
 					Size:        size,
 					Create:      options.create,
 					NoExclusive: options.noExclusive,
+					SDK:         options.sdk,
 				},
 				comm.KEY_CLIENT_HOST:              options.host, // for checker
 				comm.KEY_CHECK_KERNEL_MODULE_NAME: comm.KERNERL_MODULE_NBD,

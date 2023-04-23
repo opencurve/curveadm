@@ -44,6 +44,7 @@ type (
 		Create      bool
 		Size        int
 		NoExclusive bool
+		SDK         bool
 	}
 )
 
@@ -105,6 +106,15 @@ func NewMapTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.Task,
 		ContainerSrcPath:  "/curvebs/conf/nebd-client.conf",
 		ContainerDestId:   &containerId,
 		ContainerDestPath: "/etc/nebd/nebd-client.conf",
+		KVFieldSplit:      CLIENT_CONFIG_DELIMITER,
+		Mutate:            newMutate(cc, CLIENT_CONFIG_DELIMITER),
+		ExecOptions:       curveadm.ExecOptions(),
+	})
+	t.AddStep(&step.SyncFile{
+		ContainerSrcId:    &containerId,
+		ContainerSrcPath:  "/curvebs/conf/client.conf",
+		ContainerDestId:   &containerId,
+		ContainerDestPath: "/etc/curve/client.conf",
 		KVFieldSplit:      CLIENT_CONFIG_DELIMITER,
 		Mutate:            newMutate(cc, CLIENT_CONFIG_DELIMITER),
 		ExecOptions:       curveadm.ExecOptions(),
