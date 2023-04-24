@@ -93,6 +93,7 @@ func NewStartTargetDaemonTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig
 		Image:       cc.GetContainerImage(),
 		AddHost:     []string{host2addr},
 		Envs:        []string{"LD_PRELOAD=/usr/local/lib/libjemalloc.so"},
+		Entrypoint:  "/entrypoint.sh",
 		Hostname:    hostname,
 		Command:     fmt.Sprintf("--role nebd"),
 		Name:        containerName,
@@ -118,6 +119,15 @@ func NewStartTargetDaemonTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig
 		ContainerSrcPath:  "/curvebs/conf/nebd-client.conf",
 		ContainerDestId:   &containerId,
 		ContainerDestPath: "/etc/nebd/nebd-client.conf",
+		KVFieldSplit:      CLIENT_CONFIG_DELIMITER,
+		Mutate:            newMutate(cc, CLIENT_CONFIG_DELIMITER),
+		ExecOptions:       curveadm.ExecOptions(),
+	})
+	t.AddStep(&step.SyncFile{
+		ContainerSrcId:    &containerId,
+		ContainerSrcPath:  "/curvebs/conf/client.conf",
+		ContainerDestId:   &containerId,
+		ContainerDestPath: "/etc/curve/client.conf",
 		KVFieldSplit:      CLIENT_CONFIG_DELIMITER,
 		Mutate:            newMutate(cc, CLIENT_CONFIG_DELIMITER),
 		ExecOptions:       curveadm.ExecOptions(),
