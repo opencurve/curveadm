@@ -55,12 +55,11 @@ type (
 		memStorage  *utils.SafeMap
 	}
 
-	step2GetListenPorts struct {
-		dc          *topology.DeployConfig
-		containerId string
-		status      *string
-		ports       *string
-		execOptions module.ExecOptions
+	Step2GetListenPorts struct {
+		ContainerId string
+		Status      *string
+		Ports       *string
+		ExecOptions module.ExecOptions
 	}
 
 	step2GetLeader struct {
@@ -128,7 +127,7 @@ func (s *step2InitStatus) Execute(ctx *context.Context) error {
 	return nil
 }
 
-func (s *step2GetListenPorts) extractPort(line string) string {
+func (s *Step2GetListenPorts) extractPort(line string) string {
 	// e.g: tcp LISTEN 0 128 10.246.159.123:2379 *:* users:(("etcd",pid=7,fd=5))
 	regex, err := regexp.Compile("^.*:([0-9]+).*users.*$")
 	if err == nil {
@@ -140,8 +139,8 @@ func (s *step2GetListenPorts) extractPort(line string) string {
 	return ""
 }
 
-func (s *step2GetListenPorts) Execute(ctx *context.Context) error {
-	if !strings.HasPrefix(*s.status, "Up") {
+func (s *Step2GetListenPorts) Execute(ctx *context.Context) error {
+	if !strings.HasPrefix(*s.Status, "Up") {
 		return nil
 	}
 
@@ -155,8 +154,8 @@ func (s *step2GetListenPorts) Execute(ctx *context.Context) error {
 		return nil
 	}
 
-	cmd := ctx.Module().DockerCli().ContainerExec(s.containerId, command)
-	out, err := cmd.Execute(s.execOptions)
+	cmd := ctx.Module().DockerCli().ContainerExec(s.ContainerId, command)
+	out, err := cmd.Execute(s.ExecOptions)
 	if err != nil {
 		return nil
 	}
@@ -170,7 +169,7 @@ func (s *step2GetListenPorts) Execute(ctx *context.Context) error {
 			ports = append(ports, port)
 		}
 	}
-	*s.ports = strings.Join(ports, ",")
+	*s.Ports = strings.Join(ports, ",")
 	return nil
 }
 
@@ -242,7 +241,7 @@ func NewInitServiceStatusTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig)
 	return t, nil
 }
 
-func trimContainerStatus(status *string) step.LambdaType {
+func TrimContainerStatus(status *string) step.LambdaType {
 	return func(ctx *context.Context) error {
 		items := strings.Split(*status, "\n")
 		*status = items[len(items)-1]
@@ -280,14 +279,13 @@ func NewGetServiceStatusTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) 
 		ExecOptions: curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.Lambda{
-		Lambda: trimContainerStatus(&status),
+		Lambda: TrimContainerStatus(&status),
 	})
-	t.AddStep(&step2GetListenPorts{
-		dc:          dc,
-		containerId: containerId,
-		status:      &status,
-		ports:       &ports,
-		execOptions: curveadm.ExecOptions(),
+	t.AddStep(&Step2GetListenPorts{
+		ContainerId: containerId,
+		Status:      &status,
+		Ports:       &ports,
+		ExecOptions: curveadm.ExecOptions(),
 	})
 	t.AddStep(&step2GetLeader{
 		dc:          dc,

@@ -48,7 +48,7 @@ func checkContainerStatus(host, role, containerId string, status *string) step.L
 	}
 }
 
-func waitContainerStart(seconds int) step.LambdaType {
+func WaitContainerStart(seconds int) step.LambdaType {
 	return func(ctx *context.Context) error {
 		time.Sleep(time.Duration(seconds))
 		return nil
@@ -85,14 +85,14 @@ func NewRestartServiceTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*
 		ExecOptions: curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.Lambda{
-		Lambda: checkContainerExist(host, role, containerId, &out),
+		Lambda: CheckContainerExist(host, role, containerId, &out),
 	})
 	t.AddStep(&step.RestartContainer{
 		ContainerId: containerId,
 		ExecOptions: curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.Lambda{
-		Lambda: waitContainerStart(3),
+		Lambda: WaitContainerStart(3),
 	})
 	t.AddStep(&step.ContainerExec{
 		ContainerId: &containerId,
@@ -101,12 +101,12 @@ func NewRestartServiceTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*
 		Out:         &out,
 		ExecOptions: curveadm.ExecOptions(),
 	})
-	t.AddStep(&step2CheckPostStart{
-		host:        dc.GetHost(),
-		containerId: containerId,
-		success:     &success,
-		out:         &out,
-		execOptions: curveadm.ExecOptions(),
+	t.AddStep(&Step2CheckPostStart{
+		Host:        dc.GetHost(),
+		ContainerId: containerId,
+		Success:     &success,
+		Out:         &out,
+		ExecOptions: curveadm.ExecOptions(),
 	})
 
 	return t, nil

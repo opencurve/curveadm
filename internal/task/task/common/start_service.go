@@ -41,34 +41,34 @@ const (
 	CMD_ADD_CONTABLE = "bash -c '[[ ! -z $(which crontab) ]] && crontab %s'"
 )
 
-type step2CheckPostStart struct {
-	host        string
-	role        string
-	containerId string
-	success     *bool
-	out         *string
-	execOptions module.ExecOptions
+type Step2CheckPostStart struct {
+	Host        string
+	Role        string
+	ContainerId string
+	Success     *bool
+	Out         *string
+	ExecOptions module.ExecOptions
 }
 
-func (s *step2CheckPostStart) Execute(ctx *context.Context) error {
-	if *s.success {
+func (s *Step2CheckPostStart) Execute(ctx *context.Context) error {
+	if *s.Success {
 		return nil
 	}
 
 	var status string
 	step := &step.InspectContainer{
-		ContainerId: s.containerId,
+		ContainerId: s.ContainerId,
 		Format:      "'{{.State.Status}}'",
 		Out:         &status,
-		ExecOptions: s.execOptions,
+		ExecOptions: s.ExecOptions,
 	}
 	err := step.Execute(ctx)
 	if err != nil {
-		return errno.ERR_START_CRONTAB_IN_CONTAINER_FAILED.S(*s.out)
+		return errno.ERR_START_CRONTAB_IN_CONTAINER_FAILED.S(*s.Out)
 	} else if status != "running" {
 		return errno.ERR_CONTAINER_IS_ABNORMAL.
 			F("host=%s role=%s containerId=%s",
-				s.host, s.role, tui.TrimContainerId(s.containerId))
+				s.Host, s.Role, tui.TrimContainerId(s.ContainerId))
 	}
 	return nil
 }
@@ -103,14 +103,14 @@ func NewStartServiceTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*ta
 		ExecOptions: curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.Lambda{
-		Lambda: checkContainerExist(host, role, containerId, &out),
+		Lambda: CheckContainerExist(host, role, containerId, &out),
 	})
 	t.AddStep(&step.StartContainer{
 		ContainerId: &containerId,
 		ExecOptions: curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.Lambda{
-		Lambda: waitContainerStart(3),
+		Lambda: WaitContainerStart(3),
 	})
 	t.AddStep(&step.ContainerExec{
 		ContainerId: &containerId,
@@ -119,13 +119,13 @@ func NewStartServiceTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*ta
 		Out:         &out,
 		ExecOptions: curveadm.ExecOptions(),
 	})
-	t.AddStep(&step2CheckPostStart{
-		host:        dc.GetHost(),
-		role:        dc.GetRole(),
-		containerId: containerId,
-		success:     &success,
-		out:         &out,
-		execOptions: curveadm.ExecOptions(),
+	t.AddStep(&Step2CheckPostStart{
+		Host:        dc.GetHost(),
+		Role:        dc.GetRole(),
+		ContainerId: containerId,
+		Success:     &success,
+		Out:         &out,
+		ExecOptions: curveadm.ExecOptions(),
 	})
 
 	return t, nil

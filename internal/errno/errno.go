@@ -237,6 +237,10 @@ var (
 	ERR_INSERT_CLIENT_CONFIG_FAILED = EC(116000, "execute SQL failed which insert client config")
 	ERR_SELECT_CLIENT_CONFIG_FAILED = EC(116001, "execute SQL failed which select client config")
 	ERR_DELETE_CLIENT_CONFIG_FAILED = EC(116002, "execute SQL failed which delete client config")
+	// 117: database/SQL (execute SQL statement: monitor table)
+	ERR_GET_MONITOR_FAILED     = EC(117000, "execute SQL failed while get monitor")
+	ERR_REPLACE_MONITOR_FAILED = EC(117001, "execute SQL failed while replace monitor")
+	ERR_UPDATE_MONITOR_FAILED  = EC(117002, "execute SQL failed while update monitor")
 
 	// 200: command options (hosts)
 
@@ -308,6 +312,13 @@ var (
 	ERR_PRIVATE_KEY_FILE_REQUIRE_600_PERMISSIONS = EC(321006, "SSH private key file require 600 permissions")
 	ERR_DUPLICATE_HOST                           = EC(321007, "host is duplicate")
 	ERR_HOSTNAME_REQUIRES_VALID_IP_ADDRESS       = EC(321008, "hostname requires valid IP address")
+
+	// 322: configure (monitor.yaml: parse failed)
+	ERR_PARSE_MONITOR_CONFIGURE_FAILED   = EC(322000, "parse monitor configure failed")
+	ERR_READ_MONITOR_FILE_FAILED         = EC(322001, "read monitor file failed")
+	ERR_PARSE_PROMETHEUS_TARGET_FAILED   = EC(322002, "parse prometheus targets failed")
+	ERR_PARSE_CURVE_MANAGER_CONF_FAILED  = EC(322003, "parse curve-manager configure failed")
+	ERR_UPDATE_CURVE_MANAGER_CONF_FAILED = EC(322004, "update curve-manager configure failed")
 
 	// 330: configure (topology.yaml: parse failed)
 	ERR_TOPOLOGY_FILE_NOT_FOUND         = EC(330000, "topology file not found")

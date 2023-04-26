@@ -346,3 +346,23 @@ var (
 	// statement: drom old clusters table
 	DropOldClustersTable = `DROP TABLE clusters_old`
 )
+
+var (
+	// monitor
+	CreateMonitorTable = `
+		CREATE TABLE IF NOT EXISTS monitors (
+			cluster_id INTEGER PRIMARY KEY,
+			monitor TEXT NOT NULL
+		)
+	`
+	// monitor
+	InsertMonitor = `INSERT INTO monitors(cluster_id, monitor) VALUES(?, ?)`
+
+	UpdateMonitor = `UPDATE monitors SET monitor = ? WHERE cluster_id = ?`
+
+	SelectMonitor = `SELECT monitor FROM monitors WHERE cluster_id = ?`
+
+	DeleteMonitor = `DELETE FROM monitors WHERE cluster_id = ?`
+
+	ReplaceMonitor = `REPLACE INTO monitors (cluster_id, monitor) VALUES(?, ?)`
+)

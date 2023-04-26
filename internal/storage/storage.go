@@ -41,6 +41,11 @@ const (
 	REGEX_DB_URL = "^(sqlite|rqlite)://(.+)$"
 )
 
+type Monitor struct {
+	ClusterId int
+	Monitor   string
+}
+
 type Storage struct {
 	db driver.IDataBaseDriver
 }
@@ -75,6 +80,7 @@ func (s *Storage) init() error {
 		CreateClientsTable,
 		CreatePlaygroundTable,
 		CreateAuditTable,
+		CreateMonitorTable,
 		CreateAnyTable,
 	}
 
@@ -443,4 +449,39 @@ func (s *Storage) GetClientConfig(id string) ([]Any, error) {
 func (s *Storage) DeleteClientConfig(id string) error {
 	id = s.realId(PREFIX_CLIENT_CONFIG, id)
 	return s.write(DeleteAnyItem, id)
+}
+
+func (s *Storage) GetMonitor(clusterId int) (Monitor, error) {
+	monitor := Monitor{
+		ClusterId: clusterId,
+	}
+	rows, err := s.db.Query(SelectMonitor, clusterId)
+	if err != nil {
+		return monitor, err
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+		err = rows.Scan(&monitor.Monitor)
+		if err != nil {
+			return monitor, err
+		}
+	}
+	return monitor, nil
+}
+
+func (s *Storage) InsertMonitor(m Monitor) error {
+	return s.write(InsertMonitor, m.ClusterId, m.Monitor)
+}
+
+func (s *Storage) UpdateMonitor(m Monitor) error {
+	return s.write(UpdateMonitor, m.Monitor, m.ClusterId)
+}
+
+func (s *Storage) DeleteMonitor(clusterId int) error {
+	return s.write(DeleteMonitor, clusterId)
+}
+
+func (s *Storage) ReplaceMonitor(m Monitor) error {
+	return s.write(ReplaceMonitor, m.ClusterId, m.Monitor)
 }

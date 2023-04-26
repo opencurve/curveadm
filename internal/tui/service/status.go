@@ -32,8 +32,10 @@ import (
 	"github.com/fatih/color"
 	longest "github.com/jpillora/longestcommon"
 	comm "github.com/opencurve/curveadm/internal/common"
+	"github.com/opencurve/curveadm/internal/configure"
 	"github.com/opencurve/curveadm/internal/configure/topology"
 	task "github.com/opencurve/curveadm/internal/task/task/common"
+	"github.com/opencurve/curveadm/internal/task/task/monitor"
 	tui "github.com/opencurve/curveadm/internal/tui/common"
 	"github.com/opencurve/curveadm/internal/utils"
 )
@@ -68,6 +70,11 @@ var (
 		ROLE_CHUNKSERVER:   2,
 		ROLE_METASERVER:    2,
 		ROLE_SNAPSHOTCLONE: 3,
+	}
+	MONITOT_ROLE_SCORE = map[string]int{
+		configure.ROLE_NODE_EXPORTER: 0,
+		configure.ROLE_PROMETHEUS:    1,
+		configure.ROLE_GRAFANA:       2,
 	}
 )
 
@@ -242,6 +249,58 @@ func FormatStatus(statuses []task.ServiceStatus, verbose, expand bool) string {
 		tui.CutColumn(lines, locate["Ports"])    // Data Dir
 		tui.CutColumn(lines, locate["Data Dir"]) // Data Dir
 		tui.CutColumn(lines, locate["Log Dir"])  // Log Dir
+	}
+
+	output := tui.FixedFormat(lines, 2)
+	return output
+}
+
+func sortMonitorStatues(statuses []monitor.MonitorStatus) {
+	sort.Slice(statuses, func(i, j int) bool {
+		s1, s2 := statuses[i], statuses[j]
+		if s1.Role == s2.Role {
+			return s1.Host < s1.Host
+		}
+		return MONITOT_ROLE_SCORE[s1.Role] < ROLE_SCORE[s2.Role]
+	})
+}
+
+func FormatMonitorStatus(statuses []monitor.MonitorStatus, verbose bool) string {
+	lines := [][]interface{}{}
+
+	// title
+	title := []string{
+		"Id",
+		"Role",
+		"Host",
+		"Container Id",
+		"Status",
+		"Ports",
+		"Data Dir",
+	}
+	first, second := tui.FormatTitle(title)
+	lines = append(lines, first)
+	lines = append(lines, second)
+
+	// status
+	sortMonitorStatues(statuses)
+	for _, status := range statuses {
+		lines = append(lines, []interface{}{
+			status.Id,
+			status.Role,
+			status.Host,
+			status.ContainerId,
+			tui.DecorateMessage{Message: status.Status, Decorate: statusDecorate},
+			utils.Choose(len(status.Ports) == 0, "-", status.Ports),
+			status.DataDir,
+		})
+	}
+
+	// cut column
+	locate := utils.Locate(title)
+	if !verbose {
+		tui.CutColumn(lines, locate["Ports"])    // Data Dir
+		tui.CutColumn(lines, locate["Data Dir"]) // Data Dir
 	}
 
 	output := tui.FixedFormat(lines, 2)
