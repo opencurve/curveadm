@@ -228,6 +228,10 @@ var (
 	// 117: database/SQL (execute SQL statement: disks table)
 	ERR_GET_DISKS_FAILED    = EC(117000, "execute SQL failed while get disks")
 	ERR_UPDATE_DISKS_FAILED = EC(117001, "execute SQL failed while updating disks")
+	// 118: database/SQL (execute SQL statement: monitor table)
+	ERR_GET_MONITOR_FAILED     = EC(118000, "execute SQL failed while get monitor")
+	ERR_REPLACE_MONITOR_FAILED = EC(118001, "execute SQL failed while replace monitor")
+	ERR_UPDATE_MONITOR_FAILED  = EC(118002, "execute SQL failed while update monitor")
 
 	// 200: command options (hosts)
 
@@ -315,6 +319,13 @@ var (
 	ERR_DISK_FORMAT_PERCENT_EXCEED_100 = EC(323008, "disk format percent is greater than 100")
 	ERR_DELETE_SERVICE_BINDING_DISK    = EC(323009, "cannot remove service binding disk")
 	ERR_INVALID_DISK_URI               = EC(323010, "invalid disk uri")
+
+	// 324: configure (monitor.yaml: parse failed)
+	ERR_PARSE_MONITOR_CONFIGURE_FAILED   = EC(324000, "parse monitor configure failed")
+	ERR_READ_MONITOR_FILE_FAILED         = EC(324001, "read monitor file failed")
+	ERR_PARSE_PROMETHEUS_TARGET_FAILED   = EC(324002, "parse prometheus targets failed")
+	ERR_PARSE_CURVE_MANAGER_CONF_FAILED  = EC(324003, "parse curve-manager configure failed")
+	ERR_UPDATE_CURVE_MANAGER_CONF_FAILED = EC(324004, "update curve-manager configure failed")
 
 	// 330: configure (topology.yaml: parse failed)
 	ERR_TOPOLOGY_FILE_NOT_FOUND         = EC(330000, "topology file not found")

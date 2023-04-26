@@ -28,6 +28,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"path"
 	"regexp"
 	"strings"
 
@@ -89,9 +90,25 @@ type (
 		module.ExecOptions
 	}
 
+	SyncFileDirectly struct {
+		ContainerSrcId    *string
+		ContainerSrcPath  string
+		ContainerDestId   *string
+		ContainerDestPath string
+		IsDir             bool
+		module.ExecOptions
+	}
+
 	DownloadFile struct {
 		RemotePath string
 		LocalPath  string
+		module.ExecOptions
+	}
+
+	CreateAndUploadDir struct {
+		HostDirName       string
+		ContainerDestId   *string
+		ContainerDestPath string
 		module.ExecOptions
 	}
 )
@@ -251,6 +268,35 @@ func (s *SyncFile) Execute(ctx *context.Context) error {
 	return nil
 }
 
+func (s *SyncFileDirectly) Execute(ctx *context.Context) error {
+	hostPath := utils.RandFilename(TEMP_DIR)
+	defer os.RemoveAll(hostPath)
+	steps := []task.Step{}
+	steps = append(steps, &CopyFromContainer{
+		ContainerId:      *s.ContainerSrcId,
+		ContainerSrcPath: s.ContainerSrcPath,
+		HostDestPath:     hostPath,
+		ExecOptions:      s.ExecOptions,
+	})
+	if s.IsDir {
+		hostPath = fmt.Sprintf("%s/.", hostPath)
+	}
+	steps = append(steps, &CopyIntoContainer{
+		HostSrcPath:       hostPath,
+		ContainerId:       *s.ContainerDestId,
+		ContainerDestPath: s.ContainerDestPath,
+		ExecOptions:       s.ExecOptions,
+	})
+
+	for _, step := range steps {
+		err := step.Execute(ctx)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (s *DownloadFile) Execute(ctx *context.Context) error {
 	return ctx.Module().File().Download(s.RemotePath, s.LocalPath)
 }
@@ -277,4 +323,24 @@ func (s *TrySyncFile) Execute(ctx *context.Context) error {
 		ExecOptions:       s.ExecOptions,
 	}
 	return sync.Execute(ctx)
+}
+
+func (s *CreateAndUploadDir) Execute(ctx *context.Context) error {
+	randPath := utils.RandFilename(TEMP_DIR)
+	hostPath := path.Join(randPath, s.HostDirName)
+	cmd := ctx.Module().Shell().Mkdir(randPath, hostPath)
+	_, err := cmd.Execute(s.ExecOptions)
+	if err != nil {
+		return errno.ERR_RENAME_FILE_OR_DIRECTORY_FAILED.E(err)
+	}
+	step := &CopyIntoContainer{
+		HostSrcPath:       hostPath,
+		ContainerId:       *s.ContainerDestId,
+		ContainerDestPath: s.ContainerDestPath,
+		ExecOptions:       s.ExecOptions,
+	}
+	err = step.Execute(ctx)
+	cmd = ctx.Module().Shell().Rmdir(hostPath, randPath)
+	cmd.Execute(s.ExecOptions)
+	return err
 }

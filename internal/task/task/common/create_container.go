@@ -40,22 +40,27 @@ import (
 	log "github.com/opencurve/curveadm/pkg/log/glg"
 )
 
-type step2GetService struct {
-	serviceId   string
-	containerId *string
-	storage     *storage.Storage
+const (
+	POLICY_ALWAYS_RESTART = "always"
+	POLICY_NEVER_RESTART  = "no"
+)
+
+type Step2GetService struct {
+	ServiceId   string
+	ContainerId *string
+	Storage     *storage.Storage
 }
 
-type step2InsertService struct {
-	clusterId      int
-	serviceId      string
-	containerId    *string
-	oldContainerId *string
-	storage        *storage.Storage
+type Step2InsertService struct {
+	ClusterId      int
+	ServiceId      string
+	ContainerId    *string
+	OldContainerId *string
+	Storage        *storage.Storage
 }
 
-func (s *step2GetService) Execute(ctx *context.Context) error {
-	containerId, err := s.storage.GetContainerId(s.serviceId)
+func (s *Step2GetService) Execute(ctx *context.Context) error {
+	containerId, err := s.Storage.GetContainerId(s.ServiceId)
 
 	if err != nil {
 		return errno.ERR_GET_SERVICE_CONTAINER_ID_FAILED.E(err)
@@ -65,28 +70,28 @@ func (s *step2GetService) Execute(ctx *context.Context) error {
 		return task.ERR_SKIP_TASK
 	}
 
-	*s.containerId = containerId
+	*s.ContainerId = containerId
 	return nil
 }
 
-func (s *step2InsertService) E(e error, ec *errno.ErrorCode) error {
+func (s *Step2InsertService) E(e error, ec *errno.ErrorCode) error {
 	if e == nil {
 		return nil
 	}
 	return ec.E(e)
 }
 
-func (s *step2InsertService) Execute(ctx *context.Context) error {
+func (s *Step2InsertService) Execute(ctx *context.Context) error {
 	var err error
-	serviceId := s.serviceId
-	clusterId := s.clusterId
-	oldContainerId := *s.oldContainerId
-	containerId := *s.containerId
+	serviceId := s.ServiceId
+	clusterId := s.ClusterId
+	oldContainerId := *s.OldContainerId
+	containerId := *s.ContainerId
 	if oldContainerId == comm.CLEANED_CONTAINER_ID { // container cleaned
-		err = s.storage.SetContainId(serviceId, containerId)
+		err = s.Storage.SetContainId(serviceId, containerId)
 		err = s.E(err, errno.ERR_SET_SERVICE_CONTAINER_ID_FAILED)
 	} else {
-		err = s.storage.InsertService(clusterId, serviceId, containerId)
+		err = s.Storage.InsertService(clusterId, serviceId, containerId)
 		err = s.E(err, errno.ERR_INSERT_SERVICE_CONTAINER_ID_FAILED)
 	}
 
@@ -199,7 +204,7 @@ func getRestartPolicy(dc *topology.DeployConfig, serviceMountDevice bool) string
 	return comm.POLICY_NEVER_RESTART
 }
 
-func trimContainerId(containerId *string) step.LambdaType {
+func TrimContainerId(containerId *string) step.LambdaType {
 	return func(ctx *context.Context) error {
 		items := strings.Split(*containerId, "\n")
 		*containerId = items[len(items)-1]
@@ -256,10 +261,10 @@ func NewCreateContainerTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (
 		}
 	}
 
-	t.AddStep(&step2GetService{ // if service exist, break task
-		serviceId:   serviceId,
-		containerId: &oldContainerId,
-		storage:     curveadm.Storage(),
+	t.AddStep(&Step2GetService{ // if service exist, break task
+		ServiceId:   serviceId,
+		ContainerId: &oldContainerId,
+		Storage:     curveadm.Storage(),
 	})
 	t.AddStep(&step.CreateDirectory{
 		Paths:       []string{dc.GetLogDir(), dc.GetDataDir()},
@@ -281,14 +286,14 @@ func NewCreateContainerTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (
 		ExecOptions: curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.Lambda{
-		Lambda: trimContainerId(&containerId),
+		Lambda: TrimContainerId(&containerId),
 	})
-	t.AddStep(&step2InsertService{
-		clusterId:      clusterId,
-		serviceId:      serviceId,
-		containerId:    &containerId,
-		oldContainerId: &oldContainerId,
-		storage:        curveadm.Storage(),
+	t.AddStep(&Step2InsertService{
+		ClusterId:      clusterId,
+		ServiceId:      serviceId,
+		ContainerId:    &containerId,
+		OldContainerId: &oldContainerId,
+		Storage:        curveadm.Storage(),
 	})
 	if serviceMountDevice && device != "" {
 		t.AddStep(&step.UmountFilesystem{
