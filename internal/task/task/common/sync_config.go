@@ -44,7 +44,7 @@ const (
 	CURVE_CRONTAB_FILE = "/tmp/curve_crontab"
 )
 
-func newMutate(dc *topology.DeployConfig, delimiter string, forceRender bool) step.Mutate {
+func NewMutate(dc *topology.DeployConfig, delimiter string, forceRender bool) step.Mutate {
 	serviceConfig := dc.GetServiceConfig()
 	return func(in, key, value string) (out string, err error) {
 		if len(key) == 0 {
@@ -153,7 +153,7 @@ func NewSyncConfigTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task
 		ExecOptions: curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.Lambda{
-		Lambda: checkContainerExist(dc.GetHost(), dc.GetRole(), containerId, &out),
+		Lambda: CheckContainerExist(dc.GetHost(), dc.GetRole(), containerId, &out),
 	})
 	for _, conf := range layout.ServiceConfFiles {
 		t.AddStep(&step.SyncFile{ // sync service config
@@ -162,7 +162,7 @@ func NewSyncConfigTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task
 			ContainerDestId:   &containerId,
 			ContainerDestPath: conf.Path,
 			KVFieldSplit:      delimiter,
-			Mutate:            newMutate(dc, delimiter, conf.Name == "nginx.conf"),
+			Mutate:            NewMutate(dc, delimiter, conf.Name == "nginx.conf"),
 			ExecOptions:       curveadm.ExecOptions(),
 		})
 	}
@@ -172,7 +172,7 @@ func NewSyncConfigTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task
 		ContainerDestId:   &containerId,
 		ContainerDestPath: layout.ToolsConfSystemPath,
 		KVFieldSplit:      DEFAULT_CONFIG_DELIMITER,
-		Mutate:            newMutate(dc, DEFAULT_CONFIG_DELIMITER, false),
+		Mutate:            NewMutate(dc, DEFAULT_CONFIG_DELIMITER, false),
 		ExecOptions:       curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.TrySyncFile{ // sync toolsv2 config

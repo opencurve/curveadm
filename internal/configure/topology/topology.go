@@ -32,11 +32,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-var (
-	CURVEBS_ROLES = []string{ROLE_ETCD, ROLE_MDS, ROLE_CHUNKSERVER, ROLE_SNAPSHOTCLONE}
-	CURVEFS_ROLES = []string{ROLE_ETCD, ROLE_MDS, ROLE_METASERVER}
-)
-
 type (
 	Deploy struct {
 		Host     string                 `mapstructure:"host"`
@@ -61,6 +56,20 @@ type (
 		MetaserverServices    Service `mapstructure:"metaserver_services"`
 		ChunkserverServices   Service `mapstructure:"chunkserver_services"`
 		SnapshotcloneServices Service `mapstructure:"snapshotclone_services"`
+	}
+)
+
+var (
+	CURVEBS_ROLES = []string{
+		ROLE_ETCD,
+		ROLE_MDS,
+		ROLE_CHUNKSERVER,
+		ROLE_SNAPSHOTCLONE,
+	}
+	CURVEFS_ROLES = []string{
+		ROLE_ETCD,
+		ROLE_MDS,
+		ROLE_METASERVER,
 	}
 )
 
