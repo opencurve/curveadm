@@ -219,6 +219,8 @@ func getRestartPolicy(dc *topology.DeployConfig) string {
 		return POLICY_ALWAYS_RESTART
 	case topology.ROLE_MDS:
 		return POLICY_ALWAYS_RESTART
+	case topology.ROLE_SNAPSHOTCLONE:
+		return POLICY_ALWAYS_RESTART
 	}
 	return POLICY_NEVER_RESTART
 }
