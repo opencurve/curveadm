@@ -31,6 +31,7 @@ import (
 	"github.com/opencurve/curveadm/internal/task/task/checker"
 	comm "github.com/opencurve/curveadm/internal/task/task/common"
 	"github.com/opencurve/curveadm/internal/task/task/fs"
+	"github.com/opencurve/curveadm/internal/task/task/monitor"
 	pg "github.com/opencurve/curveadm/internal/task/task/playground"
 	"github.com/opencurve/curveadm/internal/tasks"
 )
@@ -91,6 +92,18 @@ const (
 	CREATE_VOLUME
 	MAP_IMAGE
 	UNMAP_IMAGE
+
+	// monitor
+	PULL_MONITOR_IMAGE
+	CREATE_MONITOR_CONTAINER
+	SYNC_MONITOR_CONFIG
+	CLEAN_CONFIG_CONTAINER
+	START_MONITOR_SERVICE
+	RESTART_MONITOR_SERVICE
+	STOP_MONITOR_SERVICE
+	INIT_MONITOR_STATUS
+	GET_MONITOR_STATUS
+	CLEAN_MONITOR
 
 	// bs/target
 	START_TARGET_DAEMON
@@ -284,6 +297,27 @@ func (p *Playbook) createTasks(step *PlaybookStep) (*tasks.Tasks, error) {
 			t, err = pg.NewRemovePlaygroundTask(curveadm, config.GetAny(i))
 		case GET_PLAYGROUND_STATUS:
 			t, err = pg.NewGetPlaygroundStatusTask(curveadm, config.GetAny(i))
+		// monitor
+		case PULL_MONITOR_IMAGE:
+			t, err = monitor.NewPullImageTask(curveadm, config.GetMC(i))
+		case CREATE_MONITOR_CONTAINER:
+			t, err = monitor.NewCreateContainerTask(curveadm, config.GetMC(i))
+		case SYNC_MONITOR_CONFIG:
+			t, err = monitor.NewSyncConfigTask(curveadm, config.GetMC(i))
+		case CLEAN_CONFIG_CONTAINER:
+			t, err = monitor.NewCleanConfigContainerTask(curveadm, config.GetMC(i))
+		case START_MONITOR_SERVICE:
+			t, err = monitor.NewStartServiceTask(curveadm, config.GetMC(i))
+		case RESTART_MONITOR_SERVICE:
+			t, err = monitor.NewRestartServiceTask(curveadm, config.GetMC(i))
+		case STOP_MONITOR_SERVICE:
+			t, err = monitor.NewStopServiceTask(curveadm, config.GetMC(i))
+		case INIT_MONITOR_STATUS:
+			t, err = monitor.NewInitMonitorStatusTask(curveadm, config.GetMC(i))
+		case GET_MONITOR_STATUS:
+			t, err = monitor.NewGetMonitorStatusTask(curveadm, config.GetMC(i))
+		case CLEAN_MONITOR:
+			t, err = monitor.NewCleanMonitorTask(curveadm, config.GetMC(i))
 
 		default:
 			return nil, errno.ERR_UNKNOWN_TASK_TYPE.
