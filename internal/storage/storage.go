@@ -107,6 +107,11 @@ type AuditLog struct {
 	ErrorCode     int
 }
 
+type Monitor struct {
+	ClusterId int
+	Monitor   string
+}
+
 type Storage struct {
 	db    *sql.DB
 	mutex *sync.Mutex
@@ -146,6 +151,8 @@ func (s *Storage) init() error {
 	} else if err := s.execSQL(CREATE_DISKS_TABLE); err != nil {
 		return err
 	} else if err := s.execSQL(CREATE_DISK_TABLE); err != nil {
+		return err
+	} else if err := s.execSQL(CREATE_MONITOR_TABLE); err != nil {
 		return err
 	} else if err := s.compatible(); err != nil {
 		return err
@@ -685,4 +692,41 @@ func (s *Storage) GetAuditLogs() ([]AuditLog, error) {
 
 func (s *Storage) GetAuditLog(id int64) ([]AuditLog, error) {
 	return s.getAuditLogs(SELECT_AUDIT_LOG_BY_ID, id)
+}
+
+func (s *Storage) GetMonitor(clusterId int) (Monitor, error) {
+	monitor := Monitor{
+		ClusterId: clusterId,
+	}
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	rows, err := s.db.Query(SELECT_MONITOR, clusterId)
+	if err != nil {
+		return monitor, err
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+		err = rows.Scan(&monitor.Monitor)
+		if err != nil {
+			return monitor, err
+		}
+	}
+	return monitor, nil
+}
+
+func (s *Storage) InsertMonitor(m Monitor) error {
+	return s.execSQL(INTERT_MONITOR, m.ClusterId, m.Monitor)
+}
+
+func (s *Storage) UpdateMonitor(m Monitor) error {
+	return s.execSQL(UPDATE_MONITOR, m.Monitor, m.ClusterId)
+}
+
+func (s *Storage) DeleteMonitor(clusterId int) error {
+	return s.execSQL(DELETE_MONITOR, clusterId)
+}
+
+func (s *Storage) ReplaceMonitor(m Monitor) error {
+	return s.execSQL(REPLACE_MONITOR, m.ClusterId, m.Monitor)
 }
