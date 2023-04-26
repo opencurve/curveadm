@@ -61,7 +61,9 @@ type (
 		Mount             string
 		Name              string
 		Network           string
+		User              string
 		Pid               string
+		Publish           string
 		Privileged        bool
 		Remove            bool // automatically remove the container when it exits
 		Restart           string
@@ -210,6 +212,12 @@ func (s *CreateContainer) Execute(ctx *context.Context) error {
 	}
 	if len(s.Pid) > 0 {
 		cli.AddOption("--pid %s", s.Pid)
+	}
+	if len(s.Publish) > 0 {
+		cli.AddOption("--publish %s", s.Publish)
+	}
+	if len(s.User) > 0 {
+		cli.AddOption("--user %s", s.User)
 	}
 	if s.Privileged {
 		cli.AddOption("--privileged")

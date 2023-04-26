@@ -220,7 +220,7 @@ func NewCreateTopologyTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*
 		ExecOptions: curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.Lambda{
-		Lambda: checkContainerExist(host, role, containerId, &out),
+		Lambda: CheckContainerExist(host, role, containerId, &out),
 	})
 	t.AddStep(&step.InstallFile{ // install curvebs/curvefs topology
 		ContainerId:       &containerId,
