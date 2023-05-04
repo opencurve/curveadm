@@ -72,6 +72,8 @@ func Type(v interface{}) string {
 		return "int64"
 	case map[string]interface{}:
 		return "string_interface_map"
+	case []interface{}:
+		return "any_slice"
 	default:
 		return "unknown"
 	}
@@ -95,6 +97,10 @@ func IsInt64(v interface{}) bool {
 
 func IsStringAnyMap(v interface{}) bool {
 	return Type(v) == "string_interface_map"
+}
+
+func IsAnySlice(v interface{}) bool {
+	return Type(v) == "any_slice"
 }
 
 func IsFunc(v interface{}) bool {
@@ -208,9 +214,9 @@ func NewCommand(format string, a ...interface{}) *exec.Cmd {
 	return exec.Command(args[0], args[1:]...)
 }
 
-func Slice2Map(s []string) map[string]bool {
-	m := map[string]bool{}
-	for _, item := range s {
+func Slice2Map[T comparable](t []T) map[T]bool {
+	m := map[T]bool{}
+	for _, item := range t {
 		m[item] = true
 	}
 	return m

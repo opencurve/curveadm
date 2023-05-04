@@ -35,6 +35,7 @@ const (
 	REQUIRE_BOOL
 	REQUIRE_INT
 	REQUIRE_POSITIVE_INTEGER
+	REQUIRE_SLICE
 )
 
 type (
@@ -89,8 +90,10 @@ func (itemset *ItemSet) Build(key string, value interface{}) (interface{}, error
 
 	v, ok := utils.All2Str(value)
 	if !ok {
-		return nil, errno.ERR_UNSUPPORT_CONFIGURE_VALUE_TYPE.
-			F("%s: %v", key, value)
+		if !utils.IsAnySlice(value) {
+			return nil, errno.ERR_UNSUPPORT_CONFIGURE_VALUE_TYPE.
+				F("%s: %v", key, value)
+		}
 	}
 
 	switch item.require {
@@ -132,9 +135,34 @@ func (itemset *ItemSet) Build(key string, value interface{}) (interface{}, error
 			return v, nil
 		}
 
+	case REQUIRE_SLICE:
+		anySlice := value.([]any)
+		if len(anySlice) > 0 {
+			switch anySlice[0].(type) {
+			case string:
+				return convertSlice[string](value), nil
+			case int:
+				return convertSlice[int](value), nil
+			case bool:
+				return convertSlice[bool](value), nil
+			default:
+				return []any{}, errno.ERR_UNSUPPORT_CONFIGURE_VALUE_TYPE.
+					F("%s: %v", key, value)
+			}
+		}
+		return []any{}, nil
+
 	default:
 		// do nothing
 	}
 
 	return value, nil
+}
+
+func convertSlice[T int | string | any](value any) []T {
+	var slice []T
+	for _, str := range value.([]any) {
+		slice = append(slice, str.(T))
+	}
+	return slice
 }

@@ -23,6 +23,8 @@
 package command
 
 import (
+	"fmt"
+
 	"github.com/opencurve/curveadm/cli/cli"
 	comm "github.com/opencurve/curveadm/internal/common"
 	"github.com/opencurve/curveadm/internal/configure"
@@ -132,10 +134,35 @@ func displayFormatStatus(curveadm *cli.CurveAdm, fcs []*configure.FormatConfig, 
 }
 
 func runFormat(curveadm *cli.CurveAdm, options formatOptions) error {
-	// 1) parse format config
-	fcs, err := configure.ParseFormat(options.filename)
-	if err != nil {
-		return err
+	var err error
+	var fcs []*configure.FormatConfig
+	diskRecords := curveadm.DiskRecords()
+
+	// 1) parse format config from yaml file or database
+	if len(diskRecords) == 0 {
+		fcs, err = configure.ParseFormat(options.filename)
+		if err != nil {
+			return err
+		}
+	} else {
+		for _, dr := range diskRecords {
+			containerImage := configure.DEFAULT_CONTAINER_IMAGE
+			if len(dr.ContainerImage) > 0 {
+				containerImage = dr.ContainerImage
+			}
+			disk := fmt.Sprintf("%s:%s:%d", dr.Device, dr.MountPoint, dr.FormatPercent)
+			fc, err := configure.NewFormatConfig(containerImage, dr.Host, disk)
+			if err != nil {
+				return err
+			}
+			fc.UseDiskUri = true
+			chunkserverId := dr.ChunkServerID
+			if len(chunkserverId) > 1 {
+				// skip formatting the disk with nonempty chunkserver id
+				continue
+			}
+			fcs = append(fcs, fc)
+		}
 	}
 
 	// 2) generate start playbook

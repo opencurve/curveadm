@@ -46,6 +46,23 @@ const (
 	POOL_TYPE_LOGICAL      = "logicalpool"
 	POOL_TYPE_PHYSICAL     = "physicalpool"
 
+	// disk
+	DISK_DEFAULT_NULL_SIZE            = "-"
+	DISK_DEFAULT_NULL_URI             = DISK_DEFAULT_NULL_SIZE
+	DISK_DEFAULT_NULL_CONTAINER_IMAGE = DISK_DEFAULT_NULL_SIZE
+	DISK_DEFAULT_NULL_CHUNKSERVER_ID  = DISK_DEFAULT_NULL_SIZE
+	DISK_FILTER_ALL                   = "all"
+	DISK_FILTER_HOST                  = "host"
+	DISK_FILTER_DEVICE                = "device"
+	DISK_FILTER_MOUNT                 = "mount"
+	DISK_FILTER_SERVICE               = "service"
+	DISK_EXCLUDE_HOST                 = "exclude"
+
+	DISK_FORMAT_PERCENT = "format_percent"
+
+	DISK_FORMAT_MOUNT_POINT     = "mount"
+	DISK_FORMAT_CONTAINER_IMAGE = "container_image"
+
 	// format
 	KEY_ALL_FORMAT_STATUS = "ALL_FORMAT_STATUS"
 

@@ -48,6 +48,7 @@ const (
 	CHECK_NETWORK_FIREWALL
 	GET_HOST_DATE
 	CHECK_HOST_DATE
+	CHECK_DISK_SIZE
 	CHECK_CHUNKFILE_POOL
 	CHECK_S3
 	CLEAN_PRECHECK_ENVIRONMENT
@@ -175,6 +176,8 @@ func (p *Playbook) createTasks(step *PlaybookStep) (*tasks.Tasks, error) {
 			t, err = checker.NewGetHostDate(curveadm, config.GetDC(i))
 		case CHECK_HOST_DATE:
 			t, err = checker.NewCheckDate(curveadm, nil)
+		case CHECK_DISK_SIZE:
+			t, err = checker.NewCheckDiskSizeTask(curveadm, config.GetDC(i))
 		case CHECK_CHUNKFILE_POOL:
 			t, err = checker.NewCheckChunkfilePoolTask(curveadm, config.GetDC(i))
 		case CHECK_S3:

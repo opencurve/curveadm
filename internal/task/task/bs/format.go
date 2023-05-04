@@ -30,6 +30,7 @@ import (
 
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/configure"
+	"github.com/opencurve/curveadm/internal/configure/disks"
 	os "github.com/opencurve/curveadm/internal/configure/os"
 	"github.com/opencurve/curveadm/internal/configure/topology"
 	"github.com/opencurve/curveadm/internal/errno"
@@ -61,6 +62,13 @@ type (
 		uuid       string
 		skipAdd    bool
 		curveadm   *cli.CurveAdm
+	}
+	step2UpdateDiskSizeUri struct {
+		host     string
+		device   string
+		size     string
+		diskId   string
+		curveadm *cli.CurveAdm
 	}
 )
 
@@ -163,6 +171,54 @@ func (s *step2EditFSTab) Execute(ctx *context.Context) error {
 	})
 }
 
+func (s *step2UpdateDiskSizeUri) Execute(ctx *context.Context) error {
+	curveadm := s.curveadm
+	steps := []task.Step{}
+
+	var success bool
+	var diskUri string
+
+	steps = append(steps, &step.ListBlockDevice{ // disk device size
+		Device:      []string{s.device},
+		Format:      "SIZE -b",
+		NoHeadings:  true,
+		Success:     &success,
+		Out:         &s.size,
+		ExecOptions: curveadm.ExecOptions(),
+	})
+	steps = append(steps, &step.ListBlockDevice{ // disk device uuid
+		Device:      []string{s.device},
+		Format:      "UUID",
+		NoHeadings:  true,
+		Success:     &success,
+		Out:         &s.diskId,
+		ExecOptions: curveadm.ExecOptions(),
+	})
+	steps = append(steps, &step.Lambda{
+		Lambda: checkDeviceUUID(s.host, s.device, &success, &s.diskId),
+	})
+
+	for _, step := range steps {
+		err := step.Execute(ctx)
+		if err != nil {
+			return err
+		}
+	}
+
+	if s.diskId != "" {
+		diskUri = disks.GenDiskURI(disks.DISK_URI_PROTO_FS_UUID, s.diskId)
+	}
+
+	if err := curveadm.Storage().UpdateDiskSize(s.host, s.device, s.size); err != nil {
+		return err
+	}
+
+	if err := curveadm.Storage().UpdateDiskURI(s.host, s.device, diskUri); err != nil {
+		return err
+	}
+	return nil
+}
+
 func device2ContainerName(device string) string {
 	return fmt.Sprintf("curvebs-format-%s", utils.MD5Sum(device))
 }
@@ -238,6 +294,13 @@ func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *configure.FormatConf
 		mountPoint: mountPoint,
 		curveadm:   curveadm,
 	})
+	if fc.UseDiskUri {
+		t.AddStep(&step2UpdateDiskSizeUri{
+			host:     host,
+			device:   device,
+			curveadm: curveadm,
+		})
+	}
 	// 3: run container to format chunkfile pool
 	t.AddStep(&step.PullImage{
 		Image:       fc.GetContainerImage(),

@@ -68,6 +68,12 @@ type (
 		storage     *storage.Storage
 		execOptions module.ExecOptions
 	}
+
+	step2CleanDiskChunkServerId struct {
+		serviceId   string
+		storage     *storage.Storage
+		execOptions module.ExecOptions
+	}
 )
 
 func (s *step2RecycleChunk) Execute(ctx *context.Context) error {
@@ -110,6 +116,10 @@ func (s *step2CleanContainer) Execute(ctx *context.Context) error {
 		return err
 	}
 	return s.storage.SetContainId(s.serviceId, comm.CLEANED_CONTAINER_ID)
+}
+
+func (s *step2CleanDiskChunkServerId) Execute(ctx *context.Context) error {
+	return s.storage.CleanDiskChunkServerId(s.serviceId)
 }
 
 func getCleanFiles(clean map[string]bool, dc *topology.DeployConfig, recycle bool) []string {
@@ -185,6 +195,11 @@ func NewCleanServiceTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*ta
 			execOptions: curveadm.ExecOptions(),
 		})
 	}
+	t.AddStep(&step2CleanDiskChunkServerId{
+		serviceId:   serviceId,
+		storage:     curveadm.Storage(),
+		execOptions: curveadm.ExecOptions(),
+	})
 
 	return t, nil
 }
