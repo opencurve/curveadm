@@ -174,12 +174,12 @@ func syncDiskRecords(data string, dcs []*disks.DiskConfig,
 		if !slient {
 			diff := utils.Diff(oldDiskRecordsString, newDiskRecordsString)
 			curveadm.WriteOutln(diff)
-		}
 
-		pass := tuicomm.ConfirmYes("Disk changes are showing above. Do you want to continue?")
-		if !pass {
-			curveadm.WriteOut(tuicomm.PromptCancelOpetation("commit disk table"))
-			return errno.ERR_CANCEL_OPERATION
+			pass := tuicomm.ConfirmYes("Disk changes are showing above. Do you want to continue?")
+			if !pass {
+				curveadm.WriteOut(tuicomm.PromptCancelOpetation("commit disk table"))
+				return errno.ERR_CANCEL_OPERATION
+			}
 		}
 	}
 

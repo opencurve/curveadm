@@ -329,11 +329,13 @@ var (
 	ERR_INVALID_DISK_URI               = EC(323010, "invalid disk uri")
 
 	// 324: configure (monitor.yaml: parse failed)
-	ERR_PARSE_MONITOR_CONFIGURE_FAILED   = EC(324000, "parse monitor configure failed")
-	ERR_READ_MONITOR_FILE_FAILED         = EC(324001, "read monitor file failed")
-	ERR_PARSE_PROMETHEUS_TARGET_FAILED   = EC(324002, "parse prometheus targets failed")
-	ERR_PARSE_CURVE_MANAGER_CONF_FAILED  = EC(324003, "parse curve-manager configure failed")
-	ERR_UPDATE_CURVE_MANAGER_CONF_FAILED = EC(324004, "update curve-manager configure failed")
+	ERR_PARSE_MONITOR_CONFIGURE_FAILED = EC(324000, "parse monitor configure failed")
+	ERR_READ_MONITOR_FILE_FAILED       = EC(324001, "read monitor file failed")
+	ERR_PARSE_PROMETHEUS_TARGET_FAILED = EC(324002, "parse prometheus targets failed")
+
+	// 325: configure (website.yaml: parse failed)
+	ERR_WEBSITE_CONF_FILE_NOT_FOUND    = EC(325000, "website conf file not found")
+	ERR_PARSE_WEBSITE_CONFIGURE_FAILED = EC(325001, "parse website configure failed")
 
 	// 330: configure (topology.yaml: parse failed)
 	ERR_TOPOLOGY_FILE_NOT_FOUND         = EC(330000, "topology file not found")

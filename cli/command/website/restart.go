@@ -16,39 +16,36 @@
 
 /*
 * Project: Curveadm
-* Created Date: 2023-04-28
+* Created Date: 2023-05-08
 * Author: wanghai (SeanHai)
  */
 
-package monitor
+package website
 
 import (
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/configure"
 	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/playbook"
-	tui "github.com/opencurve/curveadm/internal/tui/common"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/cobra"
 )
 
 var (
 	RESTART_PLAYBOOK_STEPS = []int{
-		playbook.RESTART_MONITOR_SERVICE,
+		playbook.RESTART_WEBSITE_SERVICE,
 	}
 )
 
 type restartOptions struct {
-	id   string
-	role string
-	host string
+	filename string
 }
 
 func NewRestartCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	var options restartOptions
 	cmd := &cobra.Command{
 		Use:   "restart [OPTIONS]",
-		Short: "Restart monitor service",
+		Short: "Restart website service",
 		Args:  cliutil.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runRestart(curveadm, options)
@@ -57,22 +54,13 @@ func NewRestartCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	}
 
 	flags := cmd.Flags()
-	flags.StringVar(&options.id, "id", "*", "Specify monitor service id")
-	flags.StringVar(&options.role, "role", "*", "Specify monitor service role")
-	flags.StringVar(&options.host, "host", "*", "Specify monitor service host")
-
+	flags.StringVarP(&options.filename, "conf", "c", "website.yaml", "Specify website configuration file")
 	return cmd
 }
 
 func genRestartPlaybook(curveadm *cli.CurveAdm,
-	mcs []*configure.MonitorConfig,
-	options restartOptions) (*playbook.Playbook, error) {
-	mcs = configure.FilterMonitorConfig(curveadm, mcs, configure.FilterMonitorOption{
-		Id:   options.id,
-		Role: options.role,
-		Host: options.host,
-	})
-	if len(mcs) == 0 {
+	wcs []*configure.WebsiteConfig) (*playbook.Playbook, error) {
+	if len(wcs) == 0 {
 		return nil, errno.ERR_NO_SERVICES_MATCHED
 	}
 
@@ -81,31 +69,25 @@ func genRestartPlaybook(curveadm *cli.CurveAdm,
 	for _, step := range steps {
 		pb.AddStep(&playbook.PlaybookStep{
 			Type:    step,
-			Configs: mcs,
+			Configs: wcs,
 		})
 	}
 	return pb, nil
 }
 
 func runRestart(curveadm *cli.CurveAdm, options restartOptions) error {
-	// 1) parse monitor configure
-	mcs, err := parseMonitorConfig(curveadm)
+	// 1) parse website configure
+	wcs, err := configure.ParseWebsiteConfig(options.filename)
 	if err != nil {
 		return err
 	}
 
 	// 2) generate restart playbook
-	pb, err := genRestartPlaybook(curveadm, mcs, options)
+	pb, err := genRestartPlaybook(curveadm, wcs)
 	if err != nil {
 		return err
 	}
 
-	// 3) confirm by user
-	if pass := tui.ConfirmYes(tui.PromptRestartService(options.id, options.role, options.host)); !pass {
-		curveadm.WriteOut(tui.PromptCancelOpetation("restart monitor service"))
-		return errno.ERR_CANCEL_OPERATION
-	}
-
-	// 4) run playground
+	// 3) run playground
 	return pb.Run()
 }

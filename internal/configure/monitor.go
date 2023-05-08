@@ -69,7 +69,6 @@ type MonitorConfig struct {
 	role   string
 	host   string
 	config map[string]interface{}
-	ctx    *topology.Context
 }
 
 type serviceTarget struct {
@@ -83,24 +82,24 @@ type FilterMonitorOption struct {
 	Host string
 }
 
-func (m *MonitorConfig) getString(data *map[string]interface{}, key string) string {
-	v := (*data)[strings.ToLower(key)]
+func (m *MonitorConfig) getString(key string) string {
+	v := m.config[strings.ToLower(key)]
 	if v == nil {
 		return ""
 	}
 	return v.(string)
 }
 
-func (m *MonitorConfig) getStrings(data *map[string]interface{}, key string) []string {
-	v := (*data)[strings.ToLower(key)]
+func (m *MonitorConfig) getStrings(key string) []string {
+	v := m.config[strings.ToLower(key)]
 	if v == nil {
 		return []string{}
 	}
 	return v.([]string)
 }
 
-func (m *MonitorConfig) getInt(data *map[string]interface{}, key string) int {
-	v := (*data)[strings.ToLower(key)]
+func (m *MonitorConfig) getInt(key string) int {
+	v := m.config[strings.ToLower(key)]
 	if v == nil {
 		return -1
 	}
@@ -124,55 +123,55 @@ func (m *MonitorConfig) GetHost() string {
 }
 
 func (m *MonitorConfig) GetNodeIps() []string {
-	return m.getStrings(&m.config, KEY_NODE_IPS)
+	return m.getStrings(KEY_NODE_IPS)
 }
 
 func (m *MonitorConfig) GetNodeListenPort() int {
-	return m.getInt(&m.config, KRY_NODE_LISTEN_PORT)
+	return m.getInt(KRY_NODE_LISTEN_PORT)
 }
 
 func (m *MonitorConfig) GetPrometheusListenPort() int {
-	return m.getInt(&m.config, KEY_PROMETHEUS_PORT)
+	return m.getInt(KEY_PROMETHEUS_PORT)
 }
 
 func (m *MonitorConfig) GetImage() string {
-	return m.getString(&m.config, KEY_CONTAINER_IMAGE)
+	return m.getString(KEY_CONTAINER_IMAGE)
 }
 
 func (m *MonitorConfig) GetListenPort() int {
-	return m.getInt(&m.config, KEY_LISTEN_PORT)
+	return m.getInt(KEY_LISTEN_PORT)
 }
 
 func (m *MonitorConfig) GetDataDir() string {
-	return m.getString(&m.config, KEY_DATA_DIR)
+	return m.getString(KEY_DATA_DIR)
 }
 
 func (m *MonitorConfig) GetLogDir() string {
-	return m.getString(&m.config, KEY_LOG_DIR)
+	return m.getString(KEY_LOG_DIR)
 }
 
 func (m *MonitorConfig) GetPrometheusRetentionTime() string {
-	return m.getString(&m.config, KEY_RETENTION_TIME)
+	return m.getString(KEY_RETENTION_TIME)
 }
 
 func (m *MonitorConfig) GetPrometheusRetentionSize() string {
-	return m.getString(&m.config, KEY_RETENTION_SIZE)
+	return m.getString(KEY_RETENTION_SIZE)
 }
 
 func (m *MonitorConfig) GetPrometheusTarget() string {
-	return m.getString(&m.config, KEY_PROMETHEUS_TARGET)
+	return m.getString(KEY_PROMETHEUS_TARGET)
 }
 
 func (m *MonitorConfig) GetPrometheusIp() string {
-	return m.getString(&m.config, KEY_PROMETHEUS_IP)
+	return m.getString(KEY_PROMETHEUS_IP)
 }
 
 func (m *MonitorConfig) GetGrafanaUser() string {
-	return m.getString(&m.config, KEY_GRAFANA_USER)
+	return m.getString(KEY_GRAFANA_USER)
 }
 
 func (m *MonitorConfig) GetGrafanaPassword() string {
-	return m.getString(&m.config, KEY_GRAFANA_PASSWORD)
+	return m.getString(KEY_GRAFANA_PASSWORD)
 }
 
 func getHost(c *monitor, role string) string {
@@ -300,7 +299,6 @@ func ParseMonitorConfig(curveadm *cli.CurveAdm, filename string, data string, hs
 				role:   role,
 				host:   host,
 				config: config.Prometheus,
-				ctx:    ctx,
 			})
 		case ROLE_GRAFANA:
 			if config.Prometheus != nil {
@@ -313,7 +311,6 @@ func ParseMonitorConfig(curveadm *cli.CurveAdm, filename string, data string, hs
 				role:   role,
 				host:   host,
 				config: config.Grafana,
-				ctx:    ctx,
 			}, &MonitorConfig{
 				kind: mkind,
 				id:   fmt.Sprintf("%s_%s", ROLE_MONITOR_CONF, host),
@@ -322,7 +319,6 @@ func ParseMonitorConfig(curveadm *cli.CurveAdm, filename string, data string, hs
 				config: map[string]interface{}{
 					KEY_CONTAINER_IMAGE: mconfImage,
 				},
-				ctx: ctx,
 			})
 		case ROLE_NODE_EXPORTER:
 			for _, h := range hs {
@@ -332,7 +328,6 @@ func ParseMonitorConfig(curveadm *cli.CurveAdm, filename string, data string, hs
 					role:   role,
 					host:   h,
 					config: config.NodeExporter,
-					ctx:    ctx,
 				})
 			}
 		}

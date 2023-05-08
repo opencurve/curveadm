@@ -377,6 +377,11 @@ func (curveadm *CurveAdm) GetServiceId(dcId string) string {
 	return utils.MD5Sum(serviceId)[:12]
 }
 
+// website is cluster-independent
+func (curveadm *CurveAdm) GetWebsiteServiceId(wcId string) string {
+	return utils.MD5Sum(wcId)[:12]
+}
+
 func (curveadm *CurveAdm) GetContainerId(serviceId string) (string, error) {
 	containerId, err := curveadm.Storage().GetContainerId(serviceId)
 	if err != nil {

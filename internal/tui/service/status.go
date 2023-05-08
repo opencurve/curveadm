@@ -36,6 +36,7 @@ import (
 	"github.com/opencurve/curveadm/internal/configure/topology"
 	task "github.com/opencurve/curveadm/internal/task/task/common"
 	"github.com/opencurve/curveadm/internal/task/task/monitor"
+	"github.com/opencurve/curveadm/internal/task/task/website"
 	tui "github.com/opencurve/curveadm/internal/tui/common"
 	"github.com/opencurve/curveadm/internal/utils"
 )
@@ -246,7 +247,7 @@ func FormatStatus(statuses []task.ServiceStatus, verbose, expand bool) string {
 	// cut column
 	locate := utils.Locate(title)
 	if !verbose {
-		tui.CutColumn(lines, locate["Ports"])    // Data Dir
+		tui.CutColumn(lines, locate["Ports"])    // Ports
 		tui.CutColumn(lines, locate["Data Dir"]) // Data Dir
 		tui.CutColumn(lines, locate["Log Dir"])  // Log Dir
 	}
@@ -299,8 +300,52 @@ func FormatMonitorStatus(statuses []monitor.MonitorStatus, verbose bool) string 
 	// cut column
 	locate := utils.Locate(title)
 	if !verbose {
-		tui.CutColumn(lines, locate["Ports"])    // Data Dir
+		tui.CutColumn(lines, locate["Ports"])    // Ports
 		tui.CutColumn(lines, locate["Data Dir"]) // Data Dir
+	}
+
+	output := tui.FixedFormat(lines, 2)
+	return output
+}
+
+func FormatWebsiteStatus(statuses []website.WebsiteStatus, verbose bool) string {
+	lines := [][]interface{}{}
+
+	// title
+	title := []string{
+		"Id",
+		"Role",
+		"Host",
+		"Container Id",
+		"Status",
+		"Ports",
+		"Data Dir",
+		"Log Dir",
+	}
+	first, second := tui.FormatTitle(title)
+	lines = append(lines, first)
+	lines = append(lines, second)
+
+	// status
+	for _, status := range statuses {
+		lines = append(lines, []interface{}{
+			status.Id,
+			status.Role,
+			status.Host,
+			status.ContainerId,
+			tui.DecorateMessage{Message: status.Status, Decorate: statusDecorate},
+			utils.Choose(len(status.Ports) == 0, "-", status.Ports),
+			status.DataDir,
+			status.LogDir,
+		})
+	}
+
+	// cut column
+	locate := utils.Locate(title)
+	if !verbose {
+		tui.CutColumn(lines, locate["Ports"])    // Ports
+		tui.CutColumn(lines, locate["Data Dir"]) // Data Dir
+		tui.CutColumn(lines, locate["Log Dir"])  // Log Dir
 	}
 
 	output := tui.FixedFormat(lines, 2)

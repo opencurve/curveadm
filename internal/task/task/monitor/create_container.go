@@ -145,9 +145,7 @@ func NewCreateContainerTask(curveadm *cli.CurveAdm, cfg *configure.MonitorConfig
 	t.AddStep(&step.CreateContainer{
 		Image:       cfg.GetImage(),
 		Command:     getArguments(cfg),
-		AddHost:     []string{fmt.Sprintf("%s:127.0.0.1", hostname)},
 		Envs:        getEnvironments(cfg),
-		Hostname:    hostname,
 		Init:        true,
 		Name:        hostname,
 		Privileged:  true,

@@ -16,96 +16,77 @@
 
 /*
 * Project: Curveadm
-* Created Date: 2023-04-26
+* Created Date: 2023-05-08
 * Author: wanghai (SeanHai)
  */
 
-package monitor
+package website
 
 import (
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/configure"
 	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/playbook"
-	tui "github.com/opencurve/curveadm/internal/tui/common"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/cobra"
 )
 
 var (
-	START_PLAYBOOK_STEPS = []int{
-		playbook.START_MONITOR_SERVICE,
+	WEBSITE_START_STEPS = []int{
+		playbook.START_WEBSITE_SERVICE,
 	}
 )
 
 type startOptions struct {
-	id   string
-	role string
-	host string
+	filename string
 }
 
 func NewStartCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	var options startOptions
 	cmd := &cobra.Command{
 		Use:   "start [OPTIONS]",
-		Short: "Start monitor service",
+		Short: "Start website service",
 		Args:  cliutil.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runStart(curveadm, options)
 		},
 		DisableFlagsInUseLine: true,
 	}
-
 	flags := cmd.Flags()
-	flags.StringVar(&options.id, "id", "*", "Specify monitor service id")
-	flags.StringVar(&options.role, "role", "*", "Specify monitor service role")
-	flags.StringVar(&options.host, "host", "*", "Specify monitor service host")
-
+	flags.StringVarP(&options.filename, "conf", "c", "website.yaml", "Specify website configuration file")
 	return cmd
 }
 
 func genStartPlaybook(curveadm *cli.CurveAdm,
-	mcs []*configure.MonitorConfig,
-	options startOptions) (*playbook.Playbook, error) {
-	mcs = configure.FilterMonitorConfig(curveadm, mcs, configure.FilterMonitorOption{
-		Id:   options.id,
-		Role: options.role,
-		Host: options.host,
-	})
-	if len(mcs) == 0 {
+	wcs []*configure.WebsiteConfig) (*playbook.Playbook, error) {
+	if len(wcs) == 0 {
 		return nil, errno.ERR_NO_SERVICES_MATCHED
 	}
 
-	steps := START_PLAYBOOK_STEPS
+	steps := WEBSITE_START_STEPS
 	pb := playbook.NewPlaybook(curveadm)
 	for _, step := range steps {
 		pb.AddStep(&playbook.PlaybookStep{
 			Type:    step,
-			Configs: mcs,
+			Configs: wcs,
 		})
 	}
 	return pb, nil
 }
 
 func runStart(curveadm *cli.CurveAdm, options startOptions) error {
-	// 1) parse monitor configure
-	mcs, err := parseMonitorConfig(curveadm)
+	// 1) parse website configure
+	wcs, err := configure.ParseWebsiteConfig(options.filename)
 	if err != nil {
 		return err
 	}
 
 	// 2) generate start playbook
-	pb, err := genStartPlaybook(curveadm, mcs, options)
+	pb, err := genStartPlaybook(curveadm, wcs)
 	if err != nil {
 		return err
 	}
 
-	// 3) confirm by user
-	if pass := tui.ConfirmYes(tui.PromptStartService(options.id, options.role, options.host)); !pass {
-		curveadm.WriteOut(tui.PromptCancelOpetation("start monitor service"))
-		return errno.ERR_CANCEL_OPERATION
-	}
-
-	// 4) run playground
+	// 3) run playground
 	return pb.Run()
 }
