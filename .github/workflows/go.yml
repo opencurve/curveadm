@@ -14,7 +14,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
-          go-version: 1.18
+          go-version: 1.19
       - name: Generate SSH key
         run: ssh-keygen -f ~/.ssh/id_rsa -P ""
       - name: Test
@@ -28,7 +28,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
-          go-version: 1.18
+          go-version: 1.19
       - name: Set dependencies
         run: sudo apt update && sudo apt install musl-tools
       - name: Build

@@ -42,7 +42,7 @@ const (
 )
 
 var (
-	MONITOR_DEPLOY_STEPS = []int{
+	DEPLOY_PLAYBOOK_STEPS = []int{
 		playbook.PULL_MONITOR_IMAGE,
 		playbook.CREATE_MONITOR_CONTAINER,
 		playbook.SYNC_MONITOR_CONFIG,
@@ -86,7 +86,7 @@ func NewDeployCommand(curveadm *cli.CurveAdm) *cobra.Command {
 
 func genDeployPlaybook(curveadm *cli.CurveAdm,
 	mcs []*configure.MonitorConfig) (*playbook.Playbook, error) {
-	steps := MONITOR_DEPLOY_STEPS
+	steps := DEPLOY_PLAYBOOK_STEPS
 	pb := playbook.NewPlaybook(curveadm)
 	for _, step := range steps {
 		if step == playbook.CLEAN_CONFIG_CONTAINER {

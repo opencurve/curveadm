@@ -33,6 +33,7 @@ import (
 	"github.com/opencurve/curveadm/internal/task/task/fs"
 	"github.com/opencurve/curveadm/internal/task/task/monitor"
 	pg "github.com/opencurve/curveadm/internal/task/task/playground"
+	"github.com/opencurve/curveadm/internal/task/task/website"
 	"github.com/opencurve/curveadm/internal/tasks"
 )
 
@@ -101,6 +102,17 @@ const (
 	INIT_MONITOR_STATUS
 	GET_MONITOR_STATUS
 	CLEAN_MONITOR
+
+	// website
+	PULL_WEBSITE_IMAGE
+	CREATE_WEBSITE_CONTAINER
+	SYNC_WEBSITE_CONFIG
+	START_WEBSITE_SERVICE
+	RESTART_WEBSITE_SERVICE
+	STOP_WEBSITE_SERVICE
+	INIT_WEBSITE_STATUS
+	GET_WEBSITE_STATUS
+	CLEAN_WEBSITE
 
 	// bs/target
 	START_TARGET_DAEMON
@@ -320,7 +332,25 @@ func (p *Playbook) createTasks(step *PlaybookStep) (*tasks.Tasks, error) {
 			t, err = monitor.NewGetMonitorStatusTask(curveadm, config.GetMC(i))
 		case CLEAN_MONITOR:
 			t, err = monitor.NewCleanMonitorTask(curveadm, config.GetMC(i))
-
+		// website
+		case PULL_WEBSITE_IMAGE:
+			t, err = website.NewPullImageTask(curveadm, config.GetWC(i))
+		case CREATE_WEBSITE_CONTAINER:
+			t, err = website.NewCreateContainerTask(curveadm, config.GetWC(i))
+		case SYNC_WEBSITE_CONFIG:
+			t, err = website.NewSyncConfigTask(curveadm, config.GetWC(i))
+		case START_WEBSITE_SERVICE:
+			t, err = website.NewStartServiceTask(curveadm, config.GetWC(i))
+		case RESTART_WEBSITE_SERVICE:
+			t, err = website.NewRestartServiceTask(curveadm, config.GetWC(i))
+		case STOP_WEBSITE_SERVICE:
+			t, err = website.NewStopServiceTask(curveadm, config.GetWC(i))
+		case INIT_WEBSITE_STATUS:
+			t, err = website.NewInitWebsiteStatusTask(curveadm, config.GetWC(i))
+		case GET_WEBSITE_STATUS:
+			t, err = website.NewGetWebsiteStatusTask(curveadm, config.GetWC(i))
+		case CLEAN_WEBSITE:
+			t, err = website.NewCleanWebsiteTask(curveadm, config.GetWC(i))
 		default:
 			return nil, errno.ERR_UNKNOWN_TASK_TYPE.
 				F("task type: %d", step.Type)

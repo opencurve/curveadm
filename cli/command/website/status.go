@@ -16,11 +16,11 @@
 
 /*
 * Project: Curveadm
-* Created Date: 2023-04-26
+* Created Date: 2023-05-08
 * Author: wanghai (SeanHai)
  */
 
-package monitor
+package website
 
 import (
 	"github.com/opencurve/curveadm/cli/cli"
@@ -28,7 +28,7 @@ import (
 	"github.com/opencurve/curveadm/internal/configure"
 	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/playbook"
-	"github.com/opencurve/curveadm/internal/task/task/monitor"
+	"github.com/opencurve/curveadm/internal/task/task/website"
 	tui "github.com/opencurve/curveadm/internal/tui/service"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/cobra"
@@ -36,23 +36,21 @@ import (
 
 var (
 	STATUS_PLAYBOOK_STEPS = []int{
-		playbook.INIT_MONITOR_STATUS,
-		playbook.GET_MONITOR_STATUS,
+		playbook.INIT_WEBSITE_STATUS,
+		playbook.GET_WEBSITE_STATUS,
 	}
 )
 
 type statusOptions struct {
-	id      string
-	role    string
-	host    string
-	verbose bool
+	filename string
+	verbose  bool
 }
 
 func NewStatusCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	var options statusOptions
 	cmd := &cobra.Command{
 		Use:   "status [OPTIONS]",
-		Short: "Display monitor services status",
+		Short: "Display website status",
 		Args:  cliutil.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runStatus(curveadm, options)
@@ -61,35 +59,14 @@ func NewStatusCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	}
 
 	flags := cmd.Flags()
-	flags.StringVar(&options.id, "id", "*", "Specify monitor service id")
-	flags.StringVar(&options.role, "role", "*", "Specify monitor service role")
-	flags.StringVar(&options.host, "host", "*", "Specify monitor service host")
+	flags.StringVarP(&options.filename, "conf", "c", "website.yaml", "Specify website configuration file")
 	flags.BoolVarP(&options.verbose, "verbose", "v", false, "Verbose output for status")
 	return cmd
 }
 
-func parseMonitorConfig(curveadm *cli.CurveAdm) ([]*configure.MonitorConfig, error) {
-	if curveadm.ClusterId() == -1 {
-		return nil, errno.ERR_NO_CLUSTER_SPECIFIED
-	}
-	hosts, hostIps, dcs, err := ParseTopology(curveadm)
-	if err != nil {
-		return nil, err
-	}
-
-	monitor := curveadm.Monitor()
-	return configure.ParseMonitorConfig(curveadm, "", monitor.Monitor, hosts, hostIps, dcs)
-}
-
 func genStatusPlaybook(curveadm *cli.CurveAdm,
-	mcs []*configure.MonitorConfig,
-	options statusOptions) (*playbook.Playbook, error) {
-	mcs = configure.FilterMonitorConfig(curveadm, mcs, configure.FilterMonitorOption{
-		Id:   options.id,
-		Role: options.role,
-		Host: options.host,
-	})
-	if len(mcs) == 0 {
+	wcs []*configure.WebsiteConfig) (*playbook.Playbook, error) {
+	if len(wcs) == 0 {
 		return nil, errno.ERR_NO_SERVICES_MATCHED
 	}
 
@@ -98,10 +75,10 @@ func genStatusPlaybook(curveadm *cli.CurveAdm,
 	for _, step := range steps {
 		pb.AddStep(&playbook.PlaybookStep{
 			Type:    step,
-			Configs: mcs,
+			Configs: wcs,
 			ExecOptions: playbook.ExecOptions{
 				SilentSubBar:  true,
-				SilentMainBar: step == playbook.INIT_MONITOR_STATUS,
+				SilentMainBar: step == playbook.INIT_WEBSITE_STATUS,
 				SkipError:     true,
 			},
 		})
@@ -109,33 +86,30 @@ func genStatusPlaybook(curveadm *cli.CurveAdm,
 	return pb, nil
 }
 
-func displayStatus(curveadm *cli.CurveAdm, mcs []*configure.MonitorConfig, options statusOptions) {
-	statuses := []monitor.MonitorStatus{}
-	value := curveadm.MemStorage().Get(comm.KEY_MONITOR_STATUS)
+func displayStatus(curveadm *cli.CurveAdm, wcs []*configure.WebsiteConfig, options statusOptions) {
+	statuses := []website.WebsiteStatus{}
+	value := curveadm.MemStorage().Get(comm.KEY_WEBSITE_STATUS)
 	if value != nil {
-		m := value.(map[string]monitor.MonitorStatus)
+		m := value.(map[string]website.WebsiteStatus)
 		for _, status := range m {
 			statuses = append(statuses, status)
 		}
 	}
 
-	output := tui.FormatMonitorStatus(statuses, options.verbose)
-	curveadm.WriteOutln("")
-	curveadm.WriteOutln("cluster name      : %s", curveadm.ClusterName())
-	curveadm.WriteOutln("cluster kind      : %s", mcs[0].GetKind())
+	output := tui.FormatWebsiteStatus(statuses, options.verbose)
 	curveadm.WriteOutln("")
 	curveadm.WriteOut("%s", output)
 }
 
 func runStatus(curveadm *cli.CurveAdm, options statusOptions) error {
-	// 1) parse monitor config
-	mcs, err := parseMonitorConfig(curveadm)
+	// 1) parse website config
+	wcs, err := configure.ParseWebsiteConfig(options.filename)
 	if err != nil {
 		return err
 	}
 
 	// 2) generate get status playbook
-	pb, err := genStatusPlaybook(curveadm, mcs, options)
+	pb, err := genStatusPlaybook(curveadm, wcs)
 	if err != nil {
 		return err
 	}
@@ -144,7 +118,7 @@ func runStatus(curveadm *cli.CurveAdm, options statusOptions) error {
 	err = pb.Run()
 
 	// 4) display service status
-	displayStatus(curveadm, mcs, options)
+	displayStatus(curveadm, wcs, options)
 	return err
 
 }

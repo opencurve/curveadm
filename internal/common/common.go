@@ -65,23 +65,6 @@ const (
 	DISK_FORMAT_MOUNT_POINT     = "mount"
 	DISK_FORMAT_CONTAINER_IMAGE = "container_image"
 
-	// disk
-	DISK_DEFAULT_NULL_SIZE            = "-"
-	DISK_DEFAULT_NULL_URI             = DISK_DEFAULT_NULL_SIZE
-	DISK_DEFAULT_NULL_CONTAINER_IMAGE = DISK_DEFAULT_NULL_SIZE
-	DISK_DEFAULT_NULL_CHUNKSERVER_ID  = DISK_DEFAULT_NULL_SIZE
-	DISK_FILTER_ALL                   = "all"
-	DISK_FILTER_HOST                  = "host"
-	DISK_FILTER_DEVICE                = "device"
-	DISK_FILTER_MOUNT                 = "mount"
-	DISK_FILTER_SERVICE               = "service"
-	DISK_EXCLUDE_HOST                 = "exclude"
-
-	DISK_FORMAT_PERCENT = "format_percent"
-
-	DISK_FORMAT_MOUNT_POINT     = "mount"
-	DISK_FORMAT_CONTAINER_IMAGE = "container_image"
-
 	// format
 	KEY_ALL_FORMAT_STATUS = "ALL_FORMAT_STATUS"
 
@@ -146,6 +129,9 @@ const (
 	KEY_SERVICE_HOSTS    = "SERVICE_HOSTS"
 	KEY_MONITOR_STATUS   = "MONITOR_STATUS"
 	CLEANED_MONITOR_CONF = "-"
+
+	// website
+	KEY_WEBSITE_STATUS = "WEBSITE_STATUS"
 )
 
 // others

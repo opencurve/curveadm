@@ -16,11 +16,11 @@
 
 /*
 * Project: Curveadm
-* Created Date: 2023-04-27
+* Created Date: 2023-05-08
 * Author: wanghai (SeanHai)
  */
 
-package monitor
+package website
 
 import (
 	"fmt"
@@ -36,32 +36,23 @@ import (
 	"github.com/opencurve/curveadm/internal/utils"
 )
 
-var (
-	ROLE_NODE_EXPORTER = configure.ROLE_NODE_EXPORTER
-	ROLE_PROMETHEUS    = configure.ROLE_PROMETHEUS
-	ROLE_GRAFANA       = configure.ROLE_GRAFANA
-	ROLE_MONITOR_CONF  = configure.ROLE_MONITOR_CONF
-)
-
-func getCleanFiles(clean map[string]bool, cfg *configure.MonitorConfig) []string {
+func getCleanFiles(clean map[string]bool, cfg *configure.WebsiteConfig) []string {
 	files := []string{}
 	for item := range clean {
 		switch item {
 		case comm.CLEAN_ITEM_DATA:
 			files = append(files, cfg.GetDataDir())
+		case comm.CLEAN_ITEM_LOG:
+			files = append(files, cfg.GetLogDir())
 		}
 	}
 	return files
 }
 
-func NewCleanMonitorTask(curveadm *cli.CurveAdm, cfg *configure.MonitorConfig) (*task.Task, error) {
-	serviceId := curveadm.GetServiceId(cfg.GetId())
+func NewCleanWebsiteTask(curveadm *cli.CurveAdm, cfg *configure.WebsiteConfig) (*task.Task, error) {
+	serviceId := curveadm.GetWebsiteServiceId(cfg.GetId())
 	containerId, err := curveadm.GetContainerId(serviceId)
-	if IsSkip(cfg, []string{ROLE_MONITOR_CONF}) {
-		return nil, nil
-	} else if err != nil {
-		return nil, err
-	}
+
 	hc, err := curveadm.GetHost(cfg.GetHost())
 	if err != nil {
 		return nil, err
@@ -71,7 +62,7 @@ func NewCleanMonitorTask(curveadm *cli.CurveAdm, cfg *configure.MonitorConfig) (
 	only := curveadm.MemStorage().Get(comm.KEY_CLEAN_ITEMS).([]string)
 	subname := fmt.Sprintf("host=%s role=%s containerId=%s clean=%s",
 		cfg.GetHost(), cfg.GetRole(), tui.TrimContainerId(containerId), strings.Join(only, ","))
-	t := task.NewTask("Clean Monitor", subname, hc.GetSSHConfig())
+	t := task.NewTask("Clean Website", subname, hc.GetSSHConfig())
 
 	// add step to task
 	clean := utils.Slice2Map(only)
