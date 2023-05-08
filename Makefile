@@ -62,6 +62,7 @@ build:
 
 debug:
 	$(GOENV) $(GO) build -o $(OUTPUT) $(DEBUG_FLAGS) $(PACKAGES)
+	$(GOENV) $(GO) build -o $(SERVER_OUTPUT) $(DEBUG_FLAGS) $(SERVER_PACKAGES)
 
 test:
 	$(GO_TEST) $(TEST_FLAGS) ./...

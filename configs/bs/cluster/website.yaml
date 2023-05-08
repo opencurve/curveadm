@@ -1,0 +1,16 @@
+kind: curvebs
+host: server-host
+config:
+  container_image: opencurvedocker/curve-manager:latest
+  data_dir: /tmp/curve-manager/data
+  log_dir: /tmp/curve-manager/logs
+  listen_port: 443
+  access.api.enable_check: true
+  access.api.expire_seconds: 60
+  access.login.expire_seconds: 1800
+  enable.multiple.write.user.login: false
+  system.log.expiration.days: 30
+  system.alert.expiration.days: 30
+  curveadm.service.address: 127.0.0.1:11000
+  email.addr: example@163.com
+  email.auth: password or authCode

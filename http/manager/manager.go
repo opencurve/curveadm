@@ -53,6 +53,11 @@ type clusterConfig struct {
 	Config string `json:"config"`
 }
 
+type clusterServicesAddr struct {
+	ClusterId int               `json:"clusterId"`
+	Addrs     map[string]string `json:"addrs"`
+}
+
 func newAdmFail(r *pigeon.Request, err error) bool {
 	r.Logger().Error("failed when new curveadm",
 		pigeon.Field("error", err))
@@ -185,6 +190,21 @@ func ListCluster(r *pigeon.Request, ctx *Context) bool {
 	return core.ExitSuccessWithData(r, clusters)
 }
 
+func CheckoutCluster(r *pigeon.Request, ctx *Context) bool {
+	adm, err := cli.NewCurveAdm()
+	if err != nil {
+		return newAdmFail(r, err)
+	}
+	data := ctx.Data.(*CheckoutClusterRequest)
+	err = cluster.Checkout(adm, data.Name)
+	if err != nil {
+		r.Logger().Error("Cluster checkout failed",
+			pigeon.Field("name", data.Name),
+			pigeon.Field("error", err))
+	}
+	return core.Exit(r, err)
+}
+
 func AddCluster(r *pigeon.Request, ctx *Context) bool {
 	adm, err := cli.NewCurveAdm()
 	if err != nil {
@@ -264,7 +284,7 @@ func GetClusterServicesAddr(r *pigeon.Request, ctx *Context) bool {
 		return newAdmFail(r, err)
 	}
 
-	servicesAddr := make(map[string]string)
+	servicesAddr := clusterServicesAddr{}
 	// check current cluster
 	if adm.ClusterId() == -1 {
 		r.Logger().Warn("GetClusterServicesAddr failed, no current cluster")
@@ -280,11 +300,16 @@ func GetClusterServicesAddr(r *pigeon.Request, ctx *Context) bool {
 	}
 
 	monitor := adm.Monitor()
-	mcs, err := configure.ParseMonitorConfig(adm, "", monitor.Monitor, hosts, hostIps, dcs)
-	if err != nil {
-		r.Logger().Warn("ParseMonitorConfig failed when GetClusterServicesAddr",
-			pigeon.Field("error", err))
-		return core.ExitSuccessWithData(r, servicesAddr)
-	}
-	return core.ExitSuccessWithData(r, getServicesAddrFromConf(dcs, mcs))
+	mcs := []*configure.MonitorConfig{}
+	if len(monitor.Monitor) != 0 {
+		mcs, err = configure.ParseMonitorConfig(adm, "", monitor.Monitor, hosts, hostIps, dcs)
+		if err != nil {
+			r.Logger().Warn("ParseMonitorConfig failed when GetClusterServicesAddr",
+				pigeon.Field("error", err))
+			return core.ExitSuccessWithData(r, servicesAddr)
+		}
+	} 
+	servicesAddr.ClusterId = adm.ClusterId()
+	servicesAddr.Addrs = getServicesAddrFromConf(dcs, mcs)
+	return core.ExitSuccessWithData(r, servicesAddr)
 }

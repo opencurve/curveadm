@@ -73,6 +73,10 @@ type CommitConfigRequest struct {
 
 type ListClusterRequest struct{}
 
+type CheckoutClusterRequest struct {
+	Name string `json:"name" binding:"required"`
+}
+
 type AddClusterRequest struct {
 	Name string `json:"name" binding:"required"`
 	Desc string `json:"desc"`
@@ -127,7 +131,7 @@ var requests = []Request{
 		ShowConfig,
 	},
 	{
-		"GET",
+		"POST",
 		"config.commit",
 		CommitConfigRequest{},
 		CommitConfig,
@@ -143,6 +147,12 @@ var requests = []Request{
 		"cluster.add",
 		AddClusterRequest{},
 		AddCluster,
+	},
+	{
+		"POST",
+		"cluster.checkout",
+		CheckoutClusterRequest{},
+		CheckoutCluster,
 	},
 	{
 		"GET",
