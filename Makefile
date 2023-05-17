@@ -12,7 +12,9 @@ GOENV += GOPROXY=$(GOPROXY)
 GOENV += CC=$(CC)
 GOENV += CGO_ENABLED=1 CGO_LDFLAGS=$(CGO_LDFLAGS)
 GOENV += GOOS=$(GOOS) GOARCH=$(GOARCH)
-
+GOLANGCILINT_VERSION ?= v1.50.0
+GOBIN := $(shell go env GOPATH)/bin
+GOBIN_GOLANGCILINT := $(shell which $(GOBIN)/golangci-lint)
 # go
 GO := go
 
@@ -63,3 +65,8 @@ test:
 
 upload:
 	@NOSCMD=$(NOSCMD) bash build/package/upload.sh $(VERSION)
+
+lint:
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCILINT_VERSION)
+	$(GOBIN_GOLANGCILINT) run -v
+
