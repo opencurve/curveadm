@@ -45,7 +45,7 @@ const (
 	TEMPLATE_COPY_INTO_CONTAINER = "docker cp {{.options}}  {{.srcPath}} {{.container}}:{{.destPath}}"
 	TEMPLATE_INSPECT_CONTAINER   = "docker inspect {{.options}} {{.container}}"
 	TEMPLATE_CONTAINER_LOGS      = "docker logs {{.options}} {{.container}}"
-	TEMPLATE_UPDATE_CONTAINER = "docker update {{.options}} {{.container}}"
+	TEMPLATE_UPDATE_CONTAINER    = "docker update {{.options}} {{.container}}"
 )
 
 type DockerCli struct {

@@ -97,7 +97,7 @@ func NewAddTargetTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task
 		ContainerId: &containerId,
 		Cmd:         "/bin/bash",
 		Args:        []string{targetScriptPath, user, volume, strconv.FormatBool(options.Create), strconv.Itoa(options.Size), strconv.FormatUint(options.Blocksize, 10)},
-		TaskName:    "addTarget"+TranslateVolumeName(volume, user),
+		TaskName:    "addTarget" + TranslateVolumeName(volume, user),
 		ExecOptions: curveadm.ExecOptions(),
 	})
 

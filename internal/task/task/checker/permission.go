@@ -145,7 +145,7 @@ func NewCheckPermissionTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (
 	t.AddStep(&step.Ping{
 		Destination: &hostname,
 		Count:       1,
-		Timeout: 1,
+		Timeout:     1,
 		Success:     &success,
 		ExecOptions: curveadm.ExecOptions(),
 	})

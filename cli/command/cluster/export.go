@@ -24,12 +24,13 @@ package cluster
 
 import (
 	"fmt"
+	"github.com/opencurve/curveadm/pkg/log/zaplog"
+	"go.uber.org/zap"
 	"os"
 
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/storage"
 	"github.com/opencurve/curveadm/internal/utils"
-	log "github.com/opencurve/curveadm/pkg/log/glg"
 	"github.com/spf13/cobra"
 )
 
@@ -129,12 +130,12 @@ func runExport(curveadm *cli.CurveAdm, options exportOptions) error {
 	storage := curveadm.Storage()
 	clusters, err := storage.GetClusters(name)
 	if err != nil {
-		log.Error("GetClusters", log.Field("error", err))
+		zaplog.Error("GetClusters", zap.Any("error", err))
 		return err
 	} else if len(clusters) == 0 {
 		return fmt.Errorf("cluster %s not exist", name)
 	} else if services, err := storage.GetServices(clusters[0].Id); err != nil {
-		log.Error("GetServices", log.Field("error", err))
+		zaplog.Error("GetServices", zap.Any("error", err))
 		return err
 	} else if err = exportCluster(clusters[0], services, options.outfile); err != nil {
 		return err

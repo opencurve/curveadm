@@ -28,13 +28,14 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/opencurve/curveadm/pkg/log/zaplog"
+	"go.uber.org/zap"
 	"os/exec"
 	"strings"
 	"text/template"
 	"time"
 
 	"github.com/melbahja/goph"
-	log "github.com/opencurve/curveadm/pkg/log/glg"
 )
 
 type (
@@ -145,10 +146,10 @@ func execCommand(sshClient *SSHClient,
 		err = &TimeoutError{options.ExecTimeoutSec}
 	}
 
-	log.SwitchLevel(err)("Execute command",
-		log.Field("remoteAddr", remoteAddr(sshClient)),
-		log.Field("command", command),
-		log.Field("output", strings.TrimSuffix(string(out), "\n")),
-		log.Field("error", err))
+	zaplog.Error("Execute command",
+		zap.String("remoteAddr", remoteAddr(sshClient)),
+		zap.String("command", command),
+		zap.String("output", strings.TrimSuffix(string(out), "\n")),
+		zap.Any("error", err))
 	return string(out), err
 }

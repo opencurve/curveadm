@@ -26,6 +26,8 @@ package common
 
 import (
 	"fmt"
+	"github.com/opencurve/curveadm/pkg/log/zaplog"
+	"go.uber.org/zap"
 	"strings"
 
 	"github.com/opencurve/curveadm/cli/cli"
@@ -37,7 +39,6 @@ import (
 	"github.com/opencurve/curveadm/internal/task/context"
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
-	log "github.com/opencurve/curveadm/pkg/log/glg"
 )
 
 type step2GetService struct {
@@ -90,9 +91,9 @@ func (s *step2InsertService) Execute(ctx *context.Context) error {
 		err = s.E(err, errno.ERR_INSERT_SERVICE_CONTAINER_ID_FAILED)
 	}
 
-	log.SwitchLevel(err)("Insert service",
-		log.Field("ServiceId", serviceId),
-		log.Field("ContainerId", containerId))
+	zaplog.Error("Insert service",
+		zap.String("ServiceId", serviceId),
+		zap.String("ContainerId", containerId))
 
 	return err
 }

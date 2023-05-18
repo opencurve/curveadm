@@ -107,7 +107,7 @@ func runStop(curveadm *cli.CurveAdm, options stopOptions) error {
 	}
 
 	// 3) confirm by user
-	pass := tui.ConfirmYes(tui.PromptStopService(options.id, options.role, options.host));
+	pass := tui.ConfirmYes(tui.PromptStopService(options.id, options.role, options.host))
 	if !pass {
 		curveadm.WriteOut(tui.PromptCancelOpetation("stop service"))
 		return errno.ERR_CANCEL_OPERATION
