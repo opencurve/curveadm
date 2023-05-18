@@ -28,8 +28,9 @@ import (
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/errno"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
-	log "github.com/opencurve/curveadm/pkg/log/glg"
+	"github.com/opencurve/curveadm/pkg/log/zaplog"
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 )
 
 type checkoutOptions struct {
@@ -59,8 +60,8 @@ func runCheckout(curveadm *cli.CurveAdm, options checkoutOptions) error {
 	storage := curveadm.Storage()
 	clusters, err := storage.GetClusters(clusterName)
 	if err != nil {
-		log.Error("Get clusters failed",
-			log.Field("error", err))
+		zaplog.Error("Get clusters failed",
+			zap.Any("error", err))
 		return errno.ERR_GET_ALL_CLUSTERS_FAILED.E(err)
 	} else if len(clusters) == 0 {
 		return errno.ERR_CLUSTER_NOT_FOUND.

@@ -31,8 +31,9 @@ import (
 	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/playbook"
 	"github.com/opencurve/curveadm/internal/utils"
-	log "github.com/opencurve/curveadm/pkg/log/glg"
+	"github.com/opencurve/curveadm/pkg/log/zaplog"
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 )
 
 const (
@@ -139,9 +140,9 @@ func runAdd(curveadm *cli.CurveAdm, options addOptions) error {
 	storage := curveadm.Storage()
 	clusters, err := storage.GetClusters(name)
 	if err != nil {
-		log.Error("Get clusters failed",
-			log.Field("cluster name", name),
-			log.Field("error", err))
+		zaplog.Error("Get clusters failed",
+			zap.String("cluster name", name),
+			zap.Any("error", err))
 		return errno.ERR_GET_ALL_CLUSTERS_FAILED.E(err)
 	} else if len(clusters) > 0 {
 		return errno.ERR_CLUSTER_ALREADY_EXIST.

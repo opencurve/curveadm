@@ -27,9 +27,9 @@ package module
 import (
 	"errors"
 	"fmt"
+	"github.com/opencurve/curveadm/pkg/log/zaplog"
+	"go.uber.org/zap"
 	"os"
-
-	log "github.com/opencurve/curveadm/pkg/log/glg"
 )
 
 const (
@@ -54,11 +54,11 @@ func (f *FileManager) Upload(localPath, remotePath string) error {
 	}
 
 	err := f.sshClient.Client().Upload(localPath, remotePath)
-	log.SwitchLevel(err)("UploadFile",
-		log.Field("remoteAddress", remoteAddr(f.sshClient)),
-		log.Field("localPath", localPath),
-		log.Field("remotePath", remotePath),
-		log.Field("error", err))
+	zaplog.Error("UploadFile",
+		zap.String("remoteAddress", remoteAddr(f.sshClient)),
+		zap.String("localPath", localPath),
+		zap.String("remotePath", remotePath),
+		zap.Any("error", err))
 	return err
 }
 
@@ -68,11 +68,11 @@ func (f *FileManager) Download(remotePath, localPath string) error {
 	}
 
 	err := f.sshClient.Client().Download(remotePath, localPath)
-	log.SwitchLevel(err)("DownloadFile",
-		log.Field("remoteAddress", remoteAddr(f.sshClient)),
-		log.Field("remotePath", remotePath),
-		log.Field("localPath", localPath),
-		log.Field("error", err))
+	zaplog.Error("DownloadFile",
+		zap.String("remoteAddress", remoteAddr(f.sshClient)),
+		zap.String("remotePath", remotePath),
+		zap.String("localPath", localPath),
+		zap.Any("error", err))
 	return err
 }
 

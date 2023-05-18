@@ -26,11 +26,12 @@ package module
 
 import (
 	"errors"
+	"github.com/opencurve/curveadm/pkg/log/zaplog"
+	"go.uber.org/zap"
 	"net"
 	"time"
 
 	"github.com/melbahja/goph"
-	log "github.com/opencurve/curveadm/pkg/log/glg"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -107,13 +108,13 @@ func NewSSHClient(config SSHConfig) (*SSHClient, error) {
 	}
 
 	if err != nil {
-		log.Error("Create SSH auth",
-			log.Field("user", user),
-			log.Field("host", host),
-			log.Field("port", port),
-			log.Field("forwardAgent", forwardAgent),
-			log.Field("privateKeyPath", privateKeyPath),
-			log.Field("error", err))
+		zaplog.Error("Create SSH auth",
+			zap.String("user", user),
+			zap.String("host", host),
+			zap.Uint("port", port),
+			zap.Bool("forwardAgent", forwardAgent),
+			zap.String("privateKeyPath", privateKeyPath),
+			zap.Any("error", err))
 		return nil, err
 	}
 
@@ -129,16 +130,16 @@ connect:
 		Callback: VerifyHost,
 	})
 
-	log.SwitchLevel(err)("Connect remote SSH",
-		log.Field("user", user),
-		log.Field("host", host),
-		log.Field("port", port),
-		log.Field("forwardAgent", forwardAgent),
-		log.Field("privateKeyPath", privateKeyPath),
-		log.Field("timeoutSec", connTimeoutSec),
-		log.Field("maxRetries", maxRetries),
-		log.Field("tries", tries),
-		log.Field("error", err))
+	zaplog.Error("Connect remote SSH",
+		zap.String("user", user),
+		zap.String("host", host),
+		zap.Uint("port", port),
+		zap.Bool("forwardAgent", forwardAgent),
+		zap.String("privateKeyPath", privateKeyPath),
+		zap.Int("timeoutSec", connTimeoutSec),
+		zap.Int("maxRetries", maxRetries),
+		zap.Int("tries", tries),
+		zap.Any("error", err))
 
 	if err != nil {
 		if tries < maxRetries {
