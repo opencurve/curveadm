@@ -54,12 +54,14 @@ const (
 
 type (
 	CurveAdmConfig struct {
-		LogLevel    string
-		SudoAlias   string
-		Timeout     int
-		AutoUpgrade bool
-		SSHRetries  int
-		SSHTimeout  int
+		LogLevel     string
+		SudoAlias    string
+		Timeout      int
+		AutoUpgrade  bool
+		ShowLine     bool
+		LogInConsole bool
+		SSHRetries   int
+		SSHTimeout   int
 	}
 
 	CurveAdm struct {
@@ -72,12 +74,14 @@ var (
 	GlobalCurveAdmConfig *CurveAdmConfig
 
 	defaultCurveAdmConfig = &CurveAdmConfig{
-		LogLevel:    "error",
-		SudoAlias:   "sudo",
-		Timeout:     180,
-		AutoUpgrade: true,
-		SSHRetries:  3,
-		SSHTimeout:  10,
+		LogLevel:     "info",
+		SudoAlias:    "sudo",
+		Timeout:      180,
+		AutoUpgrade:  true,
+		ShowLine:     true,
+		LogInConsole: true,
+		SSHRetries:   3,
+		SSHTimeout:   10,
 	}
 
 	SUPPORT_LOG_LEVEL = map[string]bool{

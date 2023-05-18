@@ -26,9 +26,9 @@ package variable
 
 import (
 	"fmt"
+	"github.com/opencurve/curveadm/pkg/log/zaplog"
+	"go.uber.org/zap"
 	"regexp"
-
-	log "github.com/opencurve/curveadm/pkg/log/glg"
 )
 
 const (
@@ -152,6 +152,6 @@ func (vars *Variables) Rendering(s string) (string, error) {
 
 func (vars *Variables) Debug() {
 	for _, v := range vars.m {
-		log.Info("Variable", log.Field(v.Name, v.Value))
+		zaplog.Info("Variable", zap.String(v.Name, v.Value))
 	}
 }

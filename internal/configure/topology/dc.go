@@ -26,12 +26,13 @@ package topology
 
 import (
 	"fmt"
+	"github.com/opencurve/curveadm/pkg/log/zaplog"
+	"go.uber.org/zap"
 	"strconv"
 
 	"github.com/opencurve/curveadm/internal/build"
 	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/utils"
-	log "github.com/opencurve/curveadm/pkg/log/glg"
 	"github.com/opencurve/curveadm/pkg/variable"
 )
 
@@ -156,8 +157,8 @@ func NewDeployConfig(ctx *Context, kind, role, host, name string, replicas int,
 func (dc *DeployConfig) renderVariables() error {
 	vars := dc.GetVariables()
 	if err := vars.Build(); err != nil {
-		log.Error("Build variables failed",
-			log.Field("error", err))
+		zaplog.Error("Build variables failed",
+			zap.Any("error", err))
 		return errno.ERR_RESOLVE_VARIABLE_FAILED.E(err)
 	}
 
@@ -257,8 +258,8 @@ func (dc *DeployConfig) ResolveHost() error {
 
 	vars := dc.GetVariables()
 	if err := vars.Build(); err != nil {
-		log.Error("Build variables failed",
-			log.Field("error", err))
+		zaplog.Error("Build variables failed",
+			zap.Any("error", err))
 		return errno.ERR_RESOLVE_VARIABLE_FAILED.E(err)
 	}
 
