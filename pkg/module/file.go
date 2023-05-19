@@ -27,7 +27,6 @@ package module
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	log "github.com/opencurve/curveadm/pkg/log/glg"
@@ -78,7 +77,7 @@ func (f *FileManager) Download(remotePath, localPath string) error {
 }
 
 func (f *FileManager) Install(content, destPath string) error {
-	file, err := ioutil.TempFile(TEMP_DIR, "curevadm.*.install")
+	file, err := os.CreateTemp(TEMP_DIR, "curevadm.*.install")
 	if err != nil {
 		return err
 	}
