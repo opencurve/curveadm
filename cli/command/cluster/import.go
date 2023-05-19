@@ -30,10 +30,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/opencurve/curveadm/pkg/log/zaplog"
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/storage"
 	"github.com/opencurve/curveadm/internal/utils"
+	"github.com/opencurve/curveadm/pkg/log/zaplog"
 	"github.com/spf13/cobra"
 )
 

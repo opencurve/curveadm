@@ -35,7 +35,6 @@ import (
 )
 
 type (
-
 	ExecOptions struct {
 		Concurrency   uint
 		SilentMainBar bool
