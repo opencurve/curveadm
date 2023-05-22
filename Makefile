@@ -63,3 +63,6 @@ test:
 
 upload:
 	@NOSCMD=$(NOSCMD) bash build/package/upload.sh $(VERSION)
+
+verify:
+	scripts/verify_mod.sh
