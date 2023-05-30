@@ -34,7 +34,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-
 var (
 	RESTART_PLAYBOOK_STEPS = []int{
 		playbook.RESTART_SERVICE,

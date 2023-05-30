@@ -64,13 +64,14 @@ func addTarget(memStorage *utils.SafeMap, id string, target *step.Target) {
 /*
 Output Example:
 Target 3: iqn.2022-02.com.opencurve:curve.wine93/test03
-    ...
-    LUN information:
-        LUN: 0
-            ...
-        LUN: 1
-            ...
-            Backing store path: cbd:pool//test03_wine93_
+
+	...
+	LUN information:
+	    LUN: 0
+	        ...
+	    LUN: 1
+	        ...
+	        Backing store path: cbd:pool//test03_wine93_
 */
 func (s *step2FormatTarget) Execute(ctx *context.Context) error {
 	output := *s.output
@@ -83,7 +84,7 @@ func (s *step2FormatTarget) Execute(ctx *context.Context) error {
 		mu := titlePattern.FindStringSubmatch(line)
 		if len(mu) > 0 {
 			target = &step.Target{
-				Host: s.host,
+				Host:   s.host,
 				Tid:    mu[1],
 				Name:   mu[2],
 				Store:  "-",
