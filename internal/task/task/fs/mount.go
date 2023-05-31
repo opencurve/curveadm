@@ -47,7 +47,7 @@ import (
 const (
 	FORMAT_MOUNT_OPTION = "type=bind,source=%s,target=%s,bind-propagation=rshared"
 
-	CLIENT_CONFIG_DELIMITER = "="
+	CLIENT_CONFIG_DELIMITER  = "="
 	TOOLSV2_CONFIG_DELIMITER = ":"
 
 	KEY_CURVEBS_CLUSTER = "curvebs.cluster"
@@ -229,7 +229,7 @@ func newToolsMutate(cc *configure.ClientConfig, delimiter string) step.Mutate {
 func newToolsV2Mutate(cc *configure.ClientConfig, delimiter string) step.Mutate {
 	clientConfig := cc.GetServiceConfig()
 	tools2client := map[string]string{
-		"mdsAddr":       "mdsOpt.rpcRetryOpt.addrs",
+		"mdsAddr": "mdsOpt.rpcRetryOpt.addrs",
 	}
 	return func(in, key, value string) (out string, err error) {
 		if len(key) == 0 {

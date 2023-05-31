@@ -25,9 +25,9 @@
 package os
 
 const (
-	PATH_FSTAB = "/etc/fstab"
+	PATH_FSTAB      = "/etc/fstab"
 	PATH_OS_RELEASE = "/etc/os-release"
-	MAX_PORT   = 65535
+	MAX_PORT        = 65535
 )
 
 func GetFSTabPath() string     { return PATH_FSTAB }

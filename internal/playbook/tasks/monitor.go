@@ -28,7 +28,6 @@ import (
 	"github.com/opencurve/curveadm/internal/task/task"
 )
 
-
 const (
 	STATUS_OK = iota
 	STATUS_SKIP
