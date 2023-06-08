@@ -52,7 +52,6 @@ type CurveAdm struct {
 	pluginDir string
 	logDir    string
 	tempDir   string
-	dbpath    string
 	logpath   string
 	config    *configure.CurveAdmConfig
 
@@ -142,9 +141,9 @@ func (curveadm *CurveAdm) init() error {
 	// (4) Init error code
 	errno.Init(logpath)
 
-	// (5) New storage: create table in sqlite
-	dbpath := fmt.Sprintf("%s/curveadm.db", curveadm.dataDir)
-	s, err := storage.NewStorage(dbpath)
+	// (5) New storage: create table in sqlite/rqlite
+	dbUrl := config.GetDBUrl()
+	s, err := storage.NewStorage(dbUrl)
 	if err != nil {
 		log.Error("Init SQLite database failed",
 			log.Field("Error", err))
@@ -174,7 +173,6 @@ func (curveadm *CurveAdm) init() error {
 			log.Field("ClusterName", cluster.Name))
 	}
 
-	curveadm.dbpath = dbpath
 	curveadm.logpath = logpath
 	curveadm.config = config
 	curveadm.in = os.Stdin
@@ -253,7 +251,6 @@ func (curveadm *CurveAdm) DataDir() string                   { return curveadm.d
 func (curveadm *CurveAdm) PluginDir() string                 { return curveadm.pluginDir }
 func (curveadm *CurveAdm) LogDir() string                    { return curveadm.logDir }
 func (curveadm *CurveAdm) TempDir() string                   { return curveadm.tempDir }
-func (curveadm *CurveAdm) DBPath() string                    { return curveadm.dbpath }
 func (curveadm *CurveAdm) LogPath() string                   { return curveadm.logpath }
 func (curveadm *CurveAdm) Config() *configure.CurveAdmConfig { return curveadm.config }
 func (curveadm *CurveAdm) SudoAlias() string                 { return curveadm.config.GetSudoAlias() }
