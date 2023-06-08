@@ -1,4 +1,4 @@
-.PHONY: build debug test tar
+.PHONY: build debug install test upload lint
 
 # go env
 GOPROXY     := "https://goproxy.cn,direct"
@@ -59,6 +59,9 @@ build:
 
 debug:
 	$(GOENV) $(GO) build -o $(OUTPUT) $(DEBUG_FLAGS) $(PACKAGES)
+
+install:
+	cp bin/curveadm ~/.curveadm/bin
 
 test:
 	$(GO_TEST) $(TEST_FLAGS) ./...

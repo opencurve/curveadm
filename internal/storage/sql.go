@@ -37,9 +37,18 @@
 
 package storage
 
+import "time"
+
+// version
+type Version struct {
+	Id          int
+	Version     string
+	LastConfirm string
+}
+
 var (
-	// tables (hosts/clusters/containers(service)/clients/playrgound/audit)
-	CREATE_VERSION_TABLE = `
+	// table: version
+	CreateVersionTable = `
 		CREATE TABLE IF NOT EXISTS version (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			version TEXT NOT NULL,
@@ -47,7 +56,26 @@ var (
 		)
 	`
 
-	CREATE_HOSTS_TABLE = `
+	// insert version
+	InsertVersion = `INSERT INTO version(version, lastconfirm) VALUES(?, "")`
+
+	// set version
+	SetVersion = `UPDATE version SET version = ?, lastconfirm = ? WHERE id = ?`
+
+	// select version
+	SelectVersion = `SELECT * FROM version`
+)
+
+// hosts
+type Hosts struct {
+	Id               int
+	Data             string
+	LastModifiedTime time.Time
+}
+
+var (
+	// table: hosts
+	CreateHostsTable = `
 		CREATE TABLE IF NOT EXISTS hosts (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			data TEXT NOT NULL,
@@ -55,7 +83,31 @@ var (
 		)
 	`
 
-	CREATE_CLUSTERS_TABLE = `
+	// insert hosts
+	InsertHosts = `INSERT INTO hosts(data, lastmodified_time) VALUES(?, datetime('now','localtime'))`
+
+	// set hosts
+	SetHosts = `UPDATE hosts SET data = ?, lastmodified_time = datetime('now','localtime') WHERE id = ?`
+
+	// select hosts
+	SelectHosts = `SELECT * FROM hosts`
+)
+
+// cluster
+type Cluster struct {
+	Id          int
+	UUId        string
+	Name        string
+	Description string
+	CreateTime  time.Time
+	Topology    string
+	Pool        string
+	Current     bool
+}
+
+var (
+	// table: clusters
+	CreateClustersTable = `
 		CREATE TABLE IF NOT EXISTS clusters (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			uuid TEXT NOT NULL,
@@ -68,8 +120,48 @@ var (
 		)
 	`
 
+	// insert cluster
+	InsertCluster = `
+		INSERT INTO clusters(uuid, name, description, topology, pool, create_time)
+		VALUES(hex(randomblob(16)), ?, ?, ?, "", datetime('now','localtime'))
+	`
+
+	// delete cluster
+	DeleteCluster = `DELETE from clusters WHERE name = ?`
+
+	// select cluster
+	SelectCluster = `SELECT * FROM clusters WHERE name LIKE ?`
+
+	// get current cluster
+	GetCurrentCluster = `SELECT * FROM clusters WHERE current = 1`
+
+	// checkout cluster
+	CheckoutCluster = `
+		UPDATE clusters
+		SET current = CASE name
+			WHEN ? THEN 1
+			ELSE 0
+		END
+	`
+
+	// set cluster topology
+	SetClusterTopology = `UPDATE clusters SET topology = ? WHERE id = ?`
+
+	// set cluster pool
+	SetClusterPool = `UPDATE clusters SET topology = ?, pool = ? WHERE id = ?`
+)
+
+// service
+type Service struct {
+	Id          string
+	ClusterId   int
+	ContainerId string
+}
+
+var (
+	// table: containers
 	// id: clusterId_role_host_(sequence/name)
-	CREATE_CONTAINERS_TABLE = `
+	CreateContainersTable = `
 		CREATE TABLE IF NOT EXISTS containers (
 			id TEXT PRIMARY KEY,
 			cluster_id INTEGER NOT NULL,
@@ -77,7 +169,31 @@ var (
 		)
 	`
 
-	CREATE_CLIENTS_TABLE = `
+	// insert service
+	InsertService = `INSERT INTO containers(id, cluster_id, container_id) VALUES(?, ?, ?)`
+
+	// select service
+	SelectService = `SELECT * FROM containers WHERE id = ?`
+
+	// select services in cluster
+	SelectServicesInCluster = `SELECT * FROM containers WHERE cluster_id = ?`
+
+	// set service container id
+	SetContainerId = `UPDATE containers SET container_id = ? WHERE id = ?`
+)
+
+// client
+type Client struct {
+	Id          string
+	Kind        string
+	Host        string
+	ContainerId string
+	AuxInfo     string
+}
+
+var (
+	// table: clients
+	CreateClientsTable = `
 		CREATE TABLE IF NOT EXISTS clients (
 			id TEXT PRIMARY KEY,
 			kind TEXT NOT NULL,
@@ -86,117 +202,116 @@ var (
 			aux_info TEXT NOT NULL
 		)
 	`
+	// insert client
+	InsertClient = `INSERT INTO clients(id, kind, host, container_id, aux_info) VALUES(?, ?, ?, ?, ?)`
 
-	CREATE_PLAYGROUND_TABLE = `
-       CREATE TABLE IF NOT EXISTS playgrounds (
+	// select clients
+	SelectClients = `SELECT * FROM clients`
+
+	// select client by id
+	SelectClientById = `SELECT * FROM clients WHERE id = ?`
+
+	// delete client
+	DeleteClient = `DELETE from clients WHERE id = ?`
+)
+
+// playground
+type Playground struct {
+	Id         int
+	Name       string
+	CreateTime time.Time
+	MountPoint string
+	Status     string
+}
+
+var (
+	// table: playground
+	CreatePlaygroundTable = `
+		CREATE TABLE IF NOT EXISTS playgrounds (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			name TEXT NOT NULL UNIQUE,
 			create_time DATE NOT NULL,
 			mount_point TEXT NOT NULL,
-            status TEXT NOT NULL
+			status TEXT NOT NULL
 		)
-    `
+	`
 
-	CREATE_AUDIT_TABLE = `
-        CREATE TABLE IF NOT EXISTS audit (
+	// insert playground
+	InsertPlayground = `
+		INSERT INTO playgrounds(name, create_time, mount_point, status)
+                    VALUES(?, datetime('now','localtime'), ?, ?)
+	`
+
+	// set playground status
+	SetPlaygroundStatus = `UPDATE playgrounds SET status = ? WHERE name = ?`
+
+	// select playground
+	SelectPlayground = `SELECT * FROM playgrounds WHERE name LIKE ?`
+
+	// select playground by id
+	SelectPlaygroundById = `SELECT * FROM playgrounds WHERE id = ?`
+
+	// delete playground
+	DeletePlayground = `DELETE from playgrounds WHERE name = ?`
+)
+
+// audit log
+type AuditLog struct {
+	Id            int
+	ExecuteTime   time.Time
+	WorkDirectory string
+	Command       string
+	Status        int
+	ErrorCode     int
+}
+
+var (
+	// table: audit
+	CreateAuditTable = `
+		CREATE TABLE IF NOT EXISTS audit (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
-            execute_time DATE NOT NULL,
-            work_directory TEXT NOT NULL,
+			execute_time DATE NOT NULL,
+			work_directory TEXT NOT NULL,
 			command TEXT NOT NULL,
 			status INTEGER DEFAULT 0,
-            error_code INTEGET DEFAULT 0
+			error_code INTEGET DEFAULT 0
 		)
-    `
+	`
 
-	CHECK_POOl_COLUMN = `
+	// insert audit log
+	InsertAuditLog = `
+		INSERT INTO audit(execute_time, work_directory, command, status)
+		            VALUES(?, ?, ?, ?)
+	`
+
+	// set audit log status
+	SetAuditLogStatus = `UPDATE audit SET status = ?, error_code = ? WHERE id = ?`
+
+	// select audit log
+	SelectAuditLog = `SELECT * FROM audit`
+
+	// select audit log by id
+	SelectAuditLogById = `SELECT * FROM audit WHERE id = ?`
+)
+
+var (
+	// check pool column
+	CheckPoolColumn = `
 		SELECT COUNT(*) AS total
 		FROM pragma_table_info('clusters')
 		WHERE name='pool'
 	`
 
-	RENAME_CLUSTERS_TABLE = `ALTER TABLE clusters RENAME TO clusters_old`
+	// rename clusters table
+	RenameClustersTable = `ALTER TABLE clusters RENAME TO clusters_old`
 
-	INSERT_CLUSTERS_FROM_OLD_TABLE = `
+	// insert clusters from old table
+	InsertClustersFromOldTable = `
 		INSERT INTO clusters(id, uuid, name, description, topology, pool, create_time, current)
 		SELECT id, uuid, name, description, topology, "", create_time, current
 		FROM clusters_old
 	`
 
-	DROP_OLD_CLUSTERS_TABLE = `DROP TABLE clusters_old`
-
-	// version
-	INSERT_VERSION = `INSERT INTO version(version, lastconfirm) VALUES(?, "")`
-
-	SET_VERSION = `UPDATE version SET version = ?, lastconfirm = ? WHERE id = ?`
-
-	SELECT_VERSION = `SELECT * FROM version`
-
-	// hosts
-	INSERT_HOSTS = `INSERT INTO hosts(data, lastmodified_time) VALUES(?, datetime('now','localtime'))`
-
-	SET_HOSTS = `UPDATE hosts SET data = ?, lastmodified_time = datetime('now','localtime') WHERE id = ?`
-
-	SELECT_HOSTS = `SELECT * FROM hosts`
-
-	// cluster
-	INSERT_CLUSTER = `INSERT INTO clusters(uuid, name, description, topology, pool, create_time)
-                                  VALUES(hex(randomblob(16)), ?, ?, ?, "", datetime('now','localtime'))`
-
-	DELETE_CLUSTER = `DELETE from clusters WHERE name = ?`
-
-	SELECT_CLUSTER = `SELECT * FROM clusters WHERE name LIKE ?`
-
-	GET_CURRENT_CLUSTER = `SELECT * FROM clusters WHERE current = 1`
-
-	CHECKOUT_CLUSTER = `
-		UPDATE clusters
-		SET current = CASE name
-    		WHEN ? THEN 1
-			ELSE 0
-		END
-	`
-
-	SET_CLUSTER_TOPOLOGY = `UPDATE clusters SET topology = ? WHERE id = ?`
-
-	SET_CLUSTER_POOL = `UPDATE clusters SET topology = ?, pool = ? WHERE id = ?`
-
-	// service
-	INSERT_SERVICE = `INSERT INTO containers(id, cluster_id, container_id) VALUES(?, ?, ?)`
-
-	SELECT_SERVICE = `SELECT * FROM containers WHERE id = ?`
-
-	SELECT_SERVICE_IN_CLUSTER = `SELECT * FROM containers WHERE cluster_id = ?`
-
-	SET_CONTAINER_ID = `UPDATE containers SET container_id = ? WHERE id = ?`
-
-	// client
-	INSERT_CLIENT = `INSERT INTO clients(id, kind, host, container_id, aux_info) VALUES(?, ?, ?, ?, ?)`
-
-	SELECT_CLIENTS = `SELECT * FROM clients`
-
-	SELECT_CLIENT_BY_ID = `SELECT * FROM clients WHERE id = ?`
-
-	DELETE_CLIENT = `DELETE from clients WHERE id = ?`
-
-	// playground
-	INSERT_PLAYGROUND = `INSERT INTO playgrounds(name, create_time, mount_point, status)
-                                     VALUES(?, datetime('now','localtime'), ?, ?)`
-
-	SET_PLAYGROUND_STATUS = `UPDATE playgrounds SET status = ? WHERE name = ?`
-
-	SELECT_PLAYGROUND = `SELECT * FROM playgrounds WHERE name LIKE ?`
-
-	SELECT_PLAYGROUND_BY_ID = `SELECT * FROM playgrounds WHERE id = ?`
-
-	DELETE_PLAYGROUND = `DELETE from playgrounds WHERE name = ?`
-
-	// audit
-	INSERT_AUDIT_LOG = `INSERT INTO audit(execute_time, work_directory, command, status)
-                                    VALUES(?, ?, ?, ?)`
-
-	SET_AUDIT_LOG_STATUS = `UPDATE audit SET status = ?, error_code = ? WHERE id = ?`
-
-	SELECT_AUDIT_LOG = `SELECT * FROM audit`
-
-	SELECT_AUDIT_LOG_BY_ID = `SELECT * FROM audit WHERE id = ?`
+	// statement: drom old clusters table
+	DropOldClustersTable = `DROP TABLE clusters_old`
 )

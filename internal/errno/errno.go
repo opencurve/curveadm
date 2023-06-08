@@ -276,6 +276,7 @@ var (
 	// 311: configure (curveadm.cfg: invalid configure value)
 	ERR_UNSUPPORT_CURVEADM_LOG_LEVEL      = EC(311000, "unsupport curveadm log level")
 	ERR_UNSUPPORT_CURVEADM_CONFIGURE_ITEM = EC(311001, "unsupport curveadm configure item")
+	ERR_UNSUPPORT_CURVEADM_DATABASE_URL   = EC(311002, "unsupport curveadm database url")
 
 	// 320: configure (hosts.yaml: parse failed)
 	ERR_HOSTS_FILE_NOT_FOUND   = EC(320000, "hosts file not found")

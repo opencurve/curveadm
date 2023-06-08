@@ -25,6 +25,10 @@
 package curveadm
 
 import (
+	"fmt"
+	"os"
+	"regexp"
+
 	"github.com/opencurve/curveadm/internal/build"
 	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/utils"
@@ -40,6 +44,9 @@ import (
  * [ssh_connections]
  * retries = 3
  * timeout = 10
+ *
+ * [database]
+ * url = "sqlite:///home/curve/.curveadm/data/curveadm.db"
  */
 const (
 	KEY_LOG_LEVEL    = "log_level"
@@ -48,6 +55,13 @@ const (
 	KEY_AUTO_UPGRADE = "auto_upgrade"
 	KEY_SSH_RETRIES  = "retries"
 	KEY_SSH_TIMEOUT  = "timeout"
+	KEY_DB_URL       = "url"
+
+	// rqlite://127.0.0.1:4000
+	// sqlite:///home/curve/.curveadm/data/curveadm.db
+	REGEX_DB_URL = "^(sqlite|rqlite)://(.+)$"
+	DB_SQLITE    = "sqlite"
+	DB_RQLITE    = "rqlite"
 
 	WITHOUT_SUDO = " "
 )
@@ -60,25 +74,18 @@ type (
 		AutoUpgrade bool
 		SSHRetries  int
 		SSHTimeout  int
+		DBUrl       string
 	}
 
 	CurveAdm struct {
 		Defaults       map[string]interface{} `mapstructure:"defaults"`
 		SSHConnections map[string]interface{} `mapstructure:"ssh_connections"`
+		DataBase       map[string]interface{} `mapstructure:"database"`
 	}
 )
 
 var (
 	GlobalCurveAdmConfig *CurveAdmConfig
-
-	defaultCurveAdmConfig = &CurveAdmConfig{
-		LogLevel:    "error",
-		SudoAlias:   "sudo",
-		Timeout:     180,
-		AutoUpgrade: true,
-		SSHRetries:  3,
-		SSHTimeout:  10,
-	}
 
 	SUPPORT_LOG_LEVEL = map[string]bool{
 		"debug": true,
@@ -90,6 +97,20 @@ var (
 
 func ReplaceGlobals(cfg *CurveAdmConfig) {
 	GlobalCurveAdmConfig = cfg
+}
+
+func newDefault() *CurveAdmConfig {
+	home, _ := os.UserHomeDir()
+	cfg := &CurveAdmConfig{
+		LogLevel:    "error",
+		SudoAlias:   "sudo",
+		Timeout:     180,
+		AutoUpgrade: true,
+		SSHRetries:  3,
+		SSHTimeout:  10,
+		DBUrl:       fmt.Sprintf("sqlite://%s/.curveadm/data/curveadm.db", home),
+	}
+	return cfg
 }
 
 // TODO(P2): using ItemSet to check value type
@@ -141,6 +162,7 @@ func parseDefaultsSection(cfg *CurveAdmConfig, defaults map[string]interface{}) 
 			}
 			cfg.Timeout = num
 
+		// auto upgrade
 		case KEY_AUTO_UPGRADE:
 			yes, err := requirePositiveBool(KEY_AUTO_UPGRADE, v)
 			if err != nil {
@@ -189,8 +211,39 @@ func parseConnectionSection(cfg *CurveAdmConfig, connection map[string]interface
 	return nil
 }
 
+func parseDatabaseSection(cfg *CurveAdmConfig, database map[string]interface{}) error {
+	if database == nil {
+		return nil
+	}
+
+	for k, v := range database {
+		switch k {
+		// database url
+		case KEY_DB_URL:
+			dbUrl := v.(string)
+			pattern := regexp.MustCompile(REGEX_DB_URL)
+			mu := pattern.FindStringSubmatch(dbUrl)
+			if len(mu) == 0 {
+				return errno.ERR_UNSUPPORT_CURVEADM_DATABASE_URL.F("url: %s", dbUrl)
+			}
+			cfg.DBUrl = dbUrl
+
+		default:
+			return errno.ERR_UNSUPPORT_CURVEADM_CONFIGURE_ITEM.
+				F("%s: %s", k, v)
+		}
+	}
+
+	return nil
+}
+
+type sectionParser struct {
+	parser  func(*CurveAdmConfig, map[string]interface{}) error
+	section map[string]interface{}
+}
+
 func ParseCurveAdmConfig(filename string) (*CurveAdmConfig, error) {
-	cfg := defaultCurveAdmConfig
+	cfg := newDefault()
 	if !utils.PathExist(filename) {
 		build.DEBUG(build.DEBUG_CURVEADM_CONFIGURE, cfg)
 		return cfg, nil
@@ -211,13 +264,16 @@ func ParseCurveAdmConfig(filename string) (*CurveAdmConfig, error) {
 		return nil, errno.ERR_PARSE_CURVRADM_CONFIGURE_FAILED.E(err)
 	}
 
-	err = parseDefaultsSection(cfg, global.Defaults)
-	if err != nil {
-		return nil, err
+	items := []sectionParser{
+		{parseDefaultsSection, global.Defaults},
+		{parseConnectionSection, global.SSHConnections},
+		{parseDatabaseSection, global.DataBase},
 	}
-	err = parseConnectionSection(cfg, global.SSHConnections)
-	if err != nil {
-		return nil, err
+	for _, item := range items {
+		err := item.parser(cfg, item.section)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	build.DEBUG(build.DEBUG_CURVEADM_CONFIGURE, cfg)
@@ -234,4 +290,17 @@ func (cfg *CurveAdmConfig) GetSudoAlias() string {
 		return WITHOUT_SUDO
 	}
 	return cfg.SudoAlias
+}
+
+func (cfg *CurveAdmConfig) GetDBUrl() string {
+	return cfg.DBUrl
+}
+
+func (cfg *CurveAdmConfig) GetDBPath() string {
+	pattern := regexp.MustCompile(REGEX_DB_URL)
+	mu := pattern.FindStringSubmatch(cfg.DBUrl)
+	if len(mu) == 0 || mu[1] != DB_SQLITE {
+		return ""
+	}
+	return mu[2]
 }
