@@ -23,162 +23,72 @@
 package storage
 
 import (
-	"database/sql"
 	"fmt"
-	"sync"
+	"regexp"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/opencurve/curveadm/internal/storage/driver"
 )
 
-type Version struct {
-	Id          int
-	Version     string
-	LastConfirm string
-}
+var (
+	ErrInvalidDBUrl = fmt.Errorf("invalid database url")
+)
 
-type Hosts struct {
-	Id               int
-	Data             string
-	LastmodifiedTime time.Time
-}
-
-type Cluster struct {
-	Id          int
-	UUId        string
-	Name        string
-	Description string
-	CreateTime  time.Time
-	Topology    string
-	Pool        string
-	Current     bool
-}
-
-type Service struct {
-	Id          string
-	ClusterId   int
-	ContainerId string
-}
-
-type Client struct {
-	Id          string
-	Kind        string
-	Host        string
-	ContainerId string
-	AuxInfo     string
-}
-
-type Playground struct {
-	Id         int
-	Name       string
-	CreateTime time.Time
-	MountPoint string
-	Status     string
-}
-
-type AuditLog struct {
-	Id            int
-	ExecuteTime   time.Time
-	WorkDirectory string
-	Command       string
-	Status        int
-	ErrorCode     int
-}
+// rqlite://127.0.0.1:4000
+// sqlite:///home/curve/.curveadm/data/curveadm.db
+const (
+	REGEX_DB_URL = "^(sqlite|rqlite)://(.+)$"
+)
 
 type Storage struct {
-	db    *sql.DB
-	mutex *sync.Mutex
+	db driver.IDataBaseDriver
 }
 
-func NewStorage(dbfile string) (*Storage, error) {
-	db, err := sql.Open("sqlite3", dbfile)
-	if err != nil {
-		return nil, err
+func NewStorage(dbURL string) (*Storage, error) {
+	pattern := regexp.MustCompile(REGEX_DB_URL)
+	mu := pattern.FindStringSubmatch(dbURL)
+	if len(mu) == 0 {
+		return nil, ErrInvalidDBUrl
 	}
 
-	s := &Storage{db: db, mutex: &sync.Mutex{}}
-	if err = s.init(); err != nil {
-		return nil, err
+	storage := &Storage{}
+	if mu[1] == "sqlite" {
+		storage.db = driver.NewSQLiteDB()
+	} else {
+		storage.db = driver.NewRQLiteDB()
 	}
 
-	return s, nil
+	err := storage.db.Open(dbURL)
+	if err == nil {
+		err = storage.init()
+	}
+	return storage, err
 }
 
 func (s *Storage) init() error {
-	if err := s.execSQL(CREATE_VERSION_TABLE); err != nil {
-		return err
-	} else if err := s.execSQL(CREATE_HOSTS_TABLE); err != nil {
-		return err
-	} else if err := s.execSQL(CREATE_HOSTS_TABLE); err != nil {
-		return err
-	} else if err := s.execSQL(CREATE_CLUSTERS_TABLE); err != nil {
-		return err
-	} else if err := s.execSQL(CREATE_CONTAINERS_TABLE); err != nil {
-		return err
-	} else if err := s.execSQL(CREATE_CLIENTS_TABLE); err != nil {
-		return err
-	} else if err := s.execSQL(CREATE_PLAYGROUND_TABLE); err != nil {
-		return err
-	} else if err := s.execSQL(CREATE_AUDIT_TABLE); err != nil {
-		return err
-	} else if err := s.compatible(); err != nil {
-		return err
+	sqls := []string{
+		CreateVersionTable,
+		CreateHostsTable,
+		CreateClustersTable,
+		CreateContainersTable,
+		CreateClientsTable,
+		CreatePlaygroundTable,
+		CreateAuditTable,
+	}
+
+	for _, sql := range sqls {
+		_, err := s.db.Write(sql)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
-func (s *Storage) compatible() error {
-	tx, err := s.db.Begin()
-	if err != nil {
-		return err
-	}
-
-	err = func() error {
-		rows, err := tx.Query(CHECK_POOl_COLUMN)
-		if err != nil {
-			return err
-		}
-
-		if rows.Next() {
-			count := 0
-			err = rows.Scan(&count)
-			rows.Close()
-			if err != nil {
-				return err
-			}
-			if count != 0 {
-				return nil
-			}
-		}
-
-		alterSQL := fmt.Sprintf("%s;%s;%s;%s",
-			RENAME_CLUSTERS_TABLE,
-			CREATE_CLUSTERS_TABLE,
-			INSERT_CLUSTERS_FROM_OLD_TABLE,
-			DROP_OLD_CLUSTERS_TABLE,
-		)
-		_, err = tx.Exec(alterSQL)
-		return err
-	}()
-
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	return tx.Commit()
-}
-
-func (s *Storage) execSQL(query string, args ...interface{}) error {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	stmt, err := s.db.Prepare(query)
-	if err != nil {
-		return err
-	}
-
-	_, err = stmt.Exec(args...)
+func (s *Storage) write(query string, args ...any) error {
+	_, err := s.db.Write(query, args...)
 	return err
 }
 
@@ -192,24 +102,22 @@ func (s *Storage) SetVersion(version, lastConfirm string) error {
 	if err != nil {
 		return err
 	} else if len(versions) == 0 {
-		return s.execSQL(INSERT_VERSION, version)
+		return s.write(InsertVersion, version)
 	}
-	return s.execSQL(SET_VERSION, version, lastConfirm, versions[0].Id)
+	return s.write(SetVersion, version, lastConfirm, versions[0].Id)
 }
 
 func (s *Storage) GetVersions() ([]Version, error) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	rows, err := s.db.Query(SELECT_VERSION)
+	result, err := s.db.Query(SelectVersion)
 	if err != nil {
 		return nil, err
 	}
+	defer result.Close()
 
-	defer rows.Close()
 	var versions []Version
 	var version Version
-	for rows.Next() {
-		err = rows.Scan(&version.Id, &version.Version, &version.LastConfirm)
+	for result.Next() {
+		err = result.Scan(&version.Id, &version.Version, &version.LastConfirm)
 		versions = append(versions, version)
 		break
 	}
@@ -222,24 +130,22 @@ func (s *Storage) SetHosts(data string) error {
 	if err != nil {
 		return err
 	} else if len(hostses) == 0 {
-		return s.execSQL(INSERT_HOSTS, data)
+		return s.write(InsertHosts, data)
 	}
-	return s.execSQL(SET_HOSTS, data, hostses[0].Id)
+	return s.write(SetHosts, data, hostses[0].Id)
 }
 
 func (s *Storage) GetHostses() ([]Hosts, error) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	rows, err := s.db.Query(SELECT_HOSTS)
+	result, err := s.db.Query(SelectHosts)
 	if err != nil {
 		return nil, err
 	}
+	defer result.Close()
 
-	defer rows.Close()
 	var hostses []Hosts
 	var hosts Hosts
-	for rows.Next() {
-		err = rows.Scan(&hosts.Id, &hosts.Data, &hosts.LastmodifiedTime)
+	for result.Next() {
+		err = result.Scan(&hosts.Id, &hosts.Data, &hosts.LastModifiedTime)
 		hostses = append(hostses, hosts)
 		break
 	}
@@ -248,27 +154,33 @@ func (s *Storage) GetHostses() ([]Hosts, error) {
 
 // cluster
 func (s *Storage) InsertCluster(name, description, topology string) error {
-	return s.execSQL(INSERT_CLUSTER, name, description, topology)
+	return s.write(InsertCluster, name, description, topology)
 }
 
 func (s *Storage) DeleteCluster(name string) error {
-	return s.execSQL(DELETE_CLUSTER, name)
+	return s.write(DeleteCluster, name)
 }
 
 func (s *Storage) getClusters(query string, args ...interface{}) ([]Cluster, error) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	rows, err := s.db.Query(query, args...)
+	result, err := s.db.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
+	defer result.Close()
 
-	defer rows.Close()
 	clusters := []Cluster{}
-	for rows.Next() {
+	for result.Next() {
 		cluster := Cluster{}
-		err = rows.Scan(&cluster.Id, &cluster.UUId, &cluster.Name, &cluster.Description,
-			&cluster.Topology, &cluster.Pool, &cluster.CreateTime, &cluster.Current)
+		err = result.Scan(
+			&cluster.Id,
+			&cluster.UUId,
+			&cluster.Name,
+			&cluster.Description,
+			&cluster.Topology,
+			&cluster.Pool,
+			&cluster.CreateTime,
+			&cluster.Current,
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -279,16 +191,16 @@ func (s *Storage) getClusters(query string, args ...interface{}) ([]Cluster, err
 }
 
 func (s *Storage) GetClusters(name string) ([]Cluster, error) {
-	return s.getClusters(SELECT_CLUSTER, name)
+	return s.getClusters(SelectCluster, name)
 }
 
 func (s *Storage) CheckoutCluster(name string) error {
-	return s.execSQL(CHECKOUT_CLUSTER, name)
+	return s.write(CheckoutCluster, name)
 }
 
 func (s *Storage) GetCurrentCluster() (Cluster, error) {
 	cluster := Cluster{Id: -1, Name: ""}
-	clusters, err := s.getClusters(GET_CURRENT_CLUSTER)
+	clusters, err := s.getClusters(GetCurrentCluster)
 	if err != nil {
 		return cluster, err
 	} else if len(clusters) == 1 {
@@ -299,31 +211,29 @@ func (s *Storage) GetCurrentCluster() (Cluster, error) {
 }
 
 func (s *Storage) SetClusterTopology(id int, topology string) error {
-	return s.execSQL(SET_CLUSTER_TOPOLOGY, topology, id)
+	return s.write(SetClusterTopology, topology, id)
 }
 
 func (s *Storage) SetClusterPool(id int, topology, pool string) error {
-	return s.execSQL(SET_CLUSTER_POOL, topology, pool, id)
+	return s.write(SetClusterPool, topology, pool, id)
 }
 
 // service
 func (s *Storage) InsertService(clusterId int, serviceId, containerId string) error {
-	return s.execSQL(INSERT_SERVICE, serviceId, clusterId, containerId)
+	return s.write(InsertService, serviceId, clusterId, containerId)
 }
 
 func (s *Storage) getServices(query string, args ...interface{}) ([]Service, error) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	rows, err := s.db.Query(query, args...)
+	result, err := s.db.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
+	defer result.Close()
 
-	defer rows.Close()
 	services := []Service{}
 	var service Service
-	for rows.Next() {
-		err = rows.Scan(&service.Id, &service.ClusterId, &service.ContainerId)
+	for result.Next() {
+		err = result.Scan(&service.Id, &service.ClusterId, &service.ContainerId)
 		if err != nil {
 			return nil, err
 		}
@@ -334,11 +244,11 @@ func (s *Storage) getServices(query string, args ...interface{}) ([]Service, err
 }
 
 func (s *Storage) GetServices(clusterId int) ([]Service, error) {
-	return s.getServices(SELECT_SERVICE_IN_CLUSTER, clusterId)
+	return s.getServices(SelectServicesInCluster, clusterId)
 }
 
 func (s *Storage) GetContainerId(serviceId string) (string, error) {
-	services, err := s.getServices(SELECT_SERVICE, serviceId)
+	services, err := s.getServices(SelectService, serviceId)
 	if err != nil || len(services) == 0 {
 		return "", err
 	}
@@ -347,27 +257,25 @@ func (s *Storage) GetContainerId(serviceId string) (string, error) {
 }
 
 func (s *Storage) SetContainId(serviceId, containerId string) error {
-	return s.execSQL(SET_CONTAINER_ID, containerId, serviceId)
+	return s.write(SetContainerId, containerId, serviceId)
 }
 
 // client
 func (s *Storage) InsertClient(id, kind, host, containerId, auxInfo string) error {
-	return s.execSQL(INSERT_CLIENT, id, kind, host, containerId, auxInfo)
+	return s.write(InsertClient, id, kind, host, containerId, auxInfo)
 }
 
 func (s *Storage) getClients(query string, args ...interface{}) ([]Client, error) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	rows, err := s.db.Query(query, args...)
+	result, err := s.db.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
+	defer result.Close()
 
-	defer rows.Close()
 	clients := []Client{}
 	var client Client
-	for rows.Next() {
-		err = rows.Scan(&client.Id, &client.Kind, &client.Host, &client.ContainerId, &client.AuxInfo)
+	for result.Next() {
+		err = result.Scan(&client.Id, &client.Kind, &client.Host, &client.ContainerId, &client.AuxInfo)
 		if err != nil {
 			return nil, err
 		}
@@ -378,7 +286,7 @@ func (s *Storage) getClients(query string, args ...interface{}) ([]Client, error
 }
 
 func (s *Storage) GetClientContainerId(id string) (string, error) {
-	clients, err := s.getClients(SELECT_CLIENT_BY_ID, id)
+	clients, err := s.getClients(SelectClientById, id)
 	if err != nil || len(clients) == 0 {
 		return "", err
 	}
@@ -387,44 +295,42 @@ func (s *Storage) GetClientContainerId(id string) (string, error) {
 }
 
 func (s *Storage) GetClient(id string) ([]Client, error) {
-	return s.getClients(SELECT_CLIENT_BY_ID, id)
+	return s.getClients(SelectClientById, id)
 }
 
 func (s *Storage) GetClients() ([]Client, error) {
-	return s.getClients(SELECT_CLIENTS)
+	return s.getClients(SelectClients)
 }
 
 func (s *Storage) DeleteClient(id string) error {
-	return s.execSQL(DELETE_CLIENT, id)
+	return s.write(DeleteClient, id)
 }
 
 // playground
 func (s *Storage) InsertPlayground(name, mountPoint string) error {
 	// FIXME: remove status
-	return s.execSQL(INSERT_PLAYGROUND, name, mountPoint, "")
+	return s.write(InsertPlayground, name, mountPoint, "")
 }
 
 func (s *Storage) SetPlaygroundStatus(name, status string) error {
-	return s.execSQL(SET_PLAYGROUND_STATUS, status, name)
+	return s.write(SetPlaygroundStatus, status, name)
 }
 
 func (s *Storage) DeletePlayground(name string) error {
-	return s.execSQL(DELETE_PLAYGROUND, name)
+	return s.write(DeletePlayground, name)
 }
 
 func (s *Storage) getPlaygrounds(query string, args ...interface{}) ([]Playground, error) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	rows, err := s.db.Query(query, args...)
+	result, err := s.db.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
+	defer result.Close()
 
-	defer rows.Close()
 	playgrounds := []Playground{}
 	var playground Playground
-	for rows.Next() {
-		err = rows.Scan(
+	for result.Next() {
+		err = result.Scan(
 			&playground.Id,
 			&playground.Name,
 			&playground.CreateTime,
@@ -440,47 +346,38 @@ func (s *Storage) getPlaygrounds(query string, args ...interface{}) ([]Playgroun
 }
 
 func (s *Storage) GetPlaygrounds(name string) ([]Playground, error) {
-	return s.getPlaygrounds(SELECT_PLAYGROUND, name)
+	return s.getPlaygrounds(SelectPlayground, name)
 }
 
 func (s *Storage) GetPlaygroundById(id string) ([]Playground, error) {
-	return s.getPlaygrounds(SELECT_PLAYGROUND_BY_ID, id)
+	return s.getPlaygrounds(SelectPlaygroundById, id)
 }
 
 // audit
 func (s *Storage) InsertAuditLog(time time.Time, workDir, command string, status int) (int64, error) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	stmt, err := s.db.Prepare(INSERT_AUDIT_LOG)
+	result, err := s.db.Write(InsertAuditLog, time, workDir, command, status)
 	if err != nil {
-		return -1, err
-	}
-
-	result, err := stmt.Exec(time, workDir, command, status)
-	if err != nil {
-		return -1, err
+		return 0, err
 	}
 
 	return result.LastInsertId()
 }
 
 func (s *Storage) SetAuditLogStatus(id int64, status, errorCode int) error {
-	return s.execSQL(SET_AUDIT_LOG_STATUS, status, errorCode, id)
+	return s.write(SetAuditLogStatus, status, errorCode, id)
 }
 
 func (s *Storage) getAuditLogs(query string, args ...interface{}) ([]AuditLog, error) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	rows, err := s.db.Query(query, args...)
+	result, err := s.db.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
+	defer result.Close()
 
-	defer rows.Close()
 	auditLogs := []AuditLog{}
 	var auditLog AuditLog
-	for rows.Next() {
-		err = rows.Scan(&auditLog.Id,
+	for result.Next() {
+		err = result.Scan(&auditLog.Id,
 			&auditLog.ExecuteTime,
 			&auditLog.WorkDirectory,
 			&auditLog.Command,
@@ -496,9 +393,9 @@ func (s *Storage) getAuditLogs(query string, args ...interface{}) ([]AuditLog, e
 }
 
 func (s *Storage) GetAuditLogs() ([]AuditLog, error) {
-	return s.getAuditLogs(SELECT_AUDIT_LOG)
+	return s.getAuditLogs(SelectAuditLog)
 }
 
 func (s *Storage) GetAuditLog(id int64) ([]AuditLog, error) {
-	return s.getAuditLogs(SELECT_AUDIT_LOG_BY_ID, id)
+	return s.getAuditLogs(SelectAuditLogById, id)
 }

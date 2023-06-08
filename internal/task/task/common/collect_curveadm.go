@@ -43,6 +43,7 @@ func NewCollectCurveAdmTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (
 	t := task.NewTask("Collect CurveAdm", subname, nil)
 
 	// add step to task
+	dbPath := curveadm.Config().GetDBPath()
 	secret := curveadm.MemStorage().Get(comm.KEY_SECRET).(string)
 	urlFormat := curveadm.MemStorage().Get(comm.KEY_SUPPORT_UPLOAD_URL_FORMAT).(string)
 	baseDir := TEMP_DIR
@@ -59,11 +60,13 @@ func NewCollectCurveAdmTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (
 		Paths:       []string{localPath /*, hostLogDir, hostConfDir*/},
 		ExecOptions: options,
 	})
-	t.AddStep(&step.CopyFile{
-		Source:      curveadm.DBPath(),
-		Dest:        localPath,
-		ExecOptions: options,
-	})
+	if len(dbPath) > 0 { // only copy local database (like sqlite)
+		t.AddStep(&step.CopyFile{
+			Source:      dbPath,
+			Dest:        localPath,
+			ExecOptions: options,
+		})
+	}
 	t.AddStep(&step.Tar{
 		File:        localPath,
 		Archive:     localTarballPath,
