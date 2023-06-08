@@ -20,8 +20,6 @@
  * Author: Jingli Chen (Wine93)
  */
 
-// __SIGN_BY_WINE93__
-
 package command
 
 import (
@@ -60,6 +58,11 @@ func NewExecCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	return cmd
 }
 
+// exec:
+//  1. parse cluster topology
+//  2. filter service
+//  3. get container id
+//  4. exec cmd in remote container
 func runExec(curveadm *cli.CurveAdm, options execOptions) error {
 	// 1) parse cluster topology
 	dcs, err := curveadm.ParseTopology()
