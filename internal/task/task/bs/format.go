@@ -231,22 +231,33 @@ func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *configure.FormatConf
 	}
 
 	// new task
+	formatTpye := fc.GetFormatType()
 	device := fc.GetDevice()
 	mountPoint := fc.GetMountPoint()
 	usagePercent := fc.GetFormatPercent()
-	subname := fmt.Sprintf("host=%s device=%s mountPoint=%s usage=%d%%",
-		fc.GetHost(), device, mountPoint, usagePercent)
-	t := task.NewTask("Start Format Chunkfile Pool", subname, hc.GetSSHConfig())
+	subname := fmt.Sprintf("host=%s formatTpye=%s device=%s mountPoint=%s usage=%d%%",
+		fc.GetHost(), formatTpye, device, mountPoint, usagePercent)
+	t := task.NewTask("Start Format filePool", subname, hc.GetSSHConfig())
 
 	// add step to task
 	var oldContainerId, containerId, oldUUID string
+	var filePoolRootDir, filePoolDir, filePoolMetaPath string
 	containerName := device2ContainerName(device)
 	layout := topology.GetCurveBSProjectLayout()
-	chunkfilePoolRootDir := layout.ChunkfilePoolRootDir
+
+	if formatTpye == configure.FORMAT_TYPE_WAL {
+		filePoolRootDir = layout.WalfilePoolRootDir
+		filePoolDir = layout.WalfilePoolDir
+		filePoolMetaPath = layout.WalfilePoolMetaPath
+	} else {
+		filePoolRootDir = layout.ChunkfilePoolRootDir
+		filePoolDir = layout.ChunkfilePoolDir
+		filePoolMetaPath = layout.ChunkfilePoolMetaPath
+	}
 	formatScript := scripts.SCRIPT_FORMAT
 	formatScriptPath := fmt.Sprintf("%s/format.sh", layout.ToolsBinDir)
 	formatCommand := fmt.Sprintf("%s %s %d %d %s %s", formatScriptPath, layout.FormatBinaryPath,
-		usagePercent, DEFAULT_CHUNKFILE_SIZE, layout.ChunkfilePoolDir, layout.ChunkfilePoolMetaPath)
+		usagePercent, DEFAULT_CHUNKFILE_SIZE, filePoolDir, filePoolMetaPath)
 
 	// 1: skip if formating container exist
 	t.AddStep(&step.ListContainers{
@@ -320,7 +331,7 @@ func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *configure.FormatConf
 		Entrypoint:  "/bin/bash",
 		Name:        containerName,
 		Remove:      true,
-		Volumes:     []step.Volume{{HostPath: mountPoint, ContainerPath: chunkfilePoolRootDir}},
+		Volumes:     []step.Volume{{HostPath: mountPoint, ContainerPath: filePoolRootDir}},
 		Out:         &containerId,
 		ExecOptions: curveadm.ExecOptions(),
 	})

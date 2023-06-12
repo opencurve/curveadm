@@ -32,6 +32,8 @@ import (
 
 const (
 	DEFAULT_CONTAINER_IMAGE = "opencurvedocker/curvebs:v1.2"
+	FORMAT_TYPE_DATA        = "data"
+	FORMAT_TYPE_WAL         = "wal"
 )
 
 /*
@@ -40,14 +42,18 @@ const (
  *   - machine2
  *   - machine3
  * disk:
- *   - /dev/sda:/data/chunkserver0:10  # device:mount_path:format_percent
- *   - /dev/sdb:/data/chunkserver1:10
- *   - /dev/sdc:/data/chunkserver2:10
+ *   - data:/dev/sda:/data/chunkserver0:10  # fortmat_type:device:mount_path:format_percent
+ *   - data:/dev/sdb:/data/chunkserver1:10
+ *   - data:/dev/sdc:/data/chunkserver2:10
+ *   - wal:/dev/nvme0n1p1:/data/wal/chunkserver0:10
+ *   - wal:/dev/nvme0n1p2:/data/wal/chunkserver1:10
+ *   - wal:/dev/nvme0n1p3:/data/wal/chunkserver2:10
  */
 type (
 	FormatConfig struct {
 		ContainerIamge     string
 		Host               string
+		Type               string
 		Device             string
 		MountPoint         string
 		FormtPercent       int
@@ -64,12 +70,15 @@ type (
 
 func NewFormatConfig(containerImage, host, disk string) (*FormatConfig, error) {
 	items := strings.Split(disk, ":")
-	if len(items) != 3 {
+	if len(items) != 4 {
 		return nil, errno.ERR_INVALID_DISK_FORMAT.S(disk)
 	}
 
-	device, mountPoint, percent := items[0], items[1], items[2]
-	if !strings.HasPrefix(device, "/") {
+	formatType, device, mountPoint, percent := items[0], items[1], items[2], items[3]
+	if formatType != FORMAT_TYPE_DATA && formatType != FORMAT_TYPE_WAL {
+		return nil, errno.ERR_INVALID_FORMAT_TYPE.
+			F("formatType: %s", formatType)
+	} else if !strings.HasPrefix(device, "/") {
 		return nil, errno.ERR_INVALID_DEVICE.
 			F("device: %s", device)
 	} else if !strings.HasPrefix(mountPoint, "/") {
@@ -89,6 +98,7 @@ func NewFormatConfig(containerImage, host, disk string) (*FormatConfig, error) {
 	return &FormatConfig{
 		ContainerIamge: containerImage,
 		Host:           host,
+		Type:           formatType,
 		Device:         device,
 		MountPoint:     mountPoint,
 		FormtPercent:   formatPercent,
@@ -136,6 +146,7 @@ func ParseFormat(filename string) ([]*FormatConfig, error) {
 
 func (fc *FormatConfig) GetContainerImage() string { return fc.ContainerIamge }
 func (fc *FormatConfig) GetHost() string           { return fc.Host }
+func (fc *FormatConfig) GetFormatType() string     { return fc.Type }
 func (fc *FormatConfig) GetDevice() string         { return fc.Device }
 func (fc *FormatConfig) GetMountPoint() string     { return fc.MountPoint }
 func (fc *FormatConfig) GetFormatPercent() int     { return fc.FormtPercent }

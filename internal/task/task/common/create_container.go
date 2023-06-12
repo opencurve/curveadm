@@ -106,6 +106,7 @@ func getArguments(dc *topology.DeployConfig) string {
 	// only chunkserver need so many arguments, but who cares
 	layout := dc.GetProjectLayout()
 	dataDir := layout.ServiceDataDir
+	walDir := layout.ServiceWalDir
 	chunkserverArguments := map[string]interface{}{
 		// chunkserver
 		"conf":                  layout.ServiceConfPath,
@@ -115,11 +116,11 @@ func getArguments(dc *topology.DeployConfig) string {
 		"chunkServerPort":       dc.GetListenPort(),
 		"chunkFilePoolDir":      dataDir,
 		"chunkFilePoolMetaPath": fmt.Sprintf("%s/chunkfilepool.meta", dataDir),
-		"walFilePoolDir":        dataDir,
-		"walFilePoolMetaPath":   fmt.Sprintf("%s/walfilepool.meta", dataDir),
+		"walFilePoolDir":        walDir,
+		"walFilePoolMetaPath":   fmt.Sprintf("%s/walfilepool.meta", walDir),
 		"copySetUri":            fmt.Sprintf("local://%s/copysets", dataDir),
 		"recycleUri":            fmt.Sprintf("local://%s/recycler", dataDir),
-		"raftLogUri":            fmt.Sprintf("curve://%s/copysets", dataDir),
+		"raftLogUri":            fmt.Sprintf("curve://%s/copysets", walDir),
 		"raftSnapshotUri":       fmt.Sprintf("curve://%s/copysets", dataDir),
 		"chunkServerStoreUri":   fmt.Sprintf("local://%s", dataDir),
 		"chunkServerMetaUri":    fmt.Sprintf("local://%s/chunkserver.dat", dataDir),
@@ -158,6 +159,7 @@ func getMountVolumes(dc *topology.DeployConfig, serviceMountDevice bool) []step.
 	layout := dc.GetProjectLayout()
 	logDir := dc.GetLogDir()
 	dataDir := dc.GetDataDir()
+	walDir := dc.GetWalDir()
 	coreDir := dc.GetCoreDir()
 
 	if len(logDir) > 0 {
@@ -172,6 +174,13 @@ func getMountVolumes(dc *topology.DeployConfig, serviceMountDevice bool) []step.
 		volumes = append(volumes, step.Volume{
 			HostPath:      dataDir,
 			ContainerPath: layout.ServiceDataDir,
+		})
+	}
+
+	if len(walDir) > 0 {
+		volumes = append(volumes, step.Volume{
+			HostPath:      walDir,
+			ContainerPath: layout.ServiceWalDir,
 		})
 	}
 
