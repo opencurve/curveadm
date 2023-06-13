@@ -53,9 +53,9 @@ const (
 	LAYOUT_SPDK_SETUP_SCRIPT_PATH           = "/usr/local/spdk/scripts/setup.sh"
 	LAYOUT_CORE_SYSTEM_DIR                  = "/core"
 
-	BINARY_CURVEBS_TOOL        = "curvebs_tool" // FIXME
+	BINARY_CURVEBS_TOOL        = "curvebs-tool" // FIXME
 	BINARY_CURVEBS_FORMAT      = "curve_format"
-	BINARY_SPDK_CURVEBS_FORMAT = "curve-format" // FIXME: rename to curve_format
+	BINARY_SPDK_CURVEBS_FORMAT = "curve_format" // FIXME: rename to curve_format
 	BINARY_CURVEFS_TOOL        = "curvefs_tool"
 	METAFILE_CHUNKFILE_POOL    = "chunkfilepool.meta"
 	METAFILE_CHUNKSERVER_ID    = "chunkserver.dat"
