@@ -26,6 +26,11 @@ require (
 )
 
 require (
+	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
+	github.com/go-redis/redis v6.15.9+incompatible // indirect
+)
+
+require (
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/Microsoft/go-winio v0.6.0 // indirect
 	github.com/Microsoft/hcsshim v0.9.5 // indirect
@@ -74,6 +79,8 @@ require (
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
+	github.com/redis/go-redis v6.15.9+incompatible
+	github.com/redis/go-redis/v9 v9.0.5
 	github.com/rivo/uniseg v0.4.3 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/spf13/afero v1.9.3 // indirect
