@@ -65,9 +65,9 @@ func volume2ContainerName(user, volume string) string {
 	return fmt.Sprintf("curvebs-volume-%s", utils.MD5Sum(formatImage(user, volume)))
 }
 
-func checkVolumeExist(volume string, containerId *string) step.LambdaType {
+func checkVolumeExist(volume, containerName string, out *string) step.LambdaType {
 	return func(ctx *context.Context) error {
-		if len(*containerId) > 0 {
+		if len(*out) > 0 && *out == containerName {
 			return errno.ERR_VOLUME_ALREADY_MAPPED.
 				F("volume: %s", volume)
 		}
@@ -166,14 +166,13 @@ func NewStartNEBDServiceTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig)
 	})
 	t.AddStep(&step.ListContainers{
 		ShowAll:     true,
-		Format:      "'{{.ID}}'",
-		Quiet:       true,
+		Format:      "'{{.Names}}'",
 		Filter:      fmt.Sprintf("name=%s", containerName),
-		Out:         &containerId,
+		Out:         &out,
 		ExecOptions: curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.Lambda{
-		Lambda: checkVolumeExist(volume, &containerId),
+		Lambda: checkVolumeExist(volume, containerName, &out),
 	})
 	t.AddStep(&step.CreateDirectory{
 		Paths:       []string{cc.GetLogDir(), cc.GetDataDir()},
