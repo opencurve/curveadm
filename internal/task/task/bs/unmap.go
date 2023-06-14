@@ -26,13 +26,13 @@ import (
 	"fmt"
 	"strings"
 
-	tui "github.com/opencurve/curveadm/internal/tui/common"
 	"github.com/opencurve/curveadm/cli/cli"
 	comm "github.com/opencurve/curveadm/internal/common"
 	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/task/context"
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
+	tui "github.com/opencurve/curveadm/internal/tui/common"
 	"github.com/opencurve/curveadm/pkg/module"
 )
 
@@ -148,7 +148,6 @@ func NewUnmapTask(curveadm *cli.CurveAdm, v interface{}) (*task.Task, error) {
 	t.AddStep(&step.ListContainers{
 		ShowAll:     true,
 		Format:      "'{{.ID}} {{.Status}}'",
-		Quiet:       true,
 		Filter:      fmt.Sprintf("id=%s", containerId),
 		Out:         &output,
 		ExecOptions: curveadm.ExecOptions(),
