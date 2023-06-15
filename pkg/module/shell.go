@@ -51,6 +51,7 @@ const (
 	TEMPLATE_FUSER    = "fuser {{.options}} {{.names}}"
 	TEMPLATE_DISKFREE = "df {{.options}} {{.files}}"
 	TEMPLATE_LSBLK    = "lsblk {{.options}} {{.devices}}"
+	TEMPLATE_BLKID    = "blkid {{.options}} {{.device}}"
 
 	// network
 	TEMPLATE_SS   = "ss {{.options}} '{{.filter}}'"
@@ -211,6 +212,12 @@ func (s *Shell) DiskFree(file ...string) *Shell {
 func (s *Shell) LsBlk(device ...string) *Shell {
 	s.tmpl = template.Must(template.New("lsblk").Parse(TEMPLATE_LSBLK))
 	s.data["devices"] = strings.Join(device, " ")
+	return s
+}
+
+func (s *Shell) BlkId(device string) *Shell {
+	s.tmpl = template.Must(template.New("blkid").Parse(TEMPLATE_BLKID))
+	s.data["device"] = device
 	return s
 }
 
