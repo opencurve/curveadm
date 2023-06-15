@@ -41,10 +41,11 @@ var (
 // task options
 const (
 	// common
-	KEY_ALL_DEPLOY_CONFIGS = "ALL_DEPLOY_CONFIGS"
-	KEY_CREATE_POOL_TYPE   = "POOL_TYPE"
-	POOL_TYPE_LOGICAL      = "logicalpool"
-	POOL_TYPE_PHYSICAL     = "physicalpool"
+	KEY_ALL_DEPLOY_CONFIGS    = "ALL_DEPLOY_CONFIGS"
+	KEY_CREATE_POOL_TYPE      = "POOL_TYPE"
+	POOL_TYPE_LOGICAL         = "logicalpool"
+	POOL_TYPE_PHYSICAL        = "physicalpool"
+	KEY_NUMBER_OF_CHUNKSERVER = "NUMBER_OF_CHUNKSERVER"
 
 	// format
 	KEY_ALL_FORMAT_STATUS = "ALL_FORMAT_STATUS"

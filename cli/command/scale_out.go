@@ -23,6 +23,8 @@
 package command
 
 import (
+	"time"
+
 	"github.com/fatih/color"
 	"github.com/opencurve/curveadm/cli/cli"
 	comm "github.com/opencurve/curveadm/internal/common"
@@ -33,7 +35,6 @@ import (
 	cliutil "github.com/opencurve/curveadm/internal/utils"
 	utils "github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/cobra"
-	"time"
 )
 
 var (
@@ -334,6 +335,8 @@ func genScaleOutPlaybook(curveadm *cli.CurveAdm,
 			options[comm.KEY_CREATE_POOL_TYPE] = comm.POOL_TYPE_LOGICAL
 			options[comm.KEY_SCALE_OUT_CLUSTER] = dcs2scaleOut
 			options[comm.KEY_NEW_TOPOLOGY_DATA] = data
+			options[comm.KEY_NUMBER_OF_CHUNKSERVER] = calcNumOfChunkserver(curveadm, dcs) +
+				calcNumOfChunkserver(curveadm, dcs2scaleOut)
 		case playbook.UPDATE_TOPOLOGY:
 			options[comm.KEY_NEW_TOPOLOGY_DATA] = data
 		}

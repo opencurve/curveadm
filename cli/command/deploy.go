@@ -200,13 +200,20 @@ func precheckBeforeDeploy(curveadm *cli.CurveAdm,
 	return nil
 }
 
+func calcNumOfChunkserver(curveadm *cli.CurveAdm, dcs []*topology.DeployConfig) int {
+	services := curveadm.FilterDeployConfigByRole(dcs, topology.ROLE_CHUNKSERVER)
+	return len(services)
+}
+
 func genDeployPlaybook(curveadm *cli.CurveAdm,
 	dcs []*topology.DeployConfig,
 	options deployOptions) (*playbook.Playbook, error) {
+	var steps []int
 	kind := dcs[0].GetKind()
-	steps := CURVEFS_DEPLOY_STEPS
 	if kind == topology.KIND_CURVEBS {
 		steps = CURVEBS_DEPLOY_STEPS
+	} else {
+		steps = CURVEFS_DEPLOY_STEPS
 	}
 	steps = skipDeploySteps(steps, options)
 
@@ -230,6 +237,7 @@ func genDeployPlaybook(curveadm *cli.CurveAdm,
 			options[comm.KEY_CREATE_POOL_TYPE] = comm.POOL_TYPE_PHYSICAL
 		} else if step == CREATE_LOGICAL_POOL {
 			options[comm.KEY_CREATE_POOL_TYPE] = comm.POOL_TYPE_LOGICAL
+			options[comm.KEY_NUMBER_OF_CHUNKSERVER] = calcNumOfChunkserver(curveadm, dcs)
 		}
 
 		pb.AddStep(&playbook.PlaybookStep{
