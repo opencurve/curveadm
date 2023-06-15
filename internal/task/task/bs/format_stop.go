@@ -85,10 +85,10 @@ func NewStopFormatTask(curveadm *cli.CurveAdm, fc *configure.FormatConfig) (*tas
 	var oldUUID string
 
 	// 1: list block device and edit fstab delete record
-	t.AddStep(&step.ListBlockDevice{
-		Device:      []string{device},
-		Format:      "UUID",
-		NoHeadings:  true,
+	t.AddStep(&step.BlockId{
+		Device:      device,
+		Format:      "value",
+		MatchTag:    "UUID",
 		Out:         &oldUUID,
 		ExecOptions: curveadm.ExecOptions(),
 	})
