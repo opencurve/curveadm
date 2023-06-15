@@ -137,6 +137,15 @@ type (
 		module.ExecOptions
 	}
 
+	BlockId struct {
+		Device   string
+		Format   string
+		MatchTag string
+		Success  *bool
+		Out      *string
+		module.ExecOptions
+	}
+
 	// network
 	SocketStatistics struct {
 		Filter    string
@@ -403,6 +412,19 @@ func (s *ListBlockDevice) Execute(ctx *context.Context) error {
 
 	out, err := cmd.Execute(s.ExecOptions)
 	return PostHandle(s.Success, s.Out, out, err, errno.ERR_LIST_BLOCK_DEVICES_FAILED)
+}
+
+func (s *BlockId) Execute(ctx *context.Context) error {
+	cmd := ctx.Module().Shell().BlkId(s.Device)
+	if len(s.Format) > 0 {
+		cmd.AddOption("--output=%s", s.Format)
+	}
+	if len(s.MatchTag) > 0 {
+		cmd.AddOption("--match-tag=%s", s.MatchTag)
+	}
+
+	out, err := cmd.Execute(s.ExecOptions)
+	return PostHandle(s.Success, s.Out, out, err, errno.ERR_GET_BLOCK_DEVICE_UUID_FAILED)
 }
 
 // network
