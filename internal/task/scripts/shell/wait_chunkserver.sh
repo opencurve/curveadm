@@ -1,23 +1,23 @@
 #!/usr/bin/env bash
 
-# Usage: no args, just run it in bash
+# Usage: wait_chunkserver 3
 # Created Date: 2022-03-09
 # Author: aspirer
 
 
-# FIXME(P0): wait not works, return -12
+g_total="$1"
+
 wait=0
 while ((wait<60))
 do
-    status=$(curve_ops_tool chunkserver-status |grep "offline")
-    total=$(echo ${status} | grep -c "total num = 0")
-    offline=$(echo ${status} | grep -c "offline = 0")
-    if [ ${total} -eq 0 ] && [ ${offline} -eq 1 ]; then
-        echo "CURVEADM_SUCCESS"
+    online=$(curve_ops_tool chunkserver-status | sed -nr 's/.*online = ([0-9]+).*/\1/p')
+    if [[ $online -eq $g_total ]]; then
         exit 0
     fi
+
     sleep 0.5s
-    wait=$(expr ${wait} + 1)
+    wait=$((wait+1))
 done
-echo "CURVEADM_TIMEOUT"
+
+echo "wait all chunkserver online timeout, total=$g_total, online=$online"
 exit 1
