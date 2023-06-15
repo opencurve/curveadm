@@ -380,15 +380,6 @@ func (curveadm *CurveAdm) ExecOptions() module.ExecOptions {
 	}
 }
 
-func (curveadm *CurveAdm) MkdirOptions() module.ExecOptions {
-	return module.ExecOptions{
-		ExecWithSudo:   false,
-		ExecInLocal:    false,
-		ExecSudoAlias:  curveadm.config.GetSudoAlias(),
-		ExecTimeoutSec: curveadm.config.GetTimeout(),
-	}
-}
-
 func (curveadm *CurveAdm) CheckId(id string) error {
 	services, err := curveadm.Storage().GetServices(curveadm.ClusterId())
 	if err != nil {
