@@ -214,6 +214,7 @@ func genMigratePlaybook(curveadm *cli.CurveAdm,
 			options[comm.KEY_CREATE_POOL_TYPE] = comm.POOL_TYPE_LOGICAL
 			options[comm.KEY_MIGRATE_SERVERS] = migrates
 			options[comm.KEY_NEW_TOPOLOGY_DATA] = data
+			options[comm.KEY_NUMBER_OF_CHUNKSERVER] = calcNumOfChunkserver(curveadm, dcs)
 		case playbook.UPDATE_TOPOLOGY:
 			options[comm.KEY_NEW_TOPOLOGY_DATA] = data
 		}
