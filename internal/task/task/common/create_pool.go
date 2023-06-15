@@ -187,8 +187,8 @@ func NewCreateTopologyTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*
 
 	// new task
 	pooltype := curveadm.MemStorage().Get(comm.KEY_CREATE_POOL_TYPE).(string)
-	name := utils.Choose(pooltype == comm.POOL_TYPE_LOGICAL, "Create Logical Pool",
-		"Create Physical Pool")
+	name := utils.Choose(pooltype == comm.POOL_TYPE_LOGICAL,
+		"Create Logical Pool", "Create Physical Pool")
 	subname := fmt.Sprintf("host=%s role=%s containerId=%s",
 		dc.GetHost(), dc.GetRole(), tui.TrimContainerId(containerId))
 	t := task.NewTask(name, subname, hc.GetSSHConfig())
@@ -244,6 +244,7 @@ func NewCreateTopologyTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*
 	if dc.GetKind() == topology.KIND_CURVEBS && pooltype == comm.POOL_TYPE_LOGICAL {
 		waitChunkserversScript := scripts.WAIT_CHUNKSERVERS
 		waitChunkserversScriptPath := fmt.Sprintf("%s/wait_chunkservers.sh", layout.ToolsBinDir)
+		nchunkserver := curveadm.MemStorage().Get(comm.KEY_NUMBER_OF_CHUNKSERVER).(int)
 		t.AddStep(&step.InstallFile{ // install wait_chunkservers script
 			ContainerId:       &containerId,
 			ContainerDestPath: waitChunkserversScriptPath,
@@ -252,7 +253,7 @@ func NewCreateTopologyTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*
 		})
 		t.AddStep(&step.ContainerExec{ // wait all chunkservers online before create logical pool
 			ContainerId: &containerId,
-			Command:     fmt.Sprintf("bash %s", waitChunkserversScriptPath),
+			Command:     fmt.Sprintf("bash %s %d", waitChunkserversScriptPath, nchunkserver),
 			Success:     &success,
 			Out:         &out,
 			ExecOptions: curveadm.ExecOptions(),
