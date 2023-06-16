@@ -42,6 +42,7 @@ var (
 const (
 	// common
 	KEY_ALL_DEPLOY_CONFIGS    = "ALL_DEPLOY_CONFIGS"
+	KEY_POOLSET               = "KEY_POOLSET"
 	KEY_CREATE_POOL_TYPE      = "POOL_TYPE"
 	POOL_TYPE_LOGICAL         = "logicalpool"
 	POOL_TYPE_PHYSICAL        = "physicalpool"
