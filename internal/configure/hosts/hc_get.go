@@ -70,13 +70,21 @@ func (hc *HostConfig) getBool(i *comm.Item) bool {
 func (hc *HostConfig) GetHost() string           { return hc.getString(CONFIG_HOST) }
 func (hc *HostConfig) GetHostname() string       { return hc.getString(CONFIG_HOSTNAME) }
 func (hc *HostConfig) GetSSHHostname() string    { return hc.getString(CONFIG_SSH_HOSTNAME) }
-func (hc *HostConfig) GetUser() string           { return hc.getString(CONFIG_USER) }
 func (hc *HostConfig) GetSSHPort() int           { return hc.getInt(CONFIG_SSH_PORT) }
 func (hc *HostConfig) GetPrivateKeyFile() string { return hc.getString(CONFIG_PRIVATE_CONFIG_FILE) }
 func (hc *HostConfig) GetForwardAgent() bool     { return hc.getBool(CONFIG_FORWARD_AGENT) }
 func (hc *HostConfig) GetBecomeUser() string     { return hc.getString(CONFIG_BECOME_USER) }
 func (hc *HostConfig) GetLabels() []string       { return hc.labels }
 func (hc *HostConfig) GetEnvs() []string         { return hc.envs }
+
+func (hc *HostConfig) GetUser() string {
+	user := hc.getString(CONFIG_USER)
+	if user == "${user}" {
+		return utils.GetCurrentUser()
+	}
+	return user
+}
+
 func (hc *HostConfig) GetSSHConfig() *module.SSHConfig {
 	hostname := hc.GetSSHHostname()
 	if len(hostname) == 0 {
