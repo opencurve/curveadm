@@ -117,10 +117,6 @@ func (s *step2RemoveContainer) Execute(ctx *context.Context) error {
 func NewUmountFSTask(curveadm *cli.CurveAdm, v interface{}) (*task.Task, error) {
 	options := curveadm.MemStorage().Get(comm.KEY_MOUNT_OPTIONS).(MountOptions)
 	fsId := curveadm.GetFilesystemId(options.Host, options.MountPoint)
-	containerId, err := curveadm.Storage().GetClientContainerId(fsId)
-	if err != nil {
-		return nil, errno.ERR_GET_CLIENT_CONTAINER_ID_FAILED.E(err)
-	}
 	hc, err := curveadm.GetHost(options.Host)
 	if err != nil {
 		return nil, err
@@ -133,11 +129,12 @@ func NewUmountFSTask(curveadm *cli.CurveAdm, v interface{}) (*task.Task, error) 
 
 	// add step to task
 	var status string
+	containerId := mountPoint2ContainerName(mountPoint)
+
 	t.AddStep(&step.ListContainers{
 		ShowAll:     true,
 		Format:      "'{{.Status}}'",
-		Quiet:       true,
-		Filter:      fmt.Sprintf("id=%s", containerId),
+		Filter:      fmt.Sprintf("name=%s", containerId),
 		Out:         &status,
 		ExecOptions: curveadm.ExecOptions(),
 	})
