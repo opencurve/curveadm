@@ -203,7 +203,7 @@ func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *configure.FormatConf
 	t.AddStep(&step.Lambda{
 		Lambda: skipFormat(&oldContainerId),
 	})
-	// 2: mkfs, mount device, edit fstab
+	// 2: mkfs, mount device, edit fstab, tune2fs
 	t.AddStep(&step.BlockId{
 		Device:      device,
 		Format:      "value",
@@ -236,6 +236,11 @@ func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *configure.FormatConf
 		oldUUID:    &oldUUID,
 		mountPoint: mountPoint,
 		curveadm:   curveadm,
+	})
+	t.AddStep(&step.Tune2FS{ // tune2fs -m 0 DEVICE
+		Device:                   device,
+		ReservedBlocksPercentage: 0,
+		ExecOptions:              curveadm.ExecOptions(),
 	})
 	// 3: run container to format chunkfile pool
 	t.AddStep(&step.PullImage{
