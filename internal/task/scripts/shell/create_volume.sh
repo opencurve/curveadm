@@ -9,14 +9,23 @@
 g_user=$1
 g_volume=$2
 g_size=$3
+g_poolset=$4
+g_create_opts=(
+    "-userName=$g_user"
+    "-fileName=$g_volume"
+    -fileLength="$g_size"
+)
+if [ -n "$g_poolset" ]; then
+    g_build_opts+=("-poolset=$g_poolset")
+fi
 
-output=$(curve_ops_tool create -userName="$g_user" -fileName="$g_volume" -fileLength="$g_size")
-if [ $? -ne 0 ]; then
-  if [ "$output" = "CreateFile fail with errCode: 101" ]; then
-     echo "EXIST"
-  else
-     echo "FAILED"
-  fi
+output=$(curve_ops_tool create "${g_create_opts[@]}")
+if [ "$?" -ne 0 ]; then
+    if [ "$output" = "CreateFile fail with errCode: 101" ]; then
+        echo "EXIST"
+    else
+        echo "FAILED"
+    fi
 else
-  echo "SUCCESS"
+    echo "SUCCESS"
 fi
