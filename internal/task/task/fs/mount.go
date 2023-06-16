@@ -217,12 +217,12 @@ func mountPoint2ContainerName(mountPoint string) string {
 	return fmt.Sprintf("curvefs-filesystem-%s", utils.MD5Sum(mountPoint))
 }
 
-func checkMountStatus(mountPoint string, out *string) step.LambdaType {
+func checkMountStatus(mountPoint, name string, out *string) step.LambdaType {
 	return func(ctx *context.Context) error {
-		if len(*out) == 0 {
-			return nil
+		if *out == name {
+			return errno.ERR_FS_PATH_ALREADY_MOUNTED.F("mountPath: %s", mountPoint)
 		}
-		return errno.ERR_FS_PATH_ALREADY_MOUNTED.F("mountPath: %s", mountPoint)
+		return nil
 	}
 }
 
@@ -305,14 +305,13 @@ func NewMountFSTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.T
 	})
 	t.AddStep(&step.ListContainers{
 		ShowAll:     true,
-		Format:      "'{{.Status}}'",
-		Quiet:       true,
+		Format:      "'{{.Names}}'",
 		Filter:      fmt.Sprintf("name=%s", containerName),
 		Out:         &out,
 		ExecOptions: curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.Lambda{
-		Lambda: checkMountStatus(mountPoint, &out),
+		Lambda: checkMountStatus(mountPoint, containerName, &out),
 	})
 	t.AddStep(&step.PullImage{
 		Image:       cc.GetContainerImage(),
