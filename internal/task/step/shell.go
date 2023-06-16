@@ -114,6 +114,14 @@ type (
 		module.ExecOptions
 	}
 
+	Tune2FS struct {
+		Device                   string
+		ReservedBlocksPercentage int
+		Success                  *bool
+		Out                      *string
+		module.ExecOptions
+	}
+
 	Fuser struct {
 		Names []string
 		Out   *string
@@ -383,6 +391,16 @@ func (s *UmountFilesystem) Execute(ctx *context.Context) error {
 		}
 	}
 	return nil
+}
+
+func (s *Tune2FS) Execute(ctx *context.Context) error {
+	cmd := ctx.Module().Shell().Tune2FS(s.Device)
+	if s.ReservedBlocksPercentage > 0 {
+		cmd.AddOption("-m %d", s.ReservedBlocksPercentage)
+	}
+
+	out, err := cmd.Execute(s.ExecOptions)
+	return PostHandle(s.Success, s.Out, out, err, errno.ERR_RESERVE_FILESYSTEM_BLOCKS_FAILED)
 }
 
 func (s *Fuser) Execute(ctx *context.Context) error {
