@@ -48,6 +48,7 @@ const (
 	TEMPLATE_MKFS     = "mkfs.ext4 {{.options}} {{.device}}"
 	TEMPLATE_MOUNT    = "mount {{.options}} {{.source}} {{.directory}}"
 	TEMPLATE_UMOUNT   = "umount {{.options}} {{.directory}}"
+	TEMPLATE_TUNE2FS  = "tune2fs {{.options}} {{.device}}"
 	TEMPLATE_FUSER    = "fuser {{.options}} {{.names}}"
 	TEMPLATE_DISKFREE = "df {{.options}} {{.files}}"
 	TEMPLATE_LSBLK    = "lsblk {{.options}} {{.devices}}"
@@ -194,6 +195,12 @@ func (s *Shell) Mount(source, directory string) *Shell {
 func (s *Shell) Umount(directory string) *Shell {
 	s.tmpl = template.Must(template.New("umount").Parse(TEMPLATE_UMOUNT))
 	s.data["directory"] = directory
+	return s
+}
+
+func (s *Shell) Tune2FS(device string) *Shell {
+	s.tmpl = template.Must(template.New("tune2fs").Parse(TEMPLATE_TUNE2FS))
+	s.data["device"] = device
 	return s
 }
 
