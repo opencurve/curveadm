@@ -29,6 +29,7 @@ import (
 	"strings"
 
 	"github.com/opencurve/curveadm/cli/cli"
+	comm "github.com/opencurve/curveadm/internal/common"
 	"github.com/opencurve/curveadm/internal/configure"
 	"github.com/opencurve/curveadm/internal/configure/topology"
 	"github.com/opencurve/curveadm/internal/errno"
@@ -91,8 +92,8 @@ func checkContainerExist(name string, out *string) step.LambdaType {
 	}
 }
 
-func prepare(dcs []*topology.DeployConfig) (string, error) {
-	pool, err := configure.GenerateDefaultClusterPool(dcs)
+func prepare(dcs []*topology.DeployConfig, poolset configure.Poolset) (string, error) {
+	pool, err := configure.GenerateDefaultClusterPool(dcs, poolset)
 	if err != nil {
 		return "", err
 	}
@@ -111,7 +112,8 @@ func NewInitPlaygroundTask(curveadm *cli.CurveAdm, cfg *configure.PlaygroundConf
 	var containerId string
 	layout := topology.GetCurveBSProjectLayout()
 	poolJSONPath := path.Join(layout.ToolsConfDir, "topology.json")
-	clusterPoolJson, err := prepare(cfg.GetDeployConfigs())
+	poolset := curveadm.MemStorage().Get(comm.KEY_POOLSET).(configure.Poolset)
+	clusterPoolJson, err := prepare(cfg.GetDeployConfigs(), poolset)
 	if err != nil {
 		return nil, err
 	}

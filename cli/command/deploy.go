@@ -29,6 +29,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/opencurve/curveadm/cli/cli"
 	comm "github.com/opencurve/curveadm/internal/common"
+	"github.com/opencurve/curveadm/internal/configure"
 	"github.com/opencurve/curveadm/internal/configure/topology"
 	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/playbook"
@@ -107,8 +108,10 @@ var (
 )
 
 type deployOptions struct {
-	skip     []string
-	insecure bool
+	skip            []string
+	insecure        bool
+	poolset         string
+	poolsetDiskType string
 }
 
 func checkDeployOptions(options deployOptions) error {
@@ -141,6 +144,8 @@ func NewDeployCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	flags := cmd.Flags()
 	flags.StringSliceVar(&options.skip, "skip", []string{}, "Specify skipped service roles")
 	flags.BoolVarP(&options.insecure, "insecure", "k", false, "Deploy without precheck")
+	flags.StringVar(&options.poolset, "poolset", "default", "Specify the poolset name")
+	flags.StringVar(&options.poolsetDiskType, "poolset-disktype", "ssd", "Specify the disk type of physical pool")
 
 	return cmd
 }
@@ -216,6 +221,10 @@ func genDeployPlaybook(curveadm *cli.CurveAdm,
 		steps = CURVEFS_DEPLOY_STEPS
 	}
 	steps = skipDeploySteps(steps, options)
+	poolset := configure.Poolset{
+		Name: options.poolset,
+		Type: options.poolsetDiskType,
+	}
 
 	pb := playbook.NewPlaybook(curveadm)
 	for _, step := range steps {
@@ -235,6 +244,7 @@ func genDeployPlaybook(curveadm *cli.CurveAdm,
 		options := map[string]interface{}{}
 		if step == CREATE_PHYSICAL_POOL {
 			options[comm.KEY_CREATE_POOL_TYPE] = comm.POOL_TYPE_PHYSICAL
+			options[comm.KEY_POOLSET] = poolset
 		} else if step == CREATE_LOGICAL_POOL {
 			options[comm.KEY_CREATE_POOL_TYPE] = comm.POOL_TYPE_LOGICAL
 			options[comm.KEY_NUMBER_OF_CHUNKSERVER] = calcNumOfChunkserver(curveadm, dcs)
