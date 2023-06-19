@@ -116,7 +116,7 @@ type (
 
 	Tune2FS struct {
 		Device                   string
-		ReservedBlocksPercentage int
+		ReservedBlocksPercentage string
 		Success                  *bool
 		Out                      *string
 		module.ExecOptions
@@ -396,8 +396,8 @@ func (s *UmountFilesystem) Execute(ctx *context.Context) error {
 
 func (s *Tune2FS) Execute(ctx *context.Context) error {
 	cmd := ctx.Module().Shell().Tune2FS(s.Device)
-	if s.ReservedBlocksPercentage > 0 {
-		cmd.AddOption("-m %d", s.ReservedBlocksPercentage)
+	if len(s.ReservedBlocksPercentage) > 0 {
+		cmd.AddOption("-m %s", s.ReservedBlocksPercentage)
 	}
 
 	out, err := cmd.Execute(s.ExecOptions)
