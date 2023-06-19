@@ -178,6 +178,8 @@ func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *configure.FormatConf
 	device := fc.GetDevice()
 	mountPoint := fc.GetMountPoint()
 	usagePercent := fc.GetFormatPercent()
+	blockSize := fc.GetBlockSize()
+	chunkSize := fc.GetChunkSize()
 	subname := fmt.Sprintf("host=%s device=%s mountPoint=%s usage=%d%%",
 		fc.GetHost(), device, mountPoint, usagePercent)
 	t := task.NewTask("Start Format Chunkfile Pool", subname, hc.GetSSHConfig())
@@ -190,8 +192,8 @@ func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *configure.FormatConf
 	chunkfilePoolRootDir := layout.ChunkfilePoolRootDir
 	formatScript := scripts.FORMAT
 	formatScriptPath := fmt.Sprintf("%s/format.sh", layout.ToolsBinDir)
-	formatCommand := fmt.Sprintf("%s %s %d %d %s %s", formatScriptPath, layout.FormatBinaryPath,
-		usagePercent, DEFAULT_CHUNKFILE_SIZE, layout.ChunkfilePoolDir, layout.ChunkfilePoolMetaPath)
+	formatCommand := fmt.Sprintf("%s %s %d %d %s %s %d", formatScriptPath, layout.FormatBinaryPath,
+		usagePercent, chunkSize, layout.ChunkfilePoolDir, layout.ChunkfilePoolMetaPath, blockSize)
 
 	// 1: skip if formating container exist
 	t.AddStep(&step.ListContainers{

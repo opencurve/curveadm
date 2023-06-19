@@ -32,6 +32,12 @@ import (
 
 const (
 	DEFAULT_CONTAINER_IMAGE = "opencurvedocker/curvebs:v1.2"
+	DEFAULT_BLOCK_SIZE      = 4096
+	DEFAULT_CHUNK_SIZE      = 16 * 1024 * 1024
+)
+
+var (
+	VALID_BLOCK_SIZE = [2]int{512, 4096}
 )
 
 /*
@@ -51,12 +57,16 @@ type (
 		Device         string
 		MountPoint     string
 		FormtPercent   int
+		BlockSize      int
+		ChunkSize      int
 	}
 
 	Format struct {
 		ContainerImage string   `mapstructure:"container_image"`
 		Hosts          []string `mapstructure:"host"`
 		Disks          []string `mapstructure:"disk"`
+		BlockSize      int      `mapstructure:"block_size"`
+		ChunkSize      int      `mapstructure:"chunk_size"`
 	}
 )
 
@@ -93,6 +103,16 @@ func newFormatConfig(containerImage, host, disk string) (*FormatConfig, error) {
 	}, nil
 }
 
+func isValidBlockSize(blocksize int) bool {
+	for _, bs := range VALID_BLOCK_SIZE {
+		if bs == blocksize {
+			return true
+		}
+	}
+
+	return false
+}
+
 func ParseFormat(filename string) ([]*FormatConfig, error) {
 	if !utils.PathExist(filename) {
 		return nil, errno.ERR_FORMAT_CONFIGURE_FILE_NOT_EXIST.
@@ -107,7 +127,10 @@ func ParseFormat(filename string) ([]*FormatConfig, error) {
 		return nil, errno.ERR_PARSE_FORMAT_CONFIGURE_FAILED.E(err)
 	}
 
-	format := &Format{}
+	format := &Format{
+		BlockSize: DEFAULT_BLOCK_SIZE,
+		ChunkSize: DEFAULT_CHUNK_SIZE,
+	}
 	err = parser.Unmarshal(format)
 	if err != nil {
 		return nil, errno.ERR_PARSE_FORMAT_CONFIGURE_FAILED.E(err)
@@ -118,6 +141,10 @@ func ParseFormat(filename string) ([]*FormatConfig, error) {
 		containerImage = format.ContainerImage
 	}
 
+	if !isValidBlockSize(format.BlockSize) {
+		return nil, errno.ERR_INVALID_BLOCK_SIZE.F("block_size: %d", format.BlockSize)
+	}
+
 	fcs := []*FormatConfig{}
 	for _, host := range format.Hosts {
 		for _, disk := range format.Disks {
@@ -125,6 +152,8 @@ func ParseFormat(filename string) ([]*FormatConfig, error) {
 			if err != nil {
 				return nil, err
 			}
+			fc.BlockSize = format.BlockSize
+			fc.ChunkSize = format.ChunkSize
 			fcs = append(fcs, fc)
 		}
 	}
@@ -137,3 +166,5 @@ func (fc *FormatConfig) GetHost() string           { return fc.Host }
 func (fc *FormatConfig) GetDevice() string         { return fc.Device }
 func (fc *FormatConfig) GetMountPoint() string     { return fc.MountPoint }
 func (fc *FormatConfig) GetFormatPercent() int     { return fc.FormtPercent }
+func (fc *FormatConfig) GetBlockSize() int         { return fc.BlockSize }
+func (fc *FormatConfig) GetChunkSize() int         { return fc.ChunkSize }
