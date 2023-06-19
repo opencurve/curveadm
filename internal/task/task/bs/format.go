@@ -64,9 +64,9 @@ type (
 	}
 )
 
-func skipFormat(containerId *string) step.LambdaType {
+func skipFormat(output *string, name string) step.LambdaType {
 	return func(ctx *context.Context) error {
-		if len(*containerId) > 0 {
+		if *output == name {
 			return task.ERR_SKIP_TASK
 		}
 		return nil
@@ -120,6 +120,7 @@ func (s *step2EditFSTab) execute(ctx *context.Context) error {
 		Device:      s.device,
 		Format:      "value",
 		MatchTag:    "UUID",
+		Success:     &success,
 		Out:         &s.uuid,
 		ExecOptions: curveadm.ExecOptions(),
 	})
@@ -182,7 +183,8 @@ func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *configure.FormatConf
 	t := task.NewTask("Start Format Chunkfile Pool", subname, hc.GetSSHConfig())
 
 	// add step to task
-	var oldContainerId, containerId, oldUUID string
+	var output, containerId, oldUUID string
+	var success bool
 	containerName := device2ContainerName(device)
 	layout := topology.GetCurveBSProjectLayout()
 	chunkfilePoolRootDir := layout.ChunkfilePoolRootDir
@@ -194,20 +196,20 @@ func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *configure.FormatConf
 	// 1: skip if formating container exist
 	t.AddStep(&step.ListContainers{
 		ShowAll:     true,
-		Format:      "'{{.ID}}'",
-		Quiet:       true,
+		Format:      "'{{.Names}}'",
 		Filter:      fmt.Sprintf("name=%s", containerName),
-		Out:         &oldContainerId,
+		Out:         &output,
 		ExecOptions: curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.Lambda{
-		Lambda: skipFormat(&oldContainerId),
+		Lambda: skipFormat(&output, containerName),
 	})
 	// 2: mkfs, mount device, edit fstab, tune2fs
 	t.AddStep(&step.BlockId{
 		Device:      device,
 		Format:      "value",
 		MatchTag:    "UUID",
+		Success:     &success,
 		Out:         &oldUUID,
 		ExecOptions: curveadm.ExecOptions(),
 	})
