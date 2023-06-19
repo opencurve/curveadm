@@ -241,7 +241,7 @@ func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *configure.FormatConf
 	})
 	t.AddStep(&step.Tune2FS{ // tune2fs -m 0 DEVICE
 		Device:                   device,
-		ReservedBlocksPercentage: 0,
+		ReservedBlocksPercentage: "0",
 		ExecOptions:              curveadm.ExecOptions(),
 	})
 	// 3: run container to format chunkfile pool
