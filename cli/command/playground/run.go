@@ -112,7 +112,7 @@ func NewRunCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	flags := cmd.Flags()
 	flags.StringVarP(&options.kind, "kind", "k", "curvefs", "Specify the type of playground (curvebs/curvefs)")
 	flags.StringVar(&options.mountPoint, "mountpoint", "p", "Specify the mountpoint for CurveFS playground")
-	flags.StringVarP(&options.containerImage, "container_image", "i", "harbor.cloud.netease.com/curve/curvebs:playground", "Specify the playground container image")
+	flags.StringVarP(&options.containerImage, "container_image", "i", "opencurvedocker/curvebs:playground", "Specify the playground container image")
 
 	return cmd
 }
