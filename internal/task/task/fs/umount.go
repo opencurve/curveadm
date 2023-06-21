@@ -136,7 +136,6 @@ func NewUmountFSTask(curveadm *cli.CurveAdm, v interface{}) (*task.Task, error) 
 	t.AddStep(&step.ListContainers{
 		ShowAll:     true,
 		Format:      "'{{.Status}}'",
-		Quiet:       true,
 		Filter:      fmt.Sprintf("id=%s", containerId),
 		Out:         &status,
 		ExecOptions: curveadm.ExecOptions(),
