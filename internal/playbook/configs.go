@@ -36,6 +36,8 @@ const (
 	TYPE_CONFIG_DEPLOY
 	TYPE_CONFIG_CLIENT
 	TYPE_CONFIG_PLAYGROUND
+	TYPE_CONFIG_MONITOR
+	TYPE_CONFIG_WEBSITE
 	TYPE_CONFIG_ANY
 	TYPE_CONFIG_NULL
 )
@@ -48,6 +50,8 @@ type SmartConfig struct {
 	dcs   []*topology.DeployConfig
 	ccs   []*configure.ClientConfig
 	pgcs  []*configure.PlaygroundConfig
+	mcs   []*configure.MonitorConfig
+	wcs   []*configure.WebsiteConfig
 	anys  []interface{}
 }
 
@@ -94,6 +98,20 @@ func (c *SmartConfig) GetPGC(index int) *configure.PlaygroundConfig {
 	return c.pgcs[index]
 }
 
+func (c *SmartConfig) GetMC(index int) *configure.MonitorConfig {
+	if index < 0 || index >= c.len || c.ctype != TYPE_CONFIG_MONITOR {
+		return nil
+	}
+	return c.mcs[index]
+}
+
+func (c *SmartConfig) GetWC(index int) *configure.WebsiteConfig {
+	if index < 0 || index >= c.len || c.ctype != TYPE_CONFIG_WEBSITE {
+		return nil
+	}
+	return c.wcs[index]
+}
+
 func (c *SmartConfig) GetAny(index int) interface{} {
 	if index < 0 || index >= c.len || c.ctype != TYPE_CONFIG_ANY {
 		return nil
@@ -110,6 +128,8 @@ func NewSmartConfig(configs interface{}) (*SmartConfig, error) {
 		dcs:   []*topology.DeployConfig{},
 		ccs:   []*configure.ClientConfig{},
 		pgcs:  []*configure.PlaygroundConfig{},
+		mcs:   []*configure.MonitorConfig{},
+		wcs:   []*configure.WebsiteConfig{},
 		anys:  []interface{}{},
 	}
 	build.DEBUG(build.DEBUG_SMART_CONFIGS,
@@ -138,6 +158,14 @@ func NewSmartConfig(configs interface{}) (*SmartConfig, error) {
 		c.ctype = TYPE_CONFIG_PLAYGROUND
 		c.pgcs = configs.([]*configure.PlaygroundConfig)
 		c.len = len(c.pgcs)
+	case []*configure.MonitorConfig:
+		c.ctype = TYPE_CONFIG_MONITOR
+		c.mcs = configs.([]*configure.MonitorConfig)
+		c.len = len(c.mcs)
+	case []*configure.WebsiteConfig:
+		c.ctype = TYPE_CONFIG_WEBSITE
+		c.wcs = configs.([]*configure.WebsiteConfig)
+		c.len = len(c.wcs)
 	case []interface{}:
 		c.ctype = TYPE_CONFIG_ANY
 		c.anys = configs.([]interface{})
@@ -163,6 +191,14 @@ func NewSmartConfig(configs interface{}) (*SmartConfig, error) {
 	case *configure.PlaygroundConfig:
 		c.ctype = TYPE_CONFIG_PLAYGROUND
 		c.pgcs = append(c.pgcs, configs.(*configure.PlaygroundConfig))
+		c.len = 1
+	case *configure.MonitorConfig:
+		c.ctype = TYPE_CONFIG_MONITOR
+		c.mcs = append(c.mcs, configs.(*configure.MonitorConfig))
+		c.len = 1
+	case *configure.WebsiteConfig:
+		c.ctype = TYPE_CONFIG_WEBSITE
+		c.wcs = append(c.wcs, configs.(*configure.WebsiteConfig))
 		c.len = 1
 	case nil:
 		c.ctype = TYPE_CONFIG_NULL

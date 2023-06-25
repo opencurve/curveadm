@@ -114,6 +114,14 @@ func (e *ErrorCode) Error() string {
 	return tui.PromptErrorCode(e.code, e.description, e.clue, gLogpath)
 }
 
+func (e *ErrorCode) IsHttpErr() bool {
+	return e.code/10000 == 70
+}
+
+func (e *ErrorCode) HttpCode() int {
+	return e.code % 1000
+}
+
 /*
  * 0xx: init curveadm
  *
@@ -228,6 +236,10 @@ var (
 	// 117: database/SQL (execute SQL statement: disks table)
 	ERR_GET_DISKS_FAILED    = EC(117000, "execute SQL failed while get disks")
 	ERR_UPDATE_DISKS_FAILED = EC(117001, "execute SQL failed while updating disks")
+	// 118: database/SQL (execute SQL statement: monitor table)
+	ERR_GET_MONITOR_FAILED     = EC(118000, "execute SQL failed while get monitor")
+	ERR_REPLACE_MONITOR_FAILED = EC(118001, "execute SQL failed while replace monitor")
+	ERR_UPDATE_MONITOR_FAILED  = EC(118002, "execute SQL failed while update monitor")
 
 	// 200: command options (hosts)
 
@@ -315,6 +327,15 @@ var (
 	ERR_DISK_FORMAT_PERCENT_EXCEED_100 = EC(323008, "disk format percent is greater than 100")
 	ERR_DELETE_SERVICE_BINDING_DISK    = EC(323009, "cannot remove service binding disk")
 	ERR_INVALID_DISK_URI               = EC(323010, "invalid disk uri")
+
+	// 324: configure (monitor.yaml: parse failed)
+	ERR_PARSE_MONITOR_CONFIGURE_FAILED = EC(324000, "parse monitor configure failed")
+	ERR_READ_MONITOR_FILE_FAILED       = EC(324001, "read monitor file failed")
+	ERR_PARSE_PROMETHEUS_TARGET_FAILED = EC(324002, "parse prometheus targets failed")
+
+	// 325: configure (website.yaml: parse failed)
+	ERR_WEBSITE_CONF_FILE_NOT_FOUND    = EC(325000, "website conf file not found")
+	ERR_PARSE_WEBSITE_CONFIGURE_FAILED = EC(325001, "parse website configure failed")
 
 	// 330: configure (topology.yaml: parse failed)
 	ERR_TOPOLOGY_FILE_NOT_FOUND         = EC(330000, "topology file not found")
@@ -544,6 +565,13 @@ var (
 
 	// 690: execuetr task (others)
 	ERR_START_CRONTAB_IN_CONTAINER_FAILED = EC(690000, "start crontab in container failed")
+
+	// 70: http service
+	ERR_UNSUPPORT_REQUEST_URI     = EC(701400, "unsupport request uri")
+	ERR_UNSUPPORT_METHOD_ARGUMENT = EC(702400, "unsupport method argument")
+	ERR_HTTP_METHOD_MISMATCHED    = EC(703400, "http method mismatch")
+	ERR_BAD_REQUEST_FORM_PARAM    = EC(704400, "bad request form param")
+	ERR_UNSUPPORT_HTTP_METHOD     = EC(705405, "unsupport http method")
 
 	// 800: deploy
 	ERR_DISK_DEVICE_NOT_FORMATTED = EC(800000, "disk device is unformatted")
