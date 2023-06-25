@@ -46,13 +46,13 @@ import (
 )
 
 var curveadmExample = `Examples:
-  $ curveadm playground --kind curvebs  # Run a CurveBS playground quickly
-  $ curveadm cluster add c1             # Add a cluster named 'c1'
-  $ curveadm deploy                     # Deploy current cluster
-  $ curveadm stop                       # Stop current cluster service
-  $ curveadm clean                      # Clean current cluster
-  $ curveadm enter 6ff561598c6f         # Enter specified service container
-  $ curveadm -u                         # Upgrade curveadm itself to the latest version`
+  $ curveadm playground run --kind curvebs  # Run a CurveBS playground quickly
+  $ curveadm cluster add c1                 # Add a cluster named 'c1'
+  $ curveadm deploy                         # Deploy current cluster
+  $ curveadm stop                           # Stop current cluster service
+  $ curveadm clean                          # Clean current cluster
+  $ curveadm enter 6ff561598c6f             # Enter specified service container
+  $ curveadm -u                             # Upgrade curveadm itself to the latest version`
 
 type rootOptions struct {
 	debug   bool
