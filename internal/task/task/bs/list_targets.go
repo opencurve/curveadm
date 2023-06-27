@@ -72,13 +72,14 @@ func addTarget(memStorage *utils.SafeMap, id string, target *Target) {
 /*
 Output Example:
 Target 3: iqn.2022-02.com.opencurve:curve.wine93/test03
-    ...
-    LUN information:
-        LUN: 0
-            ...
-        LUN: 1
-            ...
-            Backing store path: cbd:pool//test03_wine93_
+
+	...
+	LUN information:
+	    LUN: 0
+	        ...
+	    LUN: 1
+	        ...
+	        Backing store path: cbd:pool//test03_wine93_
 */
 func (s *step2FormatTarget) Execute(ctx *context.Context) error {
 	output := *s.output
@@ -91,7 +92,7 @@ func (s *step2FormatTarget) Execute(ctx *context.Context) error {
 		mu := titlePattern.FindStringSubmatch(line)
 		if len(mu) > 0 {
 			target = &Target{
-				Host: s.host,
+				Host:   s.host,
 				Tid:    mu[1],
 				Name:   mu[2],
 				Store:  "-",
@@ -127,7 +128,6 @@ func NewListTargetsTask(curveadm *cli.CurveAdm, v interface{}) (*task.Task, erro
 	t.AddStep(&step.ListContainers{
 		ShowAll:     true,
 		Format:      "'{{.ID}} {{.Status}}'",
-		Quiet:       true,
 		Filter:      fmt.Sprintf("name=%s", DEFAULT_TGTD_CONTAINER_NAME),
 		Out:         &output,
 		ExecOptions: curveadm.ExecOptions(),

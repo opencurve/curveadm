@@ -105,7 +105,6 @@ func NewStopFormatTask(curveadm *cli.CurveAdm, fc *configure.FormatConfig) (*tas
 	t.AddStep(&step.ListContainers{
 		ShowAll:     true,
 		Format:      "'{{.ID}}'",
-		Quiet:       true,
 		Filter:      fmt.Sprintf("name=%s", containerName),
 		Out:         &oldContainerId,
 		ExecOptions: curveadm.ExecOptions(),

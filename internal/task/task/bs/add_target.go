@@ -34,12 +34,12 @@ import (
 )
 
 type TargetOption struct {
-	Host   string
-	User   string
-	Volume string
-	Create bool
-	Size   int
-	Tid    string
+	Host      string
+	User      string
+	Volume    string
+	Create    bool
+	Size      int
+	Tid       string
 	Blocksize uint64
 }
 
@@ -65,7 +65,6 @@ func NewAddTargetTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task
 	t.AddStep(&step.ListContainers{
 		ShowAll:     true,
 		Format:      "'{{.ID}} {{.Status}}'",
-		Quiet:       true,
 		Filter:      fmt.Sprintf("name=%s", DEFAULT_TGTD_CONTAINER_NAME),
 		Out:         &output,
 		ExecOptions: curveadm.ExecOptions(),
