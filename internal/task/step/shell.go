@@ -436,10 +436,10 @@ func (s *ListBlockDevice) Execute(ctx *context.Context) error {
 func (s *BlockId) Execute(ctx *context.Context) error {
 	cmd := ctx.Module().Shell().BlkId(s.Device)
 	if len(s.Format) > 0 {
-		cmd.AddOption("--output=%s", s.Format)
+		cmd.AddOption("-o %s", s.Format)
 	}
 	if len(s.MatchTag) > 0 {
-		cmd.AddOption("--match-tag=%s", s.MatchTag)
+		cmd.AddOption("-s %s", s.MatchTag)
 	}
 
 	out, err := cmd.Execute(s.ExecOptions)
