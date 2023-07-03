@@ -71,6 +71,8 @@ func NewCreateVolumeTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*t
 	hc, err := curveadm.GetHost(options.Host)
 	if err != nil {
 		return nil, err
+	} else if !options.Create {
+		return nil, task.ERR_SKIP_TASK
 	}
 
 	subname := fmt.Sprintf("hostname=%s image=%s", hc.GetHostname(), cc.GetContainerImage())
