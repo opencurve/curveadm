@@ -57,10 +57,12 @@ func getCleanFiles(clean map[string]bool, cfg *configure.MonitorConfig) []string
 func NewCleanMonitorTask(curveadm *cli.CurveAdm, cfg *configure.MonitorConfig) (*task.Task, error) {
 	serviceId := curveadm.GetServiceId(cfg.GetId())
 	containerId, err := curveadm.GetContainerId(serviceId)
-	if IsSkip(cfg, []string{ROLE_MONITOR_CONF}) {
-		return nil, nil
-	} else if err != nil {
+	if err != nil {
 		return nil, err
+	}
+	if cfg.GetRole() == ROLE_MONITOR_CONF &&
+		(len(containerId) == 0 || containerId == comm.CLEANED_CONTAINER_ID) {
+		return nil, nil
 	}
 	hc, err := curveadm.GetHost(cfg.GetHost())
 	if err != nil {
