@@ -24,16 +24,11 @@ package cluster
 
 import (
 	"fmt"
-	"io"
-	"os"
-	"regexp"
-	"strconv"
-	"strings"
 
-	"github.com/opencurve/curveadm/pkg/log/zaplog"
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/storage"
 	"github.com/opencurve/curveadm/internal/utils"
+	"github.com/opencurve/curveadm/pkg/log/zaplog"
 	"github.com/spf13/cobra"
 )
 
@@ -43,7 +38,7 @@ const (
 
 var (
 	importExample = `Examples:
-  $ curveadm cluster import my-cluster                     # Import a cluster named 'my-cluster' 
+  $ curveadm cluster import my-cluster                     # Import cluster 'my-cluster' with curveadm.db
   $ curveadm cluster import my-cluster -f /path/to/dbfile  # Import cluster 'my-cluster' with specified database file`
 )
 
@@ -73,100 +68,40 @@ func NewImportCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	return cmd
 }
 
-func readItem(file *os.File) (int, string, error) {
-	// key: --- $ID $LENGTH
-	buffer := []byte{}
-	bytes := make([]byte, 1)
-	for {
-		_, err := file.Read(bytes)
-		if err == io.EOF {
-			if len(buffer) == 0 {
-				return 0, "", io.EOF
-			} else {
-				return 0, "", fmt.Errorf("invalid curveadm database, line: %s", string(buffer))
-			}
-		} else if err != nil {
-			return 0, "", err
-		} else if bytes[0] == '\n' {
-			break
-		}
-		buffer = append(buffer, bytes[0])
-	}
-
-	key := string(buffer)
-	pattern := regexp.MustCompile("^--- ([0-9]+) ([0-9]+)$")
-	mu := pattern.FindStringSubmatch(key)
-	if len(mu) == 0 {
-		return 0, "", fmt.Errorf("invalid curveadm database, line: %s", key)
-	}
-
-	id, _ := strconv.Atoi(mu[1])
-	nbytes, _ := strconv.Atoi(mu[2])
-	if nbytes > MAX_VALUE_BYETS {
-		return 0, "", fmt.Errorf("too big value int curveadm database")
-	}
-
-	// value
-	bytes = make([]byte, nbytes)
-	nread, err := file.Read(bytes)
-	if err == io.EOF || nread != nbytes {
-		return 0, "", fmt.Errorf("value broken in database")
-	} else if err != nil {
-		return 0, "", err
-	}
-
-	return id, string(bytes[:nbytes-1]), nil
-}
-
-func readDatabase(filename string) (storage.Cluster, []storage.Service, error) {
-	cluster := storage.Cluster{}
-	services := []storage.Service{}
-	file, err := os.Open(filename)
+func readDB(filepath, name string) (*storage.Cluster, []storage.Service, error) {
+	dbUrl := fmt.Sprintf("sqlite://%s", filepath)
+	s, err := storage.NewStorage(dbUrl)
 	if err != nil {
-		return cluster, services, err
-	}
-	defer file.Close()
-
-	for {
-		id, value, err := readItem(file)
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			return cluster, services, err
-		}
-
-		switch id {
-		case CLUSTER_DESCRIPTION:
-			cluster.Description = value
-			break
-		case CLUSTER_TOPOLOGY:
-			cluster.Topology = value
-			break
-		case SERVICE:
-			items := strings.Split(value, " ")
-			if len(items) != 2 {
-				return cluster, services, fmt.Errorf("invalid service, line: %s", value)
-			}
-			service := storage.Service{
-				Id:          items[0],
-				ContainerId: items[1],
-			}
-			services = append(services, service)
-		}
+		return nil, nil, err
 	}
 
-	return cluster, services, nil
+	clusters, err := s.GetClusters(name)
+	if err != nil {
+		return nil, nil, err
+	} else if len(clusters) == 0 {
+		return nil, nil, fmt.Errorf("cluster '%s' not found", name)
+	} else if len(clusters) > 1 {
+		return nil, nil, fmt.Errorf("cluster '%s' is duplicate", name)
+	}
+
+	cluster := clusters[0]
+	services, err := s.GetServices(cluster.Id)
+	if err != nil {
+		return nil, nil, err
+	}
+	return &cluster, services, nil
 }
 
-func importCluster(storage *storage.Storage, name, dbfile string) error {
+func importCluster(storage *storage.Storage, dbfile, name string) error {
 	// read database file
-	cluster, services, err := readDatabase(dbfile)
+	cluster, services, err := readDB(dbfile, name)
 	if err != nil {
 		return err
 	}
 
 	// insert cluster
-	if storage.InsertCluster(name, cluster.Description, cluster.Topology); err != nil {
+	err = storage.InsertCluster(name, cluster.UUId, cluster.Description, cluster.Topology)
+	if err != nil {
 		return err
 	}
 
@@ -177,7 +112,8 @@ func importCluster(storage *storage.Storage, name, dbfile string) error {
 	}
 	clusterId := clusters[0].Id
 	for _, service := range services {
-		if err := storage.InsertService(clusterId, service.Id, service.ContainerId); err != nil {
+		err := storage.InsertService(clusterId, service.Id, service.ContainerId)
+		if err != nil {
 			return err
 		}
 	}
@@ -191,10 +127,9 @@ func runImport(curveadm *cli.CurveAdm, options importOptions) error {
 	if err != nil {
 		zaplog.Error("GetClusters", zaplog.Field("error", err))
 		return err
-	} else if len(clusters) != 0 {
+	} else if len(clusters) != 0 { // TODO: let user enter a new cluster name
 		return fmt.Errorf("cluster %s already exist", name)
-	} else if err := importCluster(storage, name, options.dbfile); err != nil {
-		storage.DeleteCluster(name)
+	} else if err := importCluster(storage, options.dbfile, name); err != nil {
 		return err
 	}
 

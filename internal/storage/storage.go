@@ -153,8 +153,8 @@ func (s *Storage) GetHostses() ([]Hosts, error) {
 }
 
 // cluster
-func (s *Storage) InsertCluster(name, description, topology string) error {
-	return s.write(InsertCluster, name, description, topology)
+func (s *Storage) InsertCluster(name, uuid, description, topology string) error {
+	return s.write(InsertCluster, uuid, name, description, topology)
 }
 
 func (s *Storage) DeleteCluster(name string) error {
