@@ -45,7 +45,7 @@ const (
 	FORMAT_MOUNT_OPTION = "type=bind,source=%s,target=%s,bind-propagation=rshared"
 
 	CLIENT_CONFIG_DELIMITER   = "="
-	TOOLS_V2_CONFIG_DELIMITER = ":"
+	TOOLS_V2_CONFIG_DELIMITER = ": "
 
 	KEY_CURVEBS_CLUSTER = "curvebs.cluster"
 
