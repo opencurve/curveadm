@@ -43,9 +43,9 @@ func NewClusterCommand(curveadm *cli.CurveAdm) *cobra.Command {
 		NewCheckoutCommand(curveadm),
 		NewListCommand(curveadm),
 		NewRemoveCommand(curveadm),
-		// TODO(P1): enable export and import
+		// TODO(P1): enable export
 		//NewExportCommand(curveadm),
-		//NewImportCommand(curveadm),
+		NewImportCommand(curveadm),
 	)
 	return cmd
 }

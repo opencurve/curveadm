@@ -123,7 +123,7 @@ var (
 	// insert cluster
 	InsertCluster = `
 		INSERT INTO clusters(uuid, name, description, topology, pool, create_time)
-		VALUES(hex(randomblob(16)), ?, ?, ?, "", datetime('now','localtime'))
+		VALUES(?, ?, ?, ?, "", datetime('now','localtime'))
 	`
 
 	// delete cluster

@@ -25,6 +25,7 @@
 package cluster
 
 import (
+	"github.com/google/uuid"
 	"github.com/opencurve/curveadm/cli/cli"
 	comm "github.com/opencurve/curveadm/internal/common"
 	"github.com/opencurve/curveadm/internal/configure/topology"
@@ -161,7 +162,8 @@ func runAdd(curveadm *cli.CurveAdm, options addOptions) error {
 	}
 
 	// 4) insert cluster (with topology) into database
-	err = storage.InsertCluster(name, options.descriotion, data)
+	uuid := uuid.NewString()
+	err = storage.InsertCluster(name, uuid, options.descriotion, data)
 	if err != nil {
 		return errno.ERR_INSERT_CLUSTER_FAILED.E(err)
 	}
