@@ -86,7 +86,7 @@ func NewSyncConfigTask(curveadm *cli.CurveAdm, cfg *configure.MonitorConfig) (*t
 		Lambda: common.CheckContainerExist(cfg.GetHost(), cfg.GetRole(), containerId, &out),
 	})
 	if role == ROLE_PROMETHEUS {
-		t.AddStep(&step.CreateAndUploadDir{ // prepare prometheus conf upath
+		t.AddStep(&step.CreateAndUploadDir{ // prepare prometheus conf path
 			HostDirName:       "prometheus",
 			ContainerDestId:   &containerId,
 			ContainerDestPath: "/etc",
