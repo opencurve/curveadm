@@ -62,7 +62,11 @@ func NewAddTargetTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task
 	targetScriptPath := "/curvebs/tools/sbin/target.sh"
 	targetScript := scripts.TARGET
 	cmd := fmt.Sprintf("/bin/bash %s %s %s %v %d %d", targetScriptPath, user, volume, options.Create, options.Size, options.Blocksize)
-	toolsConf := fmt.Sprintf(FORMAT_TOOLS_CONF, cc.GetClusterMDSAddr())
+	toolsConf := fmt.Sprintf(FORMAT_TOOLS_CONF,
+		cc.GetClusterMDSAddr(),
+		cc.GetAuthClientEnable(),
+		cc.GetAuthClientKey(),
+		cc.GetAuthClientId())
 
 	t.AddStep(&step.ListContainers{
 		ShowAll:     true,

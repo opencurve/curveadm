@@ -52,6 +52,10 @@ const (
 	KEY_CLIENT_S3_ADDRESS     = "s3.endpoint"
 	KEY_CLIENT_S3_BUCKET_NAME = "s3.bucket_name"
 
+	KEY_AUTH_CLIENT_ENABLE = "auth.client.enable"
+	KEY_AUTH_CLIENT_KEY    = "auth.client.key"
+	KEY_AUTH_CLIENT_ID     = "auth.client.id"
+
 	DEFAULT_CORE_LOCATE_DIR = "/core"
 )
 
@@ -183,6 +187,9 @@ func (cc *ClientConfig) GetS3AccessKey() string              { return cc.getStri
 func (cc *ClientConfig) GetS3SecretKey() string              { return cc.getString(KEY_CLIENT_S3_SECRET_KEY) }
 func (cc *ClientConfig) GetS3Address() string                { return cc.getString(KEY_CLIENT_S3_ADDRESS) }
 func (cc *ClientConfig) GetS3BucketName() string             { return cc.getString(KEY_CLIENT_S3_BUCKET_NAME) }
+func (cc *ClientConfig) GetAuthClientEnable() bool           { return cc.getBool(KEY_AUTH_CLIENT_ENABLE) }
+func (cc *ClientConfig) GetAuthClientKey() string            { return cc.getString(KEY_AUTH_CLIENT_KEY) }
+func (cc *ClientConfig) GetAuthClientId() string             { return cc.getString(KEY_AUTH_CLIENT_ID) }
 func (cc *ClientConfig) GetContainerPid() string             { return cc.getString(KEY_CONTAINER_PID) }
 func (cc *ClientConfig) GetEnvironments() string             { return cc.getString(KEY_ENVIRONMENT) }
 func (cc *ClientConfig) GetCoreLocateDir() string            { return DEFAULT_CORE_LOCATE_DIR }

@@ -1,0 +1,7 @@
+kind: curvebs
+container_image: harbor.cloud.netease.com/curve/curvebs:wanghai-auth
+mds.listen.addr: 59.111.93.76:6700,59.111.93.76:6701,59.111.93.76:6702
+log_dir: /root/logs/client
+auth.client.enable: true
+auth.client.key: 60a114c91c419831
+auth.client.id: mds_tools

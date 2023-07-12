@@ -76,6 +76,11 @@ type (
 		curveadm *cli.CurveAdm
 		dcs      []*topology.DeployConfig
 	}
+
+	// check whether auth config is valid
+	step2CheckAuth struct {
+		dcs []*topology.DeployConfig
+	}
 )
 
 func (s *step2CheckSSHConfigure) Execute(ctx *context.Context) error {
@@ -259,6 +264,37 @@ func (s *step2CheckServices) Execute(ctx *context.Context) error {
 	return nil
 }
 
+func (s *step2CheckAuth) Execute(ctx *context.Context) error {
+	if !s.dcs[0].GetAuthEnable() {
+		return nil
+	}
+
+	for _, dc := range s.dcs {
+		if dc.GetRole() == ROLE_ETCD {
+			continue
+		}
+
+		authServerKey := dc.GetAuthServerKey()
+		authCurrentKey := dc.GetAuthKeyCurrent()
+
+		if authCurrentKey == "" {
+			return errno.ERR_AUTH_CURRENT_KEY_REQUIRE_SET
+		} else if len(authCurrentKey) != 16 {
+			return errno.ERR_AUTH_CURRENT_KEY_REQUIRE_16_CHARACTER
+		}
+
+		if dc.GetRole() == ROLE_MDS {
+			if authServerKey == "" {
+				return errno.ERR_AUTH_SERVER_KEY_REQUIRE_SET
+			} else if len(authServerKey) != 16 {
+				return errno.ERR_AUTH_SERVER_KEY_REQUIRE_16_CHARACTER
+			}
+		}
+	}
+
+	return nil
+}
+
 func NewCheckTopologyTask(curveadm *cli.CurveAdm, null interface{}) (*task.Task, error) {
 	// new task
 	dcs := curveadm.MemStorage().Get(comm.KEY_ALL_DEPLOY_CONFIGS).([]*topology.DeployConfig)
@@ -287,6 +323,7 @@ func NewCheckTopologyTask(curveadm *cli.CurveAdm, null interface{}) (*task.Task,
 			curveadm: curveadm,
 		})
 	}
+	t.AddStep(&step2CheckAuth{dcs: dcs})
 
 	return t, nil
 }

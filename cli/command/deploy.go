@@ -44,6 +44,7 @@ const (
 	SYNC_CONFIG                = playbook.SYNC_CONFIG
 	START_ETCD                 = playbook.START_ETCD
 	START_MDS                  = playbook.START_MDS
+	DIST_AUTH_KEY              = playbook.DIST_AUTH_KEY
 	CREATE_PHYSICAL_POOL       = playbook.CREATE_PHYSICAL_POOL
 	START_CHUNKSERVER          = playbook.START_CHUNKSERVER
 	CREATE_LOGICAL_POOL        = playbook.CREATE_LOGICAL_POOL
@@ -66,6 +67,7 @@ var (
 		SYNC_CONFIG,
 		START_ETCD,
 		START_MDS,
+		DIST_AUTH_KEY,
 		CREATE_PHYSICAL_POOL,
 		START_CHUNKSERVER,
 		CREATE_LOGICAL_POOL,
@@ -93,12 +95,14 @@ var (
 		CREATE_PHYSICAL_POOL: ROLE_MDS,
 		CREATE_LOGICAL_POOL:  ROLE_MDS,
 		BALANCE_LEADER:       ROLE_MDS,
+		DIST_AUTH_KEY:        ROLE_MDS,
 	}
 
 	DEPLOY_LIMIT_SERVICE = map[int]int{
 		CREATE_PHYSICAL_POOL: 1,
 		CREATE_LOGICAL_POOL:  1,
 		BALANCE_LEADER:       1,
+		DIST_AUTH_KEY:        1,
 	}
 
 	CAN_SKIP_ROLES = []string{
@@ -160,13 +164,15 @@ func skipServiceRole(deployConfigs []*topology.DeployConfig, options deployOptio
 	return dcs
 }
 
-func skipDeploySteps(deploySteps []int, options deployOptions) []int {
+func skipDeploySteps(dcs []*topology.DeployConfig, deploySteps []int, options deployOptions) []int {
 	steps := []int{}
 	skipped := utils.Slice2Map(options.skip)
 	for _, step := range deploySteps {
-		if step == START_SNAPSHOTCLONE && skipped[ROLE_SNAPSHOTCLONE] {
+		if (step == START_SNAPSHOTCLONE && skipped[ROLE_SNAPSHOTCLONE]) ||
+			(step == DIST_AUTH_KEY && !dcs[0].GetAuthEnable()) {
 			continue
 		}
+
 		steps = append(steps, step)
 	}
 	return steps
@@ -211,9 +217,37 @@ func genDeployPlaybook(curveadm *cli.CurveAdm,
 	if kind == topology.KIND_CURVEBS {
 		steps = CURVEBS_DEPLOY_STEPS
 	}
-	steps = skipDeploySteps(steps, options)
+	steps = skipDeploySteps(dcs, steps, options)
 	poolset := options.poolset
 	diskType := options.poolsetDiskType
+
+	// record all auth key info
+	var authServerKey string
+	stepDistAuthKeyOptions := make(map[string]comm.RoleAuthInfo)
+	if kind == topology.KIND_CURVEBS && dcs[0].GetAuthEnable() {
+		for _, dc := range dcs {
+			role := dc.GetRole()
+			if role == ROLE_ETCD {
+				continue
+			}
+			if _, ok := stepDistAuthKeyOptions[role]; ok {
+				continue
+			}
+
+			stepDistAuthKeyOptions[role] = comm.RoleAuthInfo{
+				AuthEnable:       dc.GetAuthEnable(),
+				AuthClientEnable: dc.GetAuthClientEnable(),
+				AuthServerKey:    dc.GetAuthServerKey(),
+				AuthKeyCurrent:   dc.GetAuthKeyCurrent(),
+				AuthClientKey:    dc.GetAuthClientKey(),
+				AuthClientId:     dc.GetAuthClientId(),
+			}
+
+			if role == topology.ROLE_MDS {
+				authServerKey = dc.GetAuthServerKey()
+			}
+		}
+	}
 
 	pb := playbook.NewPlaybook(curveadm)
 	for _, step := range steps {
@@ -237,6 +271,9 @@ func genDeployPlaybook(curveadm *cli.CurveAdm,
 			options[comm.POOLSET_DISK_TYPE] = diskType
 		} else if step == CREATE_LOGICAL_POOL {
 			options[comm.KEY_CREATE_POOL_TYPE] = comm.POOL_TYPE_LOGICAL
+		} else if step == DIST_AUTH_KEY {
+			options[comm.AUTH_SERVER_KEY] = authServerKey
+			options[comm.ROLES_AUTH_INFO] = stepDistAuthKeyOptions
 		}
 
 		pb.AddStep(&playbook.PlaybookStep{
