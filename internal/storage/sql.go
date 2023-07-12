@@ -205,6 +205,9 @@ var (
 	// insert client
 	InsertClient = `INSERT INTO clients(id, kind, host, container_id, aux_info) VALUES(?, ?, ?, ?, ?)`
 
+	// set client aux info
+	SetClientAuxInfo = `UPDATE clients SET aux_info = ? WHERE id = ?`
+
 	// select clients
 	SelectClients = `SELECT * FROM clients`
 

@@ -265,6 +265,10 @@ func (s *Storage) InsertClient(id, kind, host, containerId, auxInfo string) erro
 	return s.write(InsertClient, id, kind, host, containerId, auxInfo)
 }
 
+func (s *Storage) SetClientAuxInfo(id, auxInfo string) error {
+	return s.write(SetClientAuxInfo, id, auxInfo)
+}
+
 func (s *Storage) getClients(query string, args ...interface{}) ([]Client, error) {
 	result, err := s.db.Query(query, args...)
 	if err != nil {
