@@ -215,6 +215,7 @@ var (
 	ERR_GET_CLIENT_BY_ID_FAILED        = EC(113002, "execute SQL failed which get client by id")
 	ERR_GET_ALL_CLIENTS_FAILED         = EC(113003, "execute SQL failed which get all clients")
 	ERR_DELETE_CLIENT_FAILED           = EC(113004, "execute SQL failed which delete client")
+	ERR_SET_CLIENT_AUX_INFO_FAILED     = EC(113005, "execute SQL failed which set client aux info")
 	// 114: database/SQL (execute SQL statement: playground table)
 	ERR_INSERT_PLAYGROUND_FAILED      = EC(114000, "execute SQL failed which insert playground")
 	ERR_GET_ALL_PLAYGROUND_FAILED     = EC(114001, "execute SQL failed which get all playgrounds")

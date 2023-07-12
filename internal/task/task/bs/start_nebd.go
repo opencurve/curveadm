@@ -51,9 +51,10 @@ type (
 	}
 
 	AuxInfo struct {
-		User   string `json:"user"`
-		Volume string `json:"volume,"`
-		Config string `json:"config,omitempty"` // TODO(P1)
+		User    string `json:"user"`
+		Volume  string `json:"volume"`
+		Poolset string `json:"poolset"`
+		Config  string `json:"config,omitempty"` // TODO(P1)
 	}
 )
 
@@ -122,8 +123,9 @@ func (s *step2InsertClient) Execute(ctx *context.Context) error {
 	volumeId := curveadm.GetVolumeId(options.Host, options.User, options.Volume)
 
 	auxInfo := &AuxInfo{
-		User:   options.User,
-		Volume: options.Volume,
+		User:    options.User,
+		Volume:  options.Volume,
+		Poolset: options.Poolset,
 	}
 	bytes, err := json.Marshal(auxInfo)
 	if err != nil {
