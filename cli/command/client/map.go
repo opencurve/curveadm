@@ -161,7 +161,7 @@ func NewMapCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	flags.BoolVar(&options.noExclusive, "no-exclusive", false, "Map volume non exclusive")
 	flags.StringVar(&options.size, "size", "10GiB", "Specify volume size")
 	flags.StringVarP(&options.filename, "conf", "c", "client.yaml", "Specify client configuration file")
-	flags.StringVar(&options.poolset, "poolset", "", "Specify the poolset name")
+	flags.StringVar(&options.poolset, "poolset", "default", "Specify the poolset name")
 	return cmd
 }
 
