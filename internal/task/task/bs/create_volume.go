@@ -23,6 +23,7 @@
 package bs
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -72,6 +73,28 @@ func checkCreateStatus(out *string) step.LambdaType {
 			return task.ERR_SKIP_TASK
 		}
 		return errno.ERR_CREATE_VOLUME_FAILED
+	}
+}
+
+func setClientAuxInfo(curveadm *cli.CurveAdm, options MapOptions) step.LambdaType {
+	return func(ctx *context.Context) error {
+		volumeId := curveadm.GetVolumeId(options.Host, options.User, options.Volume)
+
+		auxInfo := &AuxInfo{
+			User:    options.User,
+			Volume:  options.Volume,
+			Poolset: options.Poolset,
+		}
+		bytes, err := json.Marshal(auxInfo)
+		if err != nil {
+			return errno.ERR_ENCODE_VOLUME_INFO_TO_JSON_FAILED.E(err)
+		}
+
+		err = curveadm.Storage().SetClientAuxInfo(volumeId, string(bytes))
+		if err != nil {
+			return errno.ERR_SET_CLIENT_AUX_INFO_FAILED.E(err)
+		}
+		return nil
 	}
 }
 
@@ -126,6 +149,9 @@ func NewCreateVolumeTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*t
 	})
 	t.AddStep(&step.Lambda{
 		Lambda: checkCreateStatus(&out),
+	})
+	t.AddStep(&step.Lambda{
+		Lambda: setClientAuxInfo(curveadm, options),
 	})
 
 	return t, nil
