@@ -16,12 +16,12 @@ g_create_opts=(
     -fileLength="$g_size"
 )
 if [ -n "$g_poolset" ]; then
-    g_build_opts+=("-poolset=$g_poolset")
+    g_create_opts+=("-poolset=$g_poolset")
 fi
 
 output=$(curve_ops_tool create "${g_create_opts[@]}")
 if [ "$?" -ne 0 ]; then
-    if [ "$output" = "CreateFile fail with errCode: 101" ]; then
+    if [ "$output" = "CreateFile fail with errCode: kFileExists" ]; then
         echo "EXIST"
     else
         echo "FAILED"
