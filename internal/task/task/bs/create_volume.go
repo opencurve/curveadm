@@ -43,6 +43,15 @@ rootUserPassword=root_password
 `
 )
 
+func checkCreateOption(create bool) step.LambdaType {
+	return func(ctx *context.Context) error {
+		if !create {
+			return task.ERR_SKIP_TASK
+		}
+		return nil
+	}
+}
+
 func checkVolumeStatus(out *string) step.LambdaType {
 	return func(ctx *context.Context) error {
 		if len(*out) == 0 {
@@ -71,8 +80,6 @@ func NewCreateVolumeTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*t
 	hc, err := curveadm.GetHost(options.Host)
 	if err != nil {
 		return nil, err
-	} else if !options.Create {
-		return nil, task.ERR_SKIP_TASK
 	}
 
 	subname := fmt.Sprintf("hostname=%s image=%s", hc.GetHostname(), cc.GetContainerImage())
@@ -86,6 +93,9 @@ func NewCreateVolumeTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*t
 	script := scripts.CREATE_VOLUME
 	scriptPath := "/curvebs/nebd/sbin/create.sh"
 	command := fmt.Sprintf("/bin/bash %s %s %s %d %s", scriptPath, options.User, options.Volume, options.Size, options.Poolset)
+	t.AddStep(&step.Lambda{
+		Lambda: checkCreateOption(options.Create),
+	})
 	t.AddStep(&step.ListContainers{
 		ShowAll:     true,
 		Format:      "'{{.Status}}'",
