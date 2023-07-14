@@ -74,7 +74,7 @@ const (
 
 	// bash
 	TEMPLATE_COMMAND     = "{{.command}}"
-	TEMPLATE_BASH_SCEIPT = "{{.scriptPath}} {{.arguments}}"
+	TEMPLATE_BASH_SCEIPT = "bash {{.scriptPath}} {{.arguments}}"
 )
 
 // TODO(P1): support command pipe
