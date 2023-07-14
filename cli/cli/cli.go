@@ -47,14 +47,16 @@ import (
 
 type CurveAdm struct {
 	// project layout
-	rootDir   string
-	dataDir   string
-	pluginDir string
-	logDir    string
-	tempDir   string
-	dbpath    string
-	logpath   string
-	config    *configure.CurveAdmConfig
+	rootDir      string
+	dataDir      string
+	pluginDir    string
+	logDir       string
+	tempDir      string
+	dbpath       string
+	logpath      string
+	httpConfPath string
+	httpLogPath  string
+	config       *configure.CurveAdmConfig
 
 	// data pipeline
 	in         io.Reader
@@ -97,6 +99,8 @@ func NewCurveAdm() (*CurveAdm, error) {
 		pluginDir: path.Join(rootDir, "plugins"),
 		logDir:    path.Join(rootDir, "logs"),
 		tempDir:   path.Join(rootDir, "temp"),
+		httpConfPath: path.Join(rootDir, "http/conf"),
+		httpLogPath:  path.Join(rootDir, "http/logs"),
 	}
 
 	err = curveadm.init()
@@ -116,6 +120,8 @@ func (curveadm *CurveAdm) init() error {
 		curveadm.pluginDir,
 		curveadm.logDir,
 		curveadm.tempDir,
+		curveadm.httpConfPath,
+		curveadm.httpLogPath,
 	}
 	for _, dir := range dirs {
 		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
