@@ -126,6 +126,7 @@ func (e *ErrorCode) Error() string {
  *     * 113: clients table
  *     * 114: plauground table
  *     * 115: audit table
+ *     * 116: any table
  *
  * 2xx: command options
  *   20*: hosts
@@ -223,6 +224,10 @@ var (
 	ERR_DELETE_PLAYGROUND_FAILED      = EC(114003, "execute SQL failed which delete playground")
 	// 115: database/SQL (execute SQL statement: audit table)
 	ERR_GET_AUDIT_LOGS_FAILE = EC(115000, "execute SQL failed which get audit logs")
+	// 116: database/SQL (execute SQL statement: any table)
+	ERR_INSERT_CLIENT_CONFIG_FAILED = EC(116000, "execute SQL failed which insert client config")
+	ERR_SELECT_CLIENT_CONFIG_FAILED = EC(116001, "execute SQL failed which select client config")
+	ERR_DELETE_CLIENT_CONFIG_FAILED = EC(116002, "execute SQL failed which delete client config")
 
 	// 200: command options (hosts)
 

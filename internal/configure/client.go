@@ -144,19 +144,36 @@ func ParseClientCfg(data string) (*ClientConfig, error) {
 }
 
 func ParseClientConfig(filename string) (*ClientConfig, error) {
-	parser := viper.NewWithOptions(viper.KeyDelimiter("::"))
-	parser.SetConfigFile(filename)
-	parser.SetConfigType("yaml")
-	if err := parser.ReadInConfig(); err != nil {
+	// 1. read file content
+	data, err := utils.ReadFile(filename)
+	if err != nil {
 		return nil, errno.ERR_PARSE_CLIENT_CONFIGURE_FAILED.E(err)
 	}
 
-	config := map[string]interface{}{}
-	if err := parser.Unmarshal(&config); err != nil {
+	// 2. new parser
+	parser := viper.NewWithOptions(viper.KeyDelimiter("::"))
+	parser.SetConfigFile(filename)
+	parser.SetConfigType("yaml")
+	err = parser.ReadInConfig()
+	if err != nil {
 		return nil, errno.ERR_PARSE_CLIENT_CONFIGURE_FAILED.E(err)
 	}
-	build.DEBUG(build.DEBUG_CLIENT_CONFIGURE, config)
-	return NewClientConfig(config)
+
+	// 3. parse
+	m := map[string]interface{}{}
+	err = parser.Unmarshal(&m)
+	if err != nil {
+		return nil, errno.ERR_PARSE_CLIENT_CONFIGURE_FAILED.E(err)
+	}
+
+	// 4. new config
+	cfg, err := NewClientConfig(m)
+	if err != nil {
+		return nil, err
+	}
+
+	cfg.data = data
+	return cfg, nil
 }
 
 func (cc *ClientConfig) getString(key string) string {
@@ -186,6 +203,7 @@ func (cc *ClientConfig) GetS3BucketName() string             { return cc.getStri
 func (cc *ClientConfig) GetContainerPid() string             { return cc.getString(KEY_CONTAINER_PID) }
 func (cc *ClientConfig) GetEnvironments() string             { return cc.getString(KEY_ENVIRONMENT) }
 func (cc *ClientConfig) GetCoreLocateDir() string            { return DEFAULT_CORE_LOCATE_DIR }
+func (cc *ClientConfig) GetData() string                     { return cc.data }
 func (cc *ClientConfig) GetServiceConfig() map[string]string { return cc.serviceConfig }
 func (cc *ClientConfig) GetVariables() *variable.Variables   { return cc.variables }
 func (cc *ClientConfig) GetContainerImage() string {
