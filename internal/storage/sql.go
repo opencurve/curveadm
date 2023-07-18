@@ -297,6 +297,34 @@ var (
 	SelectAuditLogById = `SELECT * FROM audit WHERE id = ?`
 )
 
+// any: we can store anything
+type Any struct {
+	Id   string
+	Data string
+}
+
+var (
+	// table: any
+	CreateAnyTable = `
+		CREATE TABLE IF NOT EXISTS any (
+			id TEXT PRIMARY KEY,
+			data TEXT NOT NULL
+		)
+	`
+
+	// insert item
+	InsertAnyItem = `INSERT INTO any(id, data) VALUES(?, ?)`
+
+	// set item
+	SetAnyItem = `UPDATE any SET data = ? WHERE id = ?`
+
+	// select item by id
+	SelectAnyItem = `SELECT * FROM any WHERE id = ?`
+
+	// delete item
+	DeleteAnyItem = `DELETE from any WHERE id = ?`
+)
+
 var (
 	// check pool column
 	CheckPoolColumn = `

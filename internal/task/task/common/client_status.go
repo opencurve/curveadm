@@ -27,6 +27,7 @@ import (
 
 	"github.com/opencurve/curveadm/cli/cli"
 	comm "github.com/opencurve/curveadm/internal/common"
+	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/storage"
 	"github.com/opencurve/curveadm/internal/task/context"
 	"github.com/opencurve/curveadm/internal/task/step"
@@ -35,11 +36,16 @@ import (
 	"github.com/opencurve/curveadm/internal/utils"
 )
 
+const (
+	MISSING_CLIENT_CONFIG = "-"
+)
+
 type (
 	step2FormatClientStatus struct {
 		client      storage.Client
 		containerId string
 		status      *string
+		cfgPath     *string
 		memStorage  *utils.SafeMap
 	}
 
@@ -50,8 +56,31 @@ type (
 		ContainerId string
 		Status      string
 		AuxInfo     string
+		CfgPath     string
 	}
 )
+
+func dumpCfg(curveadm *cli.CurveAdm, id string, cfgPath *string) step.LambdaType {
+	return func(ctx *context.Context) error {
+		*cfgPath = MISSING_CLIENT_CONFIG
+		cfgs, err := curveadm.Storage().GetClientConfig(id)
+		if err != nil {
+			return errno.ERR_SELECT_CLIENT_CONFIG_FAILED.E(err)
+		} else if len(cfgs) == 0 {
+			return nil
+		}
+
+		data := cfgs[0].Data
+		path := utils.RandFilename("/tmp")
+		err = utils.WriteFile(path, data, 0644)
+		if err != nil {
+			return errno.ERR_WRITE_FILE_FAILED.E(err)
+		}
+
+		*cfgPath = path
+		return nil
+	}
+}
 
 // TODO(P0): init client status
 func setClientStatus(memStorage *utils.SafeMap, id string, status ClientStatus) {
@@ -82,6 +111,7 @@ func (s *step2FormatClientStatus) Execute(ctx *context.Context) error {
 		ContainerId: s.containerId,
 		Status:      status,
 		AuxInfo:     client.AuxInfo,
+		CfgPath:     *s.cfgPath,
 	})
 	return nil
 }
@@ -99,7 +129,7 @@ func NewGetClientStatusTask(curveadm *cli.CurveAdm, v interface{}) (*task.Task, 
 	t := task.NewTask("Get Client Status", subname, hc.GetSSHConfig())
 
 	// add step
-	var status string
+	var status, cfgPath string
 	t.AddStep(&step.ListContainers{
 		ShowAll:     true,
 		Format:      `"{{.Status}}"`,
@@ -107,10 +137,14 @@ func NewGetClientStatusTask(curveadm *cli.CurveAdm, v interface{}) (*task.Task, 
 		Out:         &status,
 		ExecOptions: curveadm.ExecOptions(),
 	})
+	t.AddStep(&step.Lambda{
+		Lambda: dumpCfg(curveadm, client.Id, &cfgPath),
+	})
 	t.AddStep(&step2FormatClientStatus{
 		client:      client,
 		containerId: containerId,
 		status:      &status,
+		cfgPath:     &cfgPath,
 		memStorage:  curveadm.MemStorage(),
 	})
 

@@ -57,6 +57,9 @@ func NewStatusCommand(curveadm *cli.CurveAdm) *cobra.Command {
 		DisableFlagsInUseLine: true,
 	}
 
+	flags := cmd.Flags()
+	flags.BoolVarP(&options.verbose, "verbose", "v", false, "Verbose output for status")
+
 	return cmd
 }
 
@@ -74,6 +77,9 @@ func genStatusPlaybook(curveadm *cli.CurveAdm,
 		pb.AddStep(&playbook.PlaybookStep{
 			Type:    step,
 			Configs: config,
+			Options: map[string]interface{}{
+				comm.KEY_CLIENT_STATUS_VERBOSE: options.verbose,
+			},
 			ExecOptions: playbook.ExecOptions{
 				SilentSubBar: true,
 			},
