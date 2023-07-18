@@ -83,6 +83,12 @@ func (s *step2DeleteClient) Execute(ctx *context.Context) error {
 	if err != nil {
 		return errno.ERR_DELETE_CLIENT_FAILED.E(err)
 	}
+
+	err = s.curveadm.Storage().DeleteClientConfig(s.fsId)
+	if err != nil {
+		return errno.ERR_DELETE_CLIENT_CONFIG_FAILED.E(err)
+	}
+
 	return nil
 }
 

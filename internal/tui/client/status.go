@@ -61,6 +61,9 @@ func FormatStatus(statuses []task.ClientStatus, verbose bool) string {
 		"Status",
 		"Aux Info",
 	}
+	if verbose {
+		title = append(title, "Config Dumpfile")
+	}
 	first, second := tui.FormatTitle(title)
 	lines = append(lines, first)
 	lines = append(lines, second)
@@ -68,14 +71,21 @@ func FormatStatus(statuses []task.ClientStatus, verbose bool) string {
 	// status
 	sortStatues(statuses)
 	for _, status := range statuses {
-		lines = append(lines, []interface{}{
+		// line
+		line := []interface{}{
 			status.Id,
 			status.Kind,
 			status.Host,
 			tui.TrimContainerId(status.ContainerId),
 			tui.DecorateMessage{Message: status.Status, Decorate: statusDecorate},
 			status.AuxInfo,
-		})
+		}
+		if verbose {
+			line = append(line, status.CfgPath)
+		}
+
+		// lines
+		lines = append(lines, line)
 	}
 
 	output := tui.FixedFormat(lines, 2)

@@ -75,6 +75,7 @@ func (s *Storage) init() error {
 		CreateClientsTable,
 		CreatePlaygroundTable,
 		CreateAuditTable,
+		CreateAnyTable,
 	}
 
 	for _, sql := range sqls {
@@ -402,4 +403,44 @@ func (s *Storage) GetAuditLogs() ([]AuditLog, error) {
 
 func (s *Storage) GetAuditLog(id int64) ([]AuditLog, error) {
 	return s.getAuditLogs(SelectAuditLogById, id)
+}
+
+// any item prefix
+const (
+	PREFIX_CLIENT_CONFIG = 0x01
+)
+
+func (s *Storage) realId(prefix int, id string) string {
+	return fmt.Sprintf("%d:%s", prefix, id)
+}
+
+func (s *Storage) InsertClientConfig(id, data string) error {
+	id = s.realId(PREFIX_CLIENT_CONFIG, id)
+	return s.write(InsertAnyItem, id, data)
+}
+
+func (s *Storage) GetClientConfig(id string) ([]Any, error) {
+	id = s.realId(PREFIX_CLIENT_CONFIG, id)
+	result, err := s.db.Query(SelectAnyItem, id)
+	if err != nil {
+		return nil, err
+	}
+	defer result.Close()
+
+	items := []Any{}
+	var item Any
+	for result.Next() {
+		err = result.Scan(&item.Id, &item.Data)
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+
+	return items, nil
+}
+
+func (s *Storage) DeleteClientConfig(id string) error {
+	id = s.realId(PREFIX_CLIENT_CONFIG, id)
+	return s.write(DeleteAnyItem, id)
 }
