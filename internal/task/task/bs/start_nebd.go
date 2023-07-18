@@ -137,6 +137,12 @@ func (s *step2InsertClient) Execute(ctx *context.Context) error {
 	if err != nil {
 		return errno.ERR_INSERT_CLIENT_FAILED.E(err)
 	}
+
+	err = curveadm.Storage().InsertClientConfig(volumeId, config.GetData())
+	if err != nil {
+		return errno.ERR_INSERT_CLIENT_CONFIG_FAILED.E(err)
+	}
+
 	return nil
 }
 
