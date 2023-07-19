@@ -46,6 +46,7 @@ import (
 
 const (
 	LAYOUT_CURVEBS_CHUNKFILE_POOL_DIR = topology.LAYOUT_CURVEBS_CHUNKFILE_POOL_DIR
+	LAYOUT_CURVEBS_WALFILE_POOL_DIR   = topology.LAYOUT_CURVEBS_WALFILE_POOL_DIR
 	LAYOUT_CURVEBS_COPYSETS_DIR       = topology.LAYOUT_CURVEBS_COPYSETS_DIR
 	LAYOUT_CURVEBS_RECYCLER_DIR       = topology.LAYOUT_CURVEBS_RECYCLER_DIR
 	METAFILE_CHUNKSERVER_ID           = topology.METAFILE_CHUNKSERVER_ID
@@ -97,6 +98,17 @@ func (s *step2RecycleChunk) Execute(ctx *context.Context) error {
 	if err != nil {
 		errno.ERR_RUN_SCRIPT_FAILED.E(err)
 	}
+
+	walDir := dc.GetWalDir()
+	if walDir != "" {
+		source = fmt.Sprintf("%s/%s", walDir, LAYOUT_CURVEBS_COPYSETS_DIR)
+		dest = fmt.Sprintf("%s/%s", walDir, LAYOUT_CURVEBS_WALFILE_POOL_DIR)
+		cmd = ctx.Module().Shell().BashScript(s.recycleScriptPath, source, dest, chunkSize)
+		_, err = cmd.Execute(s.execOptions)
+		if err != nil {
+			errno.ERR_RUN_SCRIPT_FAILED.E(err)
+		}
+	}
 	return nil
 }
 
@@ -133,9 +145,14 @@ func getCleanFiles(clean map[string]bool, dc *topology.DeployConfig, recycle boo
 				files = append(files, dc.GetDataDir())
 			} else {
 				dataDir := dc.GetDataDir()
+				walDir := dc.GetWalDir()
 				copysetsDir := fmt.Sprintf("%s/%s", dataDir, LAYOUT_CURVEBS_COPYSETS_DIR)
 				chunkserverIdMetafile := fmt.Sprintf("%s/%s", dataDir, METAFILE_CHUNKSERVER_ID)
 				files = append(files, copysetsDir, chunkserverIdMetafile)
+				if walDir != "" {
+					walCopysetsDir := fmt.Sprintf("%s/%s", walDir, LAYOUT_CURVEBS_COPYSETS_DIR)
+					files = append(files, walCopysetsDir)
+				}
 			}
 		}
 	}

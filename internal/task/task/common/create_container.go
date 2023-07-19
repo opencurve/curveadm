@@ -107,6 +107,9 @@ func getArguments(dc *topology.DeployConfig) string {
 	layout := dc.GetProjectLayout()
 	dataDir := layout.ServiceDataDir
 	walDir := layout.ServiceWalDir
+	if dc.GetWalDir() == "" {
+		walDir = dataDir
+	}
 	chunkserverArguments := map[string]interface{}{
 		// chunkserver
 		"conf":                  layout.ServiceConfPath,
