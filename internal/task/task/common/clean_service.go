@@ -62,12 +62,11 @@ type (
 		execOptions       module.ExecOptions
 	}
 
-	step2CleanContainer struct {
-		config      *topology.DeployConfig
-		serviceId   string
-		containerId string
-		storage     *storage.Storage
-		execOptions module.ExecOptions
+	Step2CleanContainer struct {
+		ServiceId   string
+		ContainerId string
+		Storage     *storage.Storage
+		ExecOptions module.ExecOptions
 	}
 
 	step2CleanDiskChunkServerId struct {
@@ -112,22 +111,22 @@ func (s *step2RecycleChunk) Execute(ctx *context.Context) error {
 	return nil
 }
 
-func (s *step2CleanContainer) Execute(ctx *context.Context) error {
-	containerId := s.containerId
+func (s *Step2CleanContainer) Execute(ctx *context.Context) error {
+	containerId := s.ContainerId
 	if len(containerId) == 0 { // container not created
 		return nil
 	} else if containerId == comm.CLEANED_CONTAINER_ID { // container has removed
 		return nil
 	}
 
-	cli := ctx.Module().DockerCli().RemoveContainer(s.containerId)
-	out, err := cli.Execute(s.execOptions)
+	cli := ctx.Module().DockerCli().RemoveContainer(s.ContainerId)
+	out, err := cli.Execute(s.ExecOptions)
 
 	// container has removed
 	if err != nil && !strings.Contains(out, SIGNATURE_CONTAINER_REMOVED) {
 		return err
 	}
-	return s.storage.SetContainId(s.serviceId, comm.CLEANED_CONTAINER_ID)
+	return s.Storage.SetContainId(s.ServiceId, comm.CLEANED_CONTAINER_ID)
 }
 
 func (s *step2CleanDiskChunkServerId) Execute(ctx *context.Context) error {
@@ -224,12 +223,11 @@ func NewCleanServiceTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*ta
 		ExecOptions: curveadm.ExecOptions(),
 	})
 	if clean[comm.CLEAN_ITEM_CONTAINER] == true {
-		t.AddStep(&step2CleanContainer{
-			config:      dc,
-			serviceId:   serviceId,
-			containerId: containerId,
-			storage:     curveadm.Storage(),
-			execOptions: curveadm.ExecOptions(),
+		t.AddStep(&Step2CleanContainer{
+			ServiceId:   serviceId,
+			ContainerId: containerId,
+			Storage:     curveadm.Storage(),
+			ExecOptions: curveadm.ExecOptions(),
 		})
 	}
 

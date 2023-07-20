@@ -174,6 +174,9 @@ func genMapPlaybook(curveadm *cli.CurveAdm,
 	steps := MAP_PLAYBOOK_STEPS
 	pb := playbook.NewPlaybook(curveadm)
 	for _, step := range steps {
+		if step == playbook.CREATE_VOLUME && !options.create {
+			continue
+		}
 		pb.AddStep(&playbook.PlaybookStep{
 			Type:    step,
 			Configs: ccs,

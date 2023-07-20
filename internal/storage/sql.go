@@ -91,6 +91,13 @@ var (
 		)
 	`
 
+	CREATE_MONITOR_TABLE = `
+		CREATE TABLE IF NOT EXISTS monitors (
+			cluster_id INTEGER PRIMARY KEY,
+			monitor TEXT NOT NULL
+		)
+	`
+
 	// id: clusterId_role_host_(sequence/name)
 	CREATE_CONTAINERS_TABLE = `
 		CREATE TABLE IF NOT EXISTS containers (
@@ -229,6 +236,8 @@ var (
 
 	SET_CLUSTER_TOPOLOGY = `UPDATE clusters SET topology = ? WHERE id = ?`
 
+	SET_CLUSTER_TOPOLOGY_BY_NAME = `UPDATE clusters SET topology = ? WHERE name = ?`
+
 	SET_CLUSTER_POOL = `UPDATE clusters SET topology = ?, pool = ? WHERE id = ?`
 
 	// service
@@ -270,4 +279,15 @@ var (
 	SELECT_AUDIT_LOG = `SELECT * FROM audit`
 
 	SELECT_AUDIT_LOG_BY_ID = `SELECT * FROM audit WHERE id = ?`
+
+	// monitor
+	INTERT_MONITOR = `INSERT INTO monitors(cluster_id, monitor) VALUES(?, ?)`
+
+	UPDATE_MONITOR = `UPDATE monitors SET monitor = ? WHERE cluster_id = ?`
+
+	SELECT_MONITOR = `SELECT monitor FROM monitors WHERE cluster_id = ?`
+
+	DELETE_MONITOR = `DELETE FROM monitors WHERE cluster_id = ?`
+
+	REPLACE_MONITOR = `REPLACE INTO monitors (cluster_id, monitor) VALUES(?, ?)`
 )

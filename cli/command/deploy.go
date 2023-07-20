@@ -333,3 +333,9 @@ func runDeploy(curveadm *cli.CurveAdm, options deployOptions) error {
 	curveadm.WriteOutln(color.GreenString("Cluster '%s' successfully deployed ^_^."), curveadm.ClusterName())
 	return nil
 }
+
+// for http service
+func Deploy(curveadm *cli.CurveAdm) error {
+	options := deployOptions{}
+	return runDeploy(curveadm, options)
+}

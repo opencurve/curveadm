@@ -33,9 +33,12 @@ import (
 	"github.com/opencurve/curveadm/cli/command/config"
 	"github.com/opencurve/curveadm/cli/command/disks"
 	"github.com/opencurve/curveadm/cli/command/hosts"
+	"github.com/opencurve/curveadm/cli/command/http"
+	"github.com/opencurve/curveadm/cli/command/monitor"
 	"github.com/opencurve/curveadm/cli/command/pfs"
 	"github.com/opencurve/curveadm/cli/command/playground"
 	"github.com/opencurve/curveadm/cli/command/target"
+	"github.com/opencurve/curveadm/cli/command/website"
 	"github.com/opencurve/curveadm/internal/errno"
 	tools "github.com/opencurve/curveadm/internal/tools/upgrade"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
@@ -43,13 +46,13 @@ import (
 )
 
 var curveadmExample = `Examples:
-  $ curveadm playground --kind curvebs  # Run a CurveBS playground quickly
-  $ curveadm cluster add c1             # Add a cluster named 'c1'
-  $ curveadm deploy                     # Deploy current cluster
-  $ curveadm stop                       # Stop current cluster service
-  $ curveadm clean                      # Clean current cluster
-  $ curveadm enter 6ff561598c6f         # Enter specified service container
-  $ curveadm -u                         # Upgrade curveadm itself to the latest version`
+  $ curveadm playground run --kind curvebs  # Run a CurveBS playground quickly
+  $ curveadm cluster add c1                 # Add a cluster named 'c1'
+  $ curveadm deploy                         # Deploy current cluster
+  $ curveadm stop                           # Stop current cluster service
+  $ curveadm clean                          # Clean current cluster
+  $ curveadm enter 6ff561598c6f             # Enter specified service container
+  $ curveadm -u                             # Upgrade curveadm itself to the latest version`
 
 type rootOptions struct {
 	debug   bool
@@ -66,6 +69,9 @@ func addSubCommands(cmd *cobra.Command, curveadm *cli.CurveAdm) {
 		playground.NewPlaygroundCommand(curveadm), // curveadm playground ...
 		target.NewTargetCommand(curveadm),         // curveadm target ...
 		pfs.NewPFSCommand(curveadm),               // curveadm pfs ...
+		monitor.NewMonitorCommand(curveadm),       // curveadm monitor ...
+		http.NewHttpCommand(curveadm),             // curveadm http
+		website.NewWebsiteCommand(curveadm),       // curveadm website ...
 
 		NewAuditCommand(curveadm),      // curveadm audit
 		NewCleanCommand(curveadm),      // curveadm clean

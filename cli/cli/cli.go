@@ -47,14 +47,16 @@ import (
 
 type CurveAdm struct {
 	// project layout
-	rootDir   string
-	dataDir   string
-	pluginDir string
-	logDir    string
-	tempDir   string
-	dbpath    string
-	logpath   string
-	config    *configure.CurveAdmConfig
+	rootDir      string
+	dataDir      string
+	pluginDir    string
+	logDir       string
+	tempDir      string
+	dbpath       string
+	logpath      string
+	httpConfPath string
+	httpLogPath  string
+	config       *configure.CurveAdmConfig
 
 	// data pipeline
 	in         io.Reader
@@ -72,6 +74,7 @@ type CurveAdm struct {
 	clusterName         string         // current cluster name
 	clusterTopologyData string         // cluster topology
 	clusterPoolData     string         // cluster pool
+	monitor             storage.Monitor
 }
 
 /*
@@ -96,6 +99,8 @@ func NewCurveAdm() (*CurveAdm, error) {
 		pluginDir: path.Join(rootDir, "plugins"),
 		logDir:    path.Join(rootDir, "logs"),
 		tempDir:   path.Join(rootDir, "temp"),
+		httpConfPath: path.Join(rootDir, "http/conf"),
+		httpLogPath:  path.Join(rootDir, "http/logs"),
 	}
 
 	err = curveadm.init()
@@ -115,6 +120,8 @@ func (curveadm *CurveAdm) init() error {
 		curveadm.pluginDir,
 		curveadm.logDir,
 		curveadm.tempDir,
+		curveadm.httpConfPath,
+		curveadm.httpLogPath,
 	}
 	for _, dir := range dirs {
 		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
@@ -193,6 +200,13 @@ func (curveadm *CurveAdm) init() error {
 		return errno.ERR_GET_DISK_RECORDS_FAILED.E(err)
 	}
 
+	// (10) Get monitor configure
+	monitor, err := s.GetMonitor(cluster.Id)
+	if err != nil {
+		log.Error("Get monitor failed", log.Field("Error", err))
+		return errno.ERR_GET_MONITOR_FAILED.E(err)
+	}
+
 	curveadm.dbpath = dbpath
 	curveadm.logpath = logpath
 	curveadm.config = config
@@ -209,6 +223,7 @@ func (curveadm *CurveAdm) init() error {
 	curveadm.clusterName = cluster.Name
 	curveadm.clusterTopologyData = cluster.Topology
 	curveadm.clusterPoolData = cluster.Pool
+	curveadm.monitor = monitor
 
 	return nil
 }
@@ -292,6 +307,7 @@ func (curveadm *CurveAdm) ClusterUUId() string               { return curveadm.c
 func (curveadm *CurveAdm) ClusterName() string               { return curveadm.clusterName }
 func (curveadm *CurveAdm) ClusterTopologyData() string       { return curveadm.clusterTopologyData }
 func (curveadm *CurveAdm) ClusterPoolData() string           { return curveadm.clusterPoolData }
+func (curveadm *CurveAdm) Monitor() storage.Monitor          { return curveadm.monitor }
 
 func (curveadm *CurveAdm) GetHost(host string) (*hosts.HostConfig, error) {
 	if len(curveadm.Hosts()) == 0 {
@@ -365,6 +381,11 @@ func (curveadm *CurveAdm) FilterDeployConfigByRole(dcs []*topology.DeployConfig,
 func (curveadm *CurveAdm) GetServiceId(dcId string) string {
 	serviceId := fmt.Sprintf("%s_%s", curveadm.ClusterUUId(), dcId)
 	return utils.MD5Sum(serviceId)[:12]
+}
+
+// website is cluster-independent
+func (curveadm *CurveAdm) GetWebsiteServiceId(wcId string) string {
+	return utils.MD5Sum(wcId)[:12]
 }
 
 func (curveadm *CurveAdm) GetContainerId(serviceId string) (string, error) {

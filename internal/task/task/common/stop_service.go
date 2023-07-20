@@ -37,7 +37,7 @@ import (
 	tui "github.com/opencurve/curveadm/internal/tui/common"
 )
 
-func checkContainerExist(host, role, containerId string, out *string) step.LambdaType {
+func CheckContainerExist(host, role, containerId string, out *string) step.LambdaType {
 	return func(ctx *context.Context) error {
 		if len(*out) == 0 {
 			return errno.ERR_CONTAINER_ALREADT_REMOVED.
@@ -89,7 +89,7 @@ func NewStopServiceTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*tas
 		ExecOptions: curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.Lambda{
-		Lambda: checkContainerExist(host, role, containerId, &out),
+		Lambda: CheckContainerExist(host, role, containerId, &out),
 	})
 	t.AddStep(&step.StopContainer{
 		ContainerId: containerId,
