@@ -40,6 +40,9 @@ const (
 	FORMAT_TOOLS_CONF = `mdsAddr=%s
 rootUserName=root
 rootUserPassword=root_password
+auth.client.enable=%v
+auth.client.key=%s
+auth.client.id=%s
 `
 )
 
@@ -61,6 +64,10 @@ func checkCreateStatus(out *string) step.LambdaType {
 			return nil
 		} else if *out == "EXIST" {
 			return task.ERR_SKIP_TASK
+		} else if *out == "AuthFailed" {
+			return errno.ERR_CREATE_VOLUME_FAILED_AUTH_FAILED
+		} else if *out == "AUTH_KEY_NOT_EXIST" {
+			return errno.ERR_CREATE_VOLUME_FAILED_AUTH_KEY_NOT_EXIST
 		}
 		return errno.ERR_CREATE_VOLUME_FAILED
 	}
@@ -80,7 +87,13 @@ func NewCreateVolumeTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*t
 	var out string
 	containerName := volume2ContainerName(options.User, options.Volume)
 	containerId := containerName
-	toolsConf := fmt.Sprintf(FORMAT_TOOLS_CONF, cc.GetClusterMDSAddr())
+	toolsConf := fmt.Sprintf(
+		FORMAT_TOOLS_CONF,
+		cc.GetClusterMDSAddr(),
+		cc.GetAuthClientEnable(),
+		cc.GetAuthClientKey(),
+		cc.GetAuthClientId(),
+	)
 	script := scripts.CREATE_VOLUME
 	scriptPath := "/curvebs/nebd/sbin/create.sh"
 	command := fmt.Sprintf("/bin/bash %s %s %s %d %s", scriptPath, options.User, options.Volume, options.Size, options.Poolset)

@@ -24,7 +24,10 @@
 
 package topology
 
-import "path"
+import (
+	"fmt"
+	"path"
+)
 
 const (
 	REQUIRE_ANY = iota
@@ -270,6 +273,64 @@ var (
 		REQUIRE_BOOL,
 		false,
 		true,
+	)
+
+	CONFIG_ENABLE_AUTH = itemset.insert(
+		"auth.enable",
+		REQUIRE_BOOL,
+		false,
+		false,
+	)
+
+	CONFIG_ENABLE_CLIENT_AUTH = itemset.insert(
+		"auth.client.enable",
+		REQUIRE_BOOL,
+		false,
+		false,
+	)
+
+	CONFIG_AUTH_KEY_CURRENT = itemset.insert(
+		"auth.key.current",
+		REQUIRE_STRING,
+		false,
+		nil,
+	)
+
+	CONFIG_AUTH_SERVER_KEY = itemset.insert(
+		"auth.server.key",
+		REQUIRE_STRING,
+		false,
+		nil,
+	)
+
+	CONFIG_AUTH_CLIENT_KEY = itemset.insert(
+		"auth.client.key",
+		REQUIRE_STRING,
+		false,
+		nil,
+	)
+
+	CONFIG_AUTH_KEY_LAST = itemset.insert(
+		"auth.key.last",
+		REQUIRE_STRING,
+		false,
+		nil,
+	)
+
+	CONFIG_AUTH_CLIENT_LASTKEY = itemset.insert(
+		"auth.client.lastkey",
+		REQUIRE_STRING,
+		false,
+		nil,
+	)
+
+	CONFIG_AUTH_CLIENT_ID = itemset.insert(
+		"auth.client.id",
+		REQUIRE_STRING,
+		false,
+		func(dc *DeployConfig) interface{} {
+			return fmt.Sprintf("%s_%s", dc.GetRole(), "tool")
+		},
 	)
 
 	CONFIG_ENABLE_CHUNKFILE_POOL = itemset.insert(

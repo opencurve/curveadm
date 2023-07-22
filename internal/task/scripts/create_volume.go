@@ -34,10 +34,14 @@ g_volume=$2
 g_size=$3
 g_poolset=$4
 
-output=$(curve_ops_tool create -userName=$g_user -fileName=$g_volume -fileLength=$g_size -poolset=$g_poolset)
+output=$(curve_ops_tool create -userName=$g_user -fileName=$g_volume -fileLength=$g_size -poolset=$g_poolset 2>dev/null)
 if [ $? -ne 0 ]; then
   if [ "$output" = "CreateFile fail with errCode: 101" ]; then
      echo "EXIST"
+  elif echo ${output} | grep -q "kAuthFailed"; then
+     echo "AuthFailed"
+  elif echo ${output} | grep -q "auth info fail"; then
+     echo "AUTH_KEY_NOT_EXIST"
   else
      echo "FAILED"
   fi

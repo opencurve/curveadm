@@ -44,6 +44,7 @@ const (
 	ROLE_CHUNKSERVER   = "chunkserver"
 	ROLE_SNAPSHOTCLONE = "snapshotclone"
 	ROLE_METASERVER    = "metaserver"
+	ROLE_TOOLS         = "tools"
 )
 
 type (
@@ -122,6 +123,33 @@ func NewDeployConfig(ctx *Context, kind, role, host, name string, replicas int,
 		return nil, err
 	}
 	delete(config, CONFIG_VARIABLE.key)
+
+	// auth.enable is optional and default is false
+	if config[CONFIG_ENABLE_AUTH.key] == nil {
+		config[CONFIG_ENABLE_AUTH.key] = CONFIG_ENABLE_AUTH.defaultValue
+	}
+
+	// and user only configure auth.key.current is ok.
+	authEnable := config[CONFIG_ENABLE_AUTH.key].(bool)
+	if authEnable && role != ROLE_ETCD {
+		// autn.client.enable is equal to auth.enable
+		if config[CONFIG_ENABLE_CLIENT_AUTH.key] == nil {
+			config[CONFIG_ENABLE_CLIENT_AUTH.key] = config[CONFIG_ENABLE_AUTH.key]
+		}
+		// auth.client.key is equal to auth.key.current
+		if config[CONFIG_AUTH_CLIENT_KEY.key] == nil {
+			config[CONFIG_AUTH_CLIENT_KEY.key] = config[CONFIG_AUTH_KEY_CURRENT.key]
+		}
+		// auth.key.last
+		if config[CONFIG_AUTH_KEY_LAST.key] != nil &&
+			config[CONFIG_AUTH_CLIENT_LASTKEY.key] == nil {
+			config[CONFIG_AUTH_CLIENT_LASTKEY.key] = config[CONFIG_AUTH_KEY_LAST.key]
+		}
+		// auth.client.id
+		if config[CONFIG_AUTH_CLIENT_ID.key] == nil {
+			config[CONFIG_AUTH_CLIENT_ID.key] = fmt.Sprintf("%s_%s", role, ROLE_TOOLS)
+		}
+	}
 
 	// We should convert all value to string for rendering variable,
 	// after that we will convert the value to specified type according to
