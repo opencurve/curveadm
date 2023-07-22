@@ -47,6 +47,8 @@ const (
 	POOL_TYPE_PHYSICAL     = "physicalpool"
 	POOLSET                = "poolset"
 	POOLSET_DISK_TYPE      = "poolset-disktype"
+	AUTH_SERVER_KEY        = "auth-server-key"
+	ROLES_AUTH_INFO        = "roles-auth-info"
 
 	// disk
 	DISK_DEFAULT_NULL_SIZE            = "-"
@@ -148,3 +150,12 @@ const (
 	POLICY_NEVER_RESTART  = "no"
 	POLICY_UNLESS_STOPPED = "unless-stopped"
 )
+
+type RoleAuthInfo struct {
+	AuthEnable       bool
+	AuthClientEnable bool
+	AuthServerKey    string // mds
+	AuthKeyCurrent   string // mds, chunkserver, snapshotclone
+	AuthClientKey    string // mds, chunkserver, snapshotclone
+	AuthClientId     string
+}

@@ -90,6 +90,7 @@ const (
 	CREATE_VOLUME
 	MAP_IMAGE
 	UNMAP_IMAGE
+	DIST_AUTH_KEY
 
 	// monitor
 	PULL_MONITOR_IMAGE
@@ -232,6 +233,8 @@ func (p *Playbook) createTasks(step *PlaybookStep) (*tasks.Tasks, error) {
 		case CREATE_PHYSICAL_POOL,
 			CREATE_LOGICAL_POOL:
 			t, err = comm.NewCreateTopologyTask(curveadm, config.GetDC(i))
+		case DIST_AUTH_KEY:
+			t, err = comm.NewDiskAuthKeyTask(curveadm, config.GetDC(i))
 		case UPDATE_TOPOLOGY:
 			t, err = comm.NewUpdateTopologyTask(curveadm, nil)
 		case INIT_SERVIE_STATUS:

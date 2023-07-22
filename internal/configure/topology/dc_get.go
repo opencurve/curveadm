@@ -145,6 +145,16 @@ func (dc *DeployConfig) GetS3Address() string        { return dc.getString(CONFI
 func (dc *DeployConfig) GetS3BucketName() string     { return dc.getString(CONFIG_S3_BUCKET_NAME) }
 func (dc *DeployConfig) GetEnableRDMA() bool         { return dc.getBool(CONFIG_ENABLE_RDMA) }
 func (dc *DeployConfig) GetEnableRenameAt2() bool    { return dc.getBool(CONFIG_ENABLE_RENAMEAT2) }
+func (dc *DeployConfig) GetAuthEnable() bool         { return dc.getBool(CONFIG_ENABLE_AUTH) }
+func (dc *DeployConfig) GetAuthClientEnable() bool   { return dc.getBool(CONFIG_ENABLE_CLIENT_AUTH) }
+func (dc *DeployConfig) GetAuthClientKey() string    { return dc.getString(CONFIG_AUTH_CLIENT_KEY) }
+func (dc *DeployConfig) GetAuthKeyCurrent() string   { return dc.getString(CONFIG_AUTH_KEY_CURRENT) }
+func (dc *DeployConfig) GetAuthServerKey() string    { return dc.getString(CONFIG_AUTH_SERVER_KEY) }
+func (dc *DeployConfig) GetAuthKeyLast() string      { return dc.getString(CONFIG_AUTH_KEY_LAST) }
+func (dc *DeployConfig) GetAuthClientId() string     { return dc.getString(CONFIG_AUTH_CLIENT_ID) }
+func (dc *DeployConfig) GetAuthClientLastkey() string {
+	return dc.getString(CONFIG_AUTH_CLIENT_LASTKEY)
+}
 func (dc *DeployConfig) GetEnableChunkfilePool() bool {
 	return dc.getBool(CONFIG_ENABLE_CHUNKFILE_POOL)
 }
