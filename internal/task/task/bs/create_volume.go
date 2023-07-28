@@ -24,7 +24,6 @@ package bs
 
 import (
 	"fmt"
-	"github.com/fatih/color"
 	"strings"
 
 	"github.com/opencurve/curveadm/cli/cli"
@@ -64,17 +63,6 @@ func checkCreateStatus(out *string) step.LambdaType {
 			return task.ERR_SKIP_TASK
 		}
 		return errno.ERR_CREATE_VOLUME_FAILED
-	}
-}
-
-func checkImageStatus(curveadm *cli.CurveAdm, cc *configure.ClientConfig) step.LambdaType {
-	return func(ctx *context.Context) error {
-		if cc.GetContainerImage() == "SUCCESS" {
-			return nil
-		} else if cc.GetContainerImage() == "EXIST" {
-			curveadm.WriteOutln(color.YellowString("[Tips] Mapping %s the disk is still the first time it has been created", cc.GetContainerImage()))
-		}
-		return nil
 	}
 }
 
@@ -127,9 +115,6 @@ func NewCreateVolumeTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*t
 	})
 	t.AddStep(&step.Lambda{
 		Lambda: checkCreateStatus(&out),
-	})
-	t.AddStep(&step.Lambda{
-		Lambda: checkImageStatus(curveadm, cc),
 	})
 	return t, nil
 }
