@@ -126,6 +126,8 @@ func NewCreateVolumeTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*t
 	t.AddStep(&step.Lambda{
 		Lambda: checkCreateStatus(&out),
 	})
-
+	t.AddStep(&step.Lambda{
+		Lambda: checkSizeStatus(&out),
+	})
 	return t, nil
 }
