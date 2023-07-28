@@ -154,6 +154,7 @@ func NewMapTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.Task,
 	t.AddStep(&step.Lambda{
 		Lambda: checkMapStatus(&success, &out),
 	})
+
 	return t, nil
 }
 
