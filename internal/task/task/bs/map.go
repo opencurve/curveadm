@@ -62,15 +62,6 @@ func checkMapStatus(success *bool, out *string) step.LambdaType {
 	}
 }
 
-func checkMapSizeStatus(size int, out *string) step.LambdaType {
-	return func(ctx *context.Context) error {
-		if size != 0 {
-			return errno.ERR_MAP_EXIST_SIZE.S(*out)
-		}
-		return nil
-	}
-}
-
 func getMapOptions(options MapOptions) string {
 	mapOptions := []string{}
 	if options.NoExclusive {
@@ -92,7 +83,6 @@ func NewMapTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.Task,
 	// add step
 	var out string
 	var success bool
-	var size int
 	containerName := volume2ContainerName(options.User, options.Volume)
 	containerId := containerName
 	script := scripts.MAP
@@ -164,10 +154,6 @@ func NewMapTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.Task,
 	t.AddStep(&step.Lambda{
 		Lambda: checkMapStatus(&success, &out),
 	})
-	t.AddStep(&step.Lambda{
-		Lambda: checkMapSizeStatus(size, &out),
-	})
-
 	return t, nil
 }
 
