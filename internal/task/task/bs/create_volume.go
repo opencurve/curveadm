@@ -55,6 +55,15 @@ func checkVolumeStatus(out *string) step.LambdaType {
 	}
 }
 
+func checkSizeStatus(out *string) step.LambdaType {
+	return func(ctx *context.Context) error {
+		if *out == "EXIST" {
+			return errno.ERR_MAP_EXIST_SIZE
+		}
+		return nil
+	}
+}
+
 func checkCreateStatus(out *string) step.LambdaType {
 	return func(ctx *context.Context) error {
 		if *out == "SUCCESS" {
@@ -75,6 +84,7 @@ func NewCreateVolumeTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*t
 
 	subname := fmt.Sprintf("hostname=%s image=%s", hc.GetHostname(), cc.GetContainerImage())
 	t := task.NewTask("Create Volume", subname, hc.GetSSHConfig())
+
 	// add step
 	var out string
 	containerName := volume2ContainerName(options.User, options.Volume)
