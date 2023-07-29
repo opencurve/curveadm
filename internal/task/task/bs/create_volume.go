@@ -24,6 +24,7 @@ package bs
 
 import (
 	"fmt"
+	"github.com/fatih/color"
 	"strings"
 
 	"github.com/opencurve/curveadm/cli/cli"
@@ -66,14 +67,14 @@ func checkCreateStatus(out *string) step.LambdaType {
 	}
 }
 
-func checkDiskMapStatus(cc *configure.ClientConfig, out *string) step.LambdaType {
+func checkDiskMapStatus(curveadm *cli.CurveAdm, cc *configure.ClientConfig, out *string) step.LambdaType {
 	return func(ctx *context.Context) error {
 		if len(cc.GetContainerImage()) == 0 {
 			return nil
 		} else if len(cc.GetContainerImage()) > 0 {
-			return errno.ERR_VOLUME_DISK_EXIST.S(*out)
+			curveadm.WriteOutln(color.YellowString("[Tips] Mapping %s the disk is still the first time it has been created", cc.GetContainerImage()))
 		}
-		return nil
+		return errno.ERR_VOLUME_DISK_EXIST.S(*out)
 	}
 }
 
