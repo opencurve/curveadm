@@ -68,9 +68,9 @@ func checkCreateStatus(out *string) step.LambdaType {
 
 func checkDiskSizeStatus(options MapOptions, out *string) step.LambdaType {
 	return func(ctx *context.Context) error {
-		if options.Size == 0 {
+		if options.Volume == "OK" {
 			return nil
-		} else if options.Size > 0 {
+		} else if options.Volume == "SKIP" {
 			return errno.ERR_MAP_VOLUME_NBD_EXIST.S(*out)
 		}
 		return errno.ERR_CREATE_VOLUME_FAILED
