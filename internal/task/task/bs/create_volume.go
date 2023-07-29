@@ -67,6 +67,12 @@ func checkCreateStatus(out *string) step.LambdaType {
 }
 
 func checkDiskSizeStatus(out *string) step.LambdaType {
+	return func(ctx *context.Context) error {
+		if *out == "skip task" {
+			return errno.List()
+		}
+		return nil
+	}
 }
 
 func NewCreateVolumeTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.Task, error) {
