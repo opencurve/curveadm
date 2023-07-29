@@ -66,12 +66,14 @@ func checkCreateStatus(out *string) step.LambdaType {
 	}
 }
 
-func checkDiskMapStatus(out *string) step.LambdaType {
+func checkDiskMapStatus(cc *configure.ClientConfig, out *string) step.LambdaType {
 	return func(ctx *context.Context) error {
-		if *out == "EXIST" {
-			return task.ERR_SKIP_TASK
+		if len(cc.GetContainerImage()) == 0 {
+			return nil
+		} else if len(cc.GetContainerImage()) > 0 {
+			return errno.ERR_VOLUME_DISK_EXIST.S(*out)
 		}
-		return errno.ERR_VOLUME_DISK_EXIST
+		return nil
 	}
 }
 
