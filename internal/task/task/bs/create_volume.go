@@ -71,9 +71,9 @@ func checkDiskMapStatus(out *string) step.LambdaType {
 		if !strings.HasPrefix(*out, "O") {
 			return nil
 		} else if !strings.HasPrefix(*out, "S") {
-			return errno.ERR_VOLUME_DISK_EXIST
+			return task.ERR_SKIP_TASK
 		}
-		return nil
+		return errno.ERR_VOLUME_DISK_EXIST
 	}
 }
 
