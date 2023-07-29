@@ -406,7 +406,7 @@ var (
 	ERR_UNMAP_VOLUME_FAILED               = EC(420006, "unmap volume failed")
 	ERR_OLD_TARGET_DAEMON_IS_ABNORMAL     = EC(420007, "old target daemon is abnormal")
 	ERR_TARGET_DAEMON_IS_ABNORMAL         = EC(420008, "target daemon is abnormal")
-	ERR_VOLUME_DISK_EXIST                 = EC(420009, "")
+	ERR_VOLUME_DISK_EXIST                 = EC(420009, "Map disk exist")
 
 	// 430: common (curvefs client)
 	ERR_FS_PATH_ALREADY_MOUNTED  = EC(430000, "path already mounted")
