@@ -70,17 +70,6 @@ func getMapOptions(options MapOptions) string {
 	return strings.Join(mapOptions, " ")
 }
 
-func checkMapDiskStatus(out *string) step.LambdaType {
-	return func(ctx *context.Context) error {
-		if *out == "SUCCESS" {
-			return nil
-		} else if *out == "EXIST" {
-			return task.ERR_SKIP_TASK
-		}
-		return errno.ERR_SIZE_EXIST
-	}
-}
-
 func NewMapTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.Task, error) {
 	options := curveadm.MemStorage().Get(comm.KEY_MAP_OPTIONS).(MapOptions)
 	hc, err := curveadm.GetHost(options.Host)
@@ -161,9 +150,6 @@ func NewMapTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.Task,
 		Success:     &success,
 		Out:         &out,
 		ExecOptions: curveadm.ExecOptions(),
-	})
-	t.AddStep(&step.Lambda{
-		Lambda: checkMapDiskStatus(&out),
 	})
 	t.AddStep(&step.Lambda{
 		Lambda: checkMapStatus(&success, &out),
