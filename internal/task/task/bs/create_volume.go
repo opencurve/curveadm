@@ -67,9 +67,9 @@ func checkCreateStatus(out *string) step.LambdaType {
 	}
 }
 
-func checkDiskMapStatus(curveadm *cli.CurveAdm, cc *configure.ClientConfig, out *string) step.LambdaType {
+func checkDiskMapStatus(curveadm *cli.CurveAdm, cc *configure.ClientConfig) step.LambdaType {
 	return func(ctx *context.Context) error {
-		if len(cc.GetContainerImage()) > 0 {
+		if cc.GetContainerImage() == "[SKIP]" {
 			curveadm.WriteOutln(color.YellowString("[Tips] Mapping %s the disk is still the first time it has been created", cc.GetContainerImage()))
 		}
 		return nil
@@ -125,7 +125,7 @@ func NewCreateVolumeTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*t
 		ExecOptions: curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.Lambda{
-		Lambda: checkDiskMapStatus(curveadm, cc, &out),
+		Lambda: checkDiskMapStatus(curveadm, cc),
 	})
 	t.AddStep(&step.Lambda{
 		Lambda: checkCreateStatus(&out),
