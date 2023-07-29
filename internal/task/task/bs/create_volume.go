@@ -66,15 +66,7 @@ func checkCreateStatus(out *string) step.LambdaType {
 	}
 }
 
-func checkDiskSizeStatus(options MapOptions, out *string) step.LambdaType {
-	return func(ctx *context.Context) error {
-		if options.Volume == "OK" {
-			return nil
-		} else if options.Volume == "SKIP" {
-			return errno.ERR_MAP_VOLUME_NBD_EXIST.S(*out)
-		}
-		return errno.ERR_CREATE_VOLUME_FAILED
-	}
+func checkDiskSizeStatus(out *string) step.LambdaType {
 }
 
 func NewCreateVolumeTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.Task, error) {
@@ -129,7 +121,7 @@ func NewCreateVolumeTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*t
 		Lambda: checkCreateStatus(&out),
 	})
 	t.AddStep(&step.Lambda{
-		Lambda: checkDiskSizeStatus(options, &out),
+		Lambda: checkDiskSizeStatus(&out),
 	})
 
 	return t, nil
