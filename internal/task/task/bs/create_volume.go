@@ -55,15 +55,6 @@ func checkVolumeStatus(out *string) step.LambdaType {
 	}
 }
 
-func checkSizeStatus(out *string) step.LambdaType {
-	return func(ctx *context.Context) error {
-		if *out == "EXIST" {
-			return errno.ERR_MAP_EXIST_SIZE
-		}
-		return nil
-	}
-}
-
 func checkCreateStatus(out *string) step.LambdaType {
 	return func(ctx *context.Context) error {
 		if *out == "SUCCESS" {
@@ -125,9 +116,6 @@ func NewCreateVolumeTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*t
 	})
 	t.AddStep(&step.Lambda{
 		Lambda: checkCreateStatus(&out),
-	})
-	t.AddStep(&step.Lambda{
-		Lambda: checkSizeStatus(&out),
 	})
 	return t, nil
 }
