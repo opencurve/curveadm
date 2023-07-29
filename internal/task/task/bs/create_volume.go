@@ -59,8 +59,6 @@ func checkCreateStatus(out *string) step.LambdaType {
 	return func(ctx *context.Context) error {
 		if *out == "SUCCESS" {
 			return nil
-		} else if *out == "EXIST" {
-			return task.ERR_SKIP_TASK
 		}
 		return errno.ERR_CREATE_VOLUME_FAILED
 	}
