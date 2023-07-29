@@ -23,8 +23,9 @@
 package bs
 
 import (
+	"bytes"
 	"fmt"
-	"github.com/fatih/color"
+	"os/exec"
 	"strings"
 
 	"github.com/opencurve/curveadm/cli/cli"
@@ -67,11 +68,30 @@ func checkCreateStatus(out *string) step.LambdaType {
 	}
 }
 
-func checkDiskMapStatus(curveadm *cli.CurveAdm, cc *configure.ClientConfig) step.LambdaType {
+func runCommand(command string, args ...string) (string, error) {
+	cmd := exec.Command(command, args...)
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	if err != nil {
+		return "", fmt.Errorf("command execution error: %w, stderr: %s", err, stderr.String())
+	}
+	return stdout.String(), nil
+}
+
+func checkDiskSizeStatus(out *string) step.LambdaType {
 	return func(ctx *context.Context) error {
-		if cc.GetContainerImage() == "[SKIP]" {
-			curveadm.WriteOutln(color.YellowString("[Tips] Mapping %s the disk is still the first time it has been created", cc.GetContainerImage()))
+		// Execute lsblk | grep nbd command
+		output, err := runCommand("sh", "-c", "lsblk | grep nbd")
+		if err != nil {
+			return err
 		}
+
+		// Now 'output' contains the output of the 'lsblk | grep nbd' command
+		// Parse the output to get the disk size information and store it in 'out' (assuming 'out' is a pointer to a string)
+		*out = output
+
 		return nil
 	}
 }
@@ -125,10 +145,10 @@ func NewCreateVolumeTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*t
 		ExecOptions: curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.Lambda{
-		Lambda: checkDiskMapStatus(curveadm, cc),
+		Lambda: checkCreateStatus(&out),
 	})
 	t.AddStep(&step.Lambda{
-		Lambda: checkCreateStatus(&out),
+		Lambda: checkDiskSizeStatus(&out),
 	})
 
 	return t, nil
