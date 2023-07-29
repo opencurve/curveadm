@@ -163,10 +163,10 @@ func NewMapTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.Task,
 		ExecOptions: curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.Lambda{
-		Lambda: checkMapStatus(&success, &out),
+		Lambda: checkMapDiskStatus(&out),
 	})
 	t.AddStep(&step.Lambda{
-		Lambda: checkMapDiskStatus(&out),
+		Lambda: checkMapStatus(&success, &out),
 	})
 
 	return t, nil
