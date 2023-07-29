@@ -66,6 +66,17 @@ func checkCreateStatus(out *string) step.LambdaType {
 	}
 }
 
+func checkDiskMapStatus(out *string) step.LambdaType {
+	return func(ctx *context.Context) error {
+		if len(*out) == 0 {
+			return nil
+		} else if len(*out) < 0 {
+			return errno.ERR_VOLUME_DISK_EXIST
+		}
+		return errno.ERR_DISK_MAP_EXIST
+	}
+}
+
 func NewCreateVolumeTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.Task, error) {
 	options := curveadm.MemStorage().Get(comm.KEY_MAP_OPTIONS).(MapOptions)
 	hc, err := curveadm.GetHost(options.Host)
@@ -113,6 +124,9 @@ func NewCreateVolumeTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*t
 		Command:     command,
 		Out:         &out,
 		ExecOptions: curveadm.ExecOptions(),
+	})
+	t.AddStep(&step.Lambda{
+		Lambda: checkDiskMapStatus(&out),
 	})
 	t.AddStep(&step.Lambda{
 		Lambda: checkCreateStatus(&out),
