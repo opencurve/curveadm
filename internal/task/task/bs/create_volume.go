@@ -66,6 +66,15 @@ func checkCreateStatus(out *string) step.LambdaType {
 	}
 }
 
+func checkDiskSizeStatus(out *string) step.LambdaType {
+	return func(ctx *context.Context) error {
+		if *out == "skip task" {
+			return errno.List()
+		}
+		return nil
+	}
+}
+
 func NewCreateVolumeTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.Task, error) {
 	options := curveadm.MemStorage().Get(comm.KEY_MAP_OPTIONS).(MapOptions)
 	hc, err := curveadm.GetHost(options.Host)
@@ -115,6 +124,9 @@ func NewCreateVolumeTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*t
 	})
 	t.AddStep(&step.Lambda{
 		Lambda: checkCreateStatus(&out),
+	})
+	t.AddStep(&step.Lambda{
+		Lambda: checkDiskSizeStatus(&out),
 	})
 
 	return t, nil
