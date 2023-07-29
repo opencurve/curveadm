@@ -68,12 +68,12 @@ func checkCreateStatus(out *string) step.LambdaType {
 
 func checkDiskMapStatus(out *string) step.LambdaType {
 	return func(ctx *context.Context) error {
-		if len(*out) == 0 {
+		if !strings.HasPrefix(*out, "O") {
 			return nil
-		} else if len(*out) < 0 {
+		} else if !strings.HasPrefix(*out, "S") {
 			return errno.ERR_VOLUME_DISK_EXIST
 		}
-		return errno.ERR_DISK_MAP_EXIST
+		return nil
 	}
 }
 
