@@ -23,9 +23,7 @@
 package bs
 
 import (
-	"bytes"
 	"fmt"
-	"os/exec"
 	"strings"
 
 	"github.com/opencurve/curveadm/cli/cli"
@@ -68,31 +66,14 @@ func checkCreateStatus(out *string) step.LambdaType {
 	}
 }
 
-func runCommand(command string, args ...string) (string, error) {
-	cmd := exec.Command(command, args...)
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	err := cmd.Run()
-	if err != nil {
-		return "", fmt.Errorf("command execution error: %w, stderr: %s", err, stderr.String())
-	}
-	return stdout.String(), nil
-}
-
-func checkDiskSizeStatus(out *string) step.LambdaType {
+func checkDiskSizeStatus(options MapOptions, out *string) step.LambdaType {
 	return func(ctx *context.Context) error {
-		// Execute lsblk | grep nbd command
-		output, err := runCommand("sh", "-c", "lsblk | grep nbd")
-		if err != nil {
-			return err
+		if options.Size == 0 {
+			return nil
+		} else if options.Size > 0 {
+			return errno.ERR_MAP_VOLUME_NBD_EXIST.S(*out)
 		}
-
-		// Now 'output' contains the output of the 'lsblk | grep nbd' command
-		// Parse the output to get the disk size information and store it in 'out' (assuming 'out' is a pointer to a string)
-		*out = output
-
-		return nil
+		return errno.ERR_CREATE_VOLUME_FAILED
 	}
 }
 
