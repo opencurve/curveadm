@@ -127,7 +127,7 @@ func NewCreateVolumeTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*t
 		ExecOptions: curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.Lambda{
-		Lambda: checkDiskMapStatus(cc, &out),
+		Lambda: checkDiskMapStatus(curveadm, cc, &out),
 	})
 	t.AddStep(&step.Lambda{
 		Lambda: checkCreateStatus(&out),
