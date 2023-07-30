@@ -25,13 +25,14 @@ package configure
 import (
 	"bytes"
 	"fmt"
+	"github.com/opencurve/curveadm/pkg/log/zaplog"
+	"go.uber.org/zap"
 	"strings"
 
 	"github.com/opencurve/curveadm/internal/build"
 	"github.com/opencurve/curveadm/internal/configure/topology"
 	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/utils"
-	log "github.com/opencurve/curveadm/pkg/log/glg"
 	"github.com/opencurve/curveadm/pkg/variable"
 	"github.com/spf13/viper"
 )
@@ -104,7 +105,7 @@ func NewClientConfig(config map[string]interface{}) (*ClientConfig, error) {
 	vars.Register(variable.Variable{Name: "prefix", Value: "/curvebs/nebd"})
 	err := vars.Build()
 	if err != nil {
-		log.Error("Build variables failed", log.Field("Error", err))
+		zaplog.Error("Build variables failed", zap.Any("Error", err))
 		return nil, errno.ERR_RESOLVE_CLIENT_VARIABLE_FAILED.E(err)
 	}
 

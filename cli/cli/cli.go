@@ -25,6 +25,7 @@ package cli
 import (
 	"errors"
 	"fmt"
+	"go.uber.org/zap"
 	"io"
 	"os"
 	"path"
@@ -41,7 +42,7 @@ import (
 	tui "github.com/opencurve/curveadm/internal/tui/common"
 	"github.com/opencurve/curveadm/internal/utils"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
-	log "github.com/opencurve/curveadm/pkg/log/glg"
+	"github.com/opencurve/curveadm/pkg/log/zaplog"
 	"github.com/opencurve/curveadm/pkg/module"
 )
 
@@ -138,15 +139,11 @@ func (curveadm *CurveAdm) init() error {
 	configure.ReplaceGlobals(config)
 
 	// (3) Init logger
-	now := time.Now().Format("2006-01-02_15-04-05")
-	logpath := fmt.Sprintf("%s/curveadm-%s.log", curveadm.logDir, now)
-	if err := log.Init(config.GetLogLevel(), logpath); err != nil {
-		return errno.ERR_INIT_LOGGER_FAILED.E(err)
-	} else {
-		log.Info("Init logger success",
-			log.Field("LogPath", logpath),
-			log.Field("LogLevel", config.GetLogLevel()))
-	}
+	logpath := fmt.Sprintf("%s/curveadm.log", curveadm.logDir)
+	zaplog.Init(config, logpath)
+
+	zaplog.Info("Init logger success",
+		zap.String("LogPath", logpath))
 
 	// (4) Init error code
 	errno.Init(logpath)
@@ -155,8 +152,8 @@ func (curveadm *CurveAdm) init() error {
 	dbpath := fmt.Sprintf("%s/curveadm.db", curveadm.dataDir)
 	s, err := storage.NewStorage(dbpath)
 	if err != nil {
-		log.Error("Init SQLite database failed",
-			log.Field("Error", err))
+		zaplog.Error("Init SQLite database failed",
+			zap.Any("Error", err))
 		return errno.ERR_INIT_SQL_DATABASE_FAILED.E(err)
 	}
 
@@ -164,8 +161,8 @@ func (curveadm *CurveAdm) init() error {
 	var hosts storage.Hosts
 	hostses, err := s.GetHostses()
 	if err != nil {
-		log.Error("Get hosts failed",
-			log.Field("Error", err))
+		zaplog.Error("Get hosts failed",
+			zap.Any("Error", err))
 		return errno.ERR_GET_HOSTS_FAILED.E(err)
 	} else if len(hostses) == 1 {
 		hosts = hostses[0]
@@ -174,20 +171,20 @@ func (curveadm *CurveAdm) init() error {
 	// (7) Get current cluster
 	cluster, err := s.GetCurrentCluster()
 	if err != nil {
-		log.Error("Get current cluster failed",
-			log.Field("Error", err))
+		zaplog.Error("Get current cluster failed",
+			zap.Any("Error", err))
 		return errno.ERR_GET_CURRENT_CLUSTER_FAILED.E(err)
 	} else {
-		log.Info("Get current cluster success",
-			log.Field("ClusterId", cluster.Id),
-			log.Field("ClusterName", cluster.Name))
+		zaplog.Info("Get current cluster success",
+			zap.Int("ClusterId", cluster.Id),
+			zap.String("ClusterName", cluster.Name))
 	}
 
 	// (8) Get Disks
 	var disks storage.Disks
 	diskses, err := s.GetDisks()
 	if err != nil {
-		log.Error("Get disks failed", log.Field("Error", err))
+		zaplog.Error("Get disks failed", zap.Any("Error", err))
 		return errno.ERR_GET_DISKS_FAILED.E(err)
 	} else if len(diskses) > 0 {
 		disks = diskses[0]
@@ -196,7 +193,7 @@ func (curveadm *CurveAdm) init() error {
 	// (9) Get Disk Records
 	diskRecords, err := s.GetDisk(comm.DISK_FILTER_ALL)
 	if err != nil {
-		log.Error("Get disk records failed", log.Field("Error", err))
+		zaplog.Error("Get disk records failed", zap.Any("Error", err))
 		return errno.ERR_GET_DISK_RECORDS_FAILED.E(err)
 	}
 
@@ -528,8 +525,8 @@ func (curveadm *CurveAdm) PreAudit(now time.Time, args []string) int64 {
 	id, err := curveadm.Storage().InsertAuditLog(
 		now, cwd, command, comm.AUDIT_STATUS_ABORT)
 	if err != nil {
-		log.Error("Insert audit log failed",
-			log.Field("Error", err))
+		zaplog.Error("Insert audit log failed",
+			zap.Any("Error", err))
 	}
 
 	return id
@@ -542,8 +539,8 @@ func (curveadm *CurveAdm) PostAudit(id int64, ec error) {
 
 	auditLogs, err := curveadm.Storage().GetAuditLog(id)
 	if err != nil {
-		log.Error("Get audit log failed",
-			log.Field("Error", err))
+		zaplog.Error("Get audit log failed",
+			zap.Any("Error", err))
 		return
 	} else if len(auditLogs) != 1 {
 		return
@@ -565,7 +562,7 @@ func (curveadm *CurveAdm) PostAudit(id int64, ec error) {
 
 	err = curveadm.Storage().SetAuditLogStatus(id, status, errorCode)
 	if err != nil {
-		log.Error("Set audit log status failed",
-			log.Field("Error", err))
+		zaplog.Error("Set audit log status failed",
+			zap.Any("Error", err))
 	}
 }

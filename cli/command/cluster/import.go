@@ -24,6 +24,8 @@ package cluster
 
 import (
 	"fmt"
+	"github.com/opencurve/curveadm/pkg/log/zaplog"
+	"go.uber.org/zap"
 	"io"
 	"os"
 	"regexp"
@@ -189,7 +191,7 @@ func runImport(curveadm *cli.CurveAdm, options importOptions) error {
 	storage := curveadm.Storage()
 	clusters, err := storage.GetClusters(name)
 	if err != nil {
-		zaplog.Error("GetClusters", zaplog.Field("error", err))
+		zaplog.Error("GetClusters", zap.Any("error", err))
 		return err
 	} else if len(clusters) != 0 {
 		return fmt.Errorf("cluster %s already exist", name)

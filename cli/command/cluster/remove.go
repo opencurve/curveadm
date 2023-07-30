@@ -30,8 +30,9 @@ import (
 	"github.com/opencurve/curveadm/internal/errno"
 	tui "github.com/opencurve/curveadm/internal/tui/common"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
-	log "github.com/opencurve/curveadm/pkg/log/glg"
+	"github.com/opencurve/curveadm/pkg/log/zaplog"
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 )
 
 type removeOptions struct {
@@ -86,8 +87,8 @@ func runRemove(curveadm *cli.CurveAdm, options removeOptions) error {
 	clusterName := options.clusterName
 	clusters, err := storage.GetClusters(clusterName) // Get all clusters
 	if err != nil {
-		log.Error("Get cluster failed",
-			log.Field("error", err))
+		zaplog.Error("Get cluster failed",
+			zap.Any("error", err))
 		return errno.ERR_GET_ALL_CLUSTERS_FAILED.E(err)
 	} else if len(clusters) == 0 {
 		return errno.ERR_CLUSTER_NOT_FOUND.
