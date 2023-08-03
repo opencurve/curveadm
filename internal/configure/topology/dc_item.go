@@ -285,6 +285,27 @@ var (
 		true,
 		nil,
 	)
+
+	CONFIG_ETCD_AUTH_ENABLE = itemset.insert(
+		"etcd.auth.enable",
+		REQUIRE_BOOL,
+		false,
+		false,
+	)
+
+	CONFIG_ETCD_AUTH_USERNAME = itemset.insert(
+		"etcd.auth.username",
+		REQUIRE_STRING,
+		false,
+		nil,
+	)
+
+	CONFIG_ETCD_AUTH_PASSWORD = itemset.insert(
+		"etcd.auth.password",
+		REQUIRE_STRING,
+		false,
+		nil,
+	)
 )
 
 func (i *item) Key() string {

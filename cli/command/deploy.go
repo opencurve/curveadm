@@ -43,6 +43,7 @@ const (
 	CREATE_CONTAINER           = playbook.CREATE_CONTAINER
 	SYNC_CONFIG                = playbook.SYNC_CONFIG
 	START_ETCD                 = playbook.START_ETCD
+	ENABLE_ETCD_AUTH           = playbook.ENABLE_ETCD_AUTH
 	START_MDS                  = playbook.START_MDS
 	CREATE_PHYSICAL_POOL       = playbook.CREATE_PHYSICAL_POOL
 	START_CHUNKSERVER          = playbook.START_CHUNKSERVER
@@ -65,6 +66,7 @@ var (
 		CREATE_CONTAINER,
 		SYNC_CONFIG,
 		START_ETCD,
+		ENABLE_ETCD_AUTH,
 		START_MDS,
 		CREATE_PHYSICAL_POOL,
 		START_CHUNKSERVER,
@@ -79,6 +81,7 @@ var (
 		CREATE_CONTAINER,
 		SYNC_CONFIG,
 		START_ETCD,
+		ENABLE_ETCD_AUTH,
 		START_MDS,
 		CREATE_LOGICAL_POOL,
 		START_METASERVER,
@@ -86,6 +89,7 @@ var (
 
 	DEPLOY_FILTER_ROLE = map[int]string{
 		START_ETCD:           ROLE_ETCD,
+		ENABLE_ETCD_AUTH:     ROLE_ETCD,
 		START_MDS:            ROLE_MDS,
 		START_CHUNKSERVER:    ROLE_CHUNKSERVER,
 		START_SNAPSHOTCLONE:  ROLE_SNAPSHOTCLONE,
@@ -99,6 +103,7 @@ var (
 		CREATE_PHYSICAL_POOL: 1,
 		CREATE_LOGICAL_POOL:  1,
 		BALANCE_LEADER:       1,
+		ENABLE_ETCD_AUTH:     1,
 	}
 
 	CAN_SKIP_ROLES = []string{
@@ -160,11 +165,12 @@ func skipServiceRole(deployConfigs []*topology.DeployConfig, options deployOptio
 	return dcs
 }
 
-func skipDeploySteps(deploySteps []int, options deployOptions) []int {
+func skipDeploySteps(dcs []*topology.DeployConfig, deploySteps []int, options deployOptions) []int {
 	steps := []int{}
 	skipped := utils.Slice2Map(options.skip)
 	for _, step := range deploySteps {
-		if step == START_SNAPSHOTCLONE && skipped[ROLE_SNAPSHOTCLONE] {
+		if (step == START_SNAPSHOTCLONE && skipped[ROLE_SNAPSHOTCLONE]) ||
+			(step == ENABLE_ETCD_AUTH && len(dcs) > 0 && !dcs[0].GetEtcdAuthEnable()) {
 			continue
 		}
 		steps = append(steps, step)
@@ -211,7 +217,7 @@ func genDeployPlaybook(curveadm *cli.CurveAdm,
 	if kind == topology.KIND_CURVEBS {
 		steps = CURVEBS_DEPLOY_STEPS
 	}
-	steps = skipDeploySteps(steps, options)
+	steps = skipDeploySteps(dcs, steps, options)
 	poolset := options.poolset
 	diskType := options.poolsetDiskType
 

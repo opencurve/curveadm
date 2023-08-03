@@ -417,6 +417,7 @@ var (
 	ERR_INVALID_DEVICE_USAGE                 = EC(410020, "invalid device usage")
 	ERR_ENCRYPT_FILE_FAILED                  = EC(410021, "encrypt file failed")
 	ERR_CLIENT_ID_NOT_FOUND                  = EC(410022, "client id not found")
+	ERR_ENABLE_ETCD_AUTH_FAILED              = EC(410023, "enable etcd auth failed")
 
 	// 420: common (curvebs client)
 	ERR_VOLUME_ALREADY_MAPPED             = EC(420000, "volume already mapped")
