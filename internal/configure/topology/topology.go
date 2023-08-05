@@ -34,11 +34,12 @@ import (
 
 type (
 	Deploy struct {
-		Host     string                 `mapstructure:"host"`
-		Name     string                 `mapstructure:"name"`
-		Replica  int                    `mapstructure:"replica"` // old version
-		Replicas int                    `mapstructure:"replicas"`
-		Config   map[string]interface{} `mapstructure:"config"`
+		Host       string                 `mapstructure:"host"`
+		Name       string                 `mapstructure:"name"`
+		Replica    int                    `mapstructure:"replica"`  // old version
+		Replicas   int                    `mapstructure:"replicas"` // old version
+		Config     map[string]interface{} `mapstructure:"config"`
+		ServiceNum int                    `mapstructure:"service_num"`
 	}
 
 	Service struct {
@@ -149,22 +150,27 @@ func ParseTopology(data string, ctx *Context) ([]*DeployConfig, error) {
 			merge(servicesConfig, deployConfig, 1)
 
 			// create deploy config
-			replicas := 1
+			serviceNum := 1
 			if deploy.Replicas < 0 {
 				return nil, errno.ERR_REPLICAS_REQUIRES_POSITIVE_INTEGER.
 					F("replicas: %d", deploy.Replicas)
 			} else if deploy.Replica < 0 {
 				return nil, errno.ERR_REPLICAS_REQUIRES_POSITIVE_INTEGER.
 					F("replica: %d", deploy.Replica)
+			} else if deploy.ServiceNum < 0 {
+				return nil, errno.ERR_REPLICAS_REQUIRES_POSITIVE_INTEGER.
+					F("replica: %d", deploy.ServiceNum)
+			} else if deploy.ServiceNum > 0 {
+				serviceNum = deploy.ServiceNum
 			} else if deploy.Replicas > 0 {
-				replicas = deploy.Replicas
+				serviceNum = deploy.Replicas
 			} else if deploy.Replica > 0 {
-				replicas = deploy.Replica
+				serviceNum = deploy.Replica
 			}
 
-			for replicasSequence := 0; replicasSequence < replicas; replicasSequence++ {
+			for replicasSequence := 0; replicasSequence < serviceNum; replicasSequence++ {
 				dc, err := NewDeployConfig(ctx, kind,
-					role, deploy.Host, deploy.Name, replicas,
+					role, deploy.Host, deploy.Name, serviceNum,
 					hostSequence, replicasSequence, utils.DeepCopy(deployConfig))
 				if err != nil {
 					return nil, err // already is error code
