@@ -31,20 +31,20 @@ import (
 )
 
 const (
-	TEMPLATE_DOCKER_INFO         = "docker info"
-	TEMPLATE_PULL_IMAGE          = "docker pull {{.options}} {{.name}}"
-	TEMPLATE_CREATE_CONTAINER    = "docker create {{.options}} {{.image}} {{.command}}"
-	TEMPLATE_START_CONTAINER     = "docker start {{.options}} {{.containers}}"
-	TEMPLATE_STOP_CONTAINER      = "docker stop {{.options}} {{.containers}}"
-	TEMPLATE_RESTART_CONTAINER   = "docker restart {{.options}} {{.containers}}"
-	TEMPLATE_WAIT_CONTAINER      = "docker wait {{.options}} {{.containers}}"
-	TEMPLATE_REMOVE_CONTAINER    = "docker rm {{.options}} {{.containers}}"
-	TEMPLATE_LIST_CONTAINERS     = "docker ps {{.options}}"
-	TEMPLATE_CONTAINER_EXEC      = "docker exec {{.options}} {{.container}} {{.command}}"
-	TEMPLATE_COPY_FROM_CONTAINER = "docker cp {{.options}} {{.container}}:{{.srcPath}} {{.destPath}}"
-	TEMPLATE_COPY_INTO_CONTAINER = "docker cp {{.options}}  {{.srcPath}} {{.container}}:{{.destPath}}"
-	TEMPLATE_INSPECT_CONTAINER   = "docker inspect {{.options}} {{.container}}"
-	TEMPLATE_CONTAINER_LOGS      = "docker logs {{.options}} {{.container}}"
+	TEMPLATE_DOCKER_INFO         = "podman info"
+	TEMPLATE_PULL_IMAGE          = "podman pull {{.options}} {{.name}}"
+	TEMPLATE_CREATE_CONTAINER    = "podman create {{.options}} {{.image}} {{.command}}"
+	TEMPLATE_START_CONTAINER     = "podman start {{.options}} {{.containers}}"
+	TEMPLATE_STOP_CONTAINER      = "podman stop {{.options}} {{.containers}}"
+	TEMPLATE_RESTART_CONTAINER   = "podman restart {{.options}} {{.containers}}"
+	TEMPLATE_WAIT_CONTAINER      = "podman wait {{.options}} {{.containers}}"
+	TEMPLATE_REMOVE_CONTAINER    = "podman rm {{.options}} {{.containers}}"
+	TEMPLATE_LIST_CONTAINERS     = "podman ps {{.options}}"
+	TEMPLATE_CONTAINER_EXEC      = "podman exec {{.options}} {{.container}} {{.command}}"
+	TEMPLATE_COPY_FROM_CONTAINER = "podman cp {{.options}} {{.container}}:{{.srcPath}} {{.destPath}}"
+	TEMPLATE_COPY_INTO_CONTAINER = "podman cp {{.options}}  {{.srcPath}} {{.container}}:{{.destPath}}"
+	TEMPLATE_INSPECT_CONTAINER   = "podman inspect {{.options}} {{.container}}"
+	TEMPLATE_CONTAINER_LOGS      = "podman logs {{.options}} {{.container}}"
 )
 
 type DockerCli struct {
