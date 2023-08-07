@@ -56,6 +56,7 @@ type (
 		hostname         string
 		name             string
 		replicas         int
+		serviceNum       int
 		hostSequence     int // start with 0
 		replicasSequence int // start with 0
 

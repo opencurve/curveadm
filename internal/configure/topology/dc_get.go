@@ -118,6 +118,7 @@ func (dc *DeployConfig) GetHost() string                     { return dc.host }
 func (dc *DeployConfig) GetHostname() string                 { return dc.hostname }
 func (dc *DeployConfig) GetName() string                     { return dc.name }
 func (dc *DeployConfig) GetReplicas() int                    { return dc.replicas }
+func (dc *DeployConfig) GetServiceNum() int                  { return dc.serviceNum }
 func (dc *DeployConfig) GetHostSequence() int                { return dc.hostSequence }
 func (dc *DeployConfig) GetReplicasSequence() int            { return dc.replicasSequence }
 func (dc *DeployConfig) GetServiceConfig() map[string]string { return dc.serviceConfig }
