@@ -47,6 +47,7 @@ var (
 	}
 )
 
+// todo: don't know showReplicas
 type statusOptions struct {
 	id           string
 	role         string

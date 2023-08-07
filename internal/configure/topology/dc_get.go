@@ -110,6 +110,7 @@ func (dc *DeployConfig) getBool(i *item) bool {
 }
 
 // (1): config property
+// todo: change GetReplicas to GetServiceNum
 func (dc *DeployConfig) GetKind() string                     { return dc.kind }
 func (dc *DeployConfig) GetId() string                       { return dc.id }
 func (dc *DeployConfig) GetParentId() string                 { return dc.parentId }

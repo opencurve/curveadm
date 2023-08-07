@@ -38,8 +38,8 @@ type (
 		Name       string                 `mapstructure:"name"`
 		Replica    int                    `mapstructure:"replica"`  // old version
 		Replicas   int                    `mapstructure:"replicas"` // old version
-		Config     map[string]interface{} `mapstructure:"config"`
 		ServiceNum int                    `mapstructure:"service_num"`
+		Config     map[string]interface{} `mapstructure:"config"`
 	}
 
 	Service struct {
