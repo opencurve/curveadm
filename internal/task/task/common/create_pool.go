@@ -48,8 +48,15 @@ type step2SetClusterPool struct {
 	storage     *storage.Storage
 }
 
+func getPoolset(curveadm *cli.CurveAdm, kind string) configure.Poolset {
+	if kind == configure.KIND_CURVEFS {
+		return configure.Poolset{}
+	}
+	return curveadm.MemStorage().Get(comm.KEY_POOLSET).(configure.Poolset)
+}
+
 func getClusterPool(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (configure.CurveClusterTopo, error) {
-	poolset := curveadm.MemStorage().Get(comm.KEY_POOLSET).(configure.Poolset)
+	poolset := getPoolset(curveadm, dc.GetKind())
 	oldPool := configure.CurveClusterTopo{}
 	dcs, err := curveadm.ParseTopology()
 	if err != nil {
@@ -99,7 +106,7 @@ func prepare(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (clusterPoolJson
 	// 2. scale out cluster or migrate servers
 	if curveadm.MemStorage().Get(comm.KEY_SCALE_OUT_CLUSTER) != nil { // scale out cluster
 		dcs := curveadm.MemStorage().Get(comm.KEY_SCALE_OUT_CLUSTER).([]*topology.DeployConfig)
-		poolset := curveadm.MemStorage().Get(comm.KEY_POOLSET).(configure.Poolset)
+		poolset := getPoolset(curveadm, dc.GetKind())
 		configure.ScaleOutClusterPool(&clusterPool, dcs, poolset)
 	} else if curveadm.MemStorage().Get(comm.KEY_MIGRATE_SERVERS) != nil { // migrate servers
 		migrates := curveadm.MemStorage().Get(comm.KEY_MIGRATE_SERVERS).([]*configure.MigrateServer)
