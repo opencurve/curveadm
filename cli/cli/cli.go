@@ -255,6 +255,7 @@ func (curveadm *CurveAdm) LogPath() string                   { return curveadm.l
 func (curveadm *CurveAdm) Config() *configure.CurveAdmConfig { return curveadm.config }
 func (curveadm *CurveAdm) SudoAlias() string                 { return curveadm.config.GetSudoAlias() }
 func (curveadm *CurveAdm) SSHTimeout() int                   { return curveadm.config.GetSSHTimeout() }
+func (curveadm *CurveAdm) Engine() string                    { return curveadm.config.GetEngine() }
 func (curveadm *CurveAdm) In() io.Reader                     { return curveadm.in }
 func (curveadm *CurveAdm) Out() io.Writer                    { return curveadm.out }
 func (curveadm *CurveAdm) Err() io.Writer                    { return curveadm.err }
@@ -374,6 +375,7 @@ func (curveadm *CurveAdm) ExecOptions() module.ExecOptions {
 		ExecInLocal:    false,
 		ExecSudoAlias:  curveadm.config.GetSudoAlias(),
 		ExecTimeoutSec: curveadm.config.GetTimeout(),
+		ExecWithEngine: curveadm.config.GetEngine(),
 	}
 }
 

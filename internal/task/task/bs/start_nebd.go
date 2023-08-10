@@ -164,13 +164,13 @@ func NewStartNEBDServiceTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig)
 	hostname := containerName
 	host2addr := fmt.Sprintf("%s:%s", hostname, hc.GetHostname())
 
-	t.AddStep(&step.DockerInfo{
+	t.AddStep(&step.EngineInfo{
 		Success:     &success,
 		Out:         &out,
 		ExecOptions: curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.Lambda{
-		Lambda: checker.CheckDockerInfo(options.Host, &success, &out),
+		Lambda: checker.CheckEngineInfo(options.Host, curveadm.ExecOptions().ExecWithEngine, &success, &out),
 	})
 	t.AddStep(&step.ListContainers{
 		ShowAll:     true,

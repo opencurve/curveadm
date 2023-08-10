@@ -107,6 +107,15 @@ func (e *ErrorCode) F(format string, a ...interface{}) *ErrorCode {
 	return e
 }
 
+func (e *ErrorCode) FD(format string, s ...interface{}) *ErrorCode {
+	newEC := &ErrorCode{
+		code:        e.code,
+		description: e.description,
+	}
+	newEC.description = fmt.Sprintf(newEC.description+" "+format, s...)
+	return newEC
+}
+
 func (e *ErrorCode) Error() string {
 	if e.code == CODE_CANCEL_OPERATION {
 		return ""
@@ -430,10 +439,10 @@ var (
 	ERR_SSH_CONNECT_FAILED = EC(510000, "SSH connect failed")
 
 	// 520: checker (permission)
-	ERR_USER_NOT_FOUND                           = EC(520000, "user not found")
-	ERR_HOSTNAME_NOT_RESOLVED                    = EC(520001, "hostname not resolved")
-	ERR_CREATE_DIRECOTRY_PERMISSION_DENIED       = EC(520002, "create direcotry permission denied")
-	ERR_EXECUTE_DOCKER_COMMAND_PERMISSION_DENIED = EC(520003, "execute docker command permission denied")
+	ERR_USER_NOT_FOUND                                     = EC(520000, "user not found")
+	ERR_HOSTNAME_NOT_RESOLVED                              = EC(520001, "hostname not resolved")
+	ERR_CREATE_DIRECOTRY_PERMISSION_DENIED                 = EC(520002, "create direcotry permission denied")
+	ERR_EXECUTE_CONTAINER_ENGINE_COMMAND_PERMISSION_DENIED = EC(520003, "execute docker/podman command permission denied")
 
 	// 530: checker (kernel)
 	ERR_UNRECOGNIZED_KERNEL_VERSION              = EC(530000, "unrecognized kernel version")
@@ -460,9 +469,9 @@ var (
 	ERR_INVALID_CURVEFS_CLIENT_S3_BUCKET_NAME = EC(570003, "invalid curvefs client S3 bucket name")
 
 	// 590: checker (others)
-	ERR_DOCKER_NOT_INSTALLED         = EC(590000, "docker not installed")
-	ERR_DOCKER_DAEMON_IS_NOT_RUNNING = EC(590001, "docker daemon is not running")
-	ERR_NO_SPACE_LEFT_ON_DEVICE      = EC(590002, "no space left on device")
+	ERR_CONTAINER_ENGINE_NOT_INSTALLED = EC(590000, "container engine docker/podman not installed")
+	ERR_DOCKER_DAEMON_IS_NOT_RUNNING   = EC(590001, "docker daemon is not running")
+	ERR_NO_SPACE_LEFT_ON_DEVICE        = EC(590002, "no space left on device")
 
 	// 600: exeute task (common)
 	ERR_EXECUTE_COMMAND_TIMED_OUT = EC(600000, "execute command timed out")
@@ -509,21 +518,22 @@ var (
 	ERR_RUN_SCRIPT_FAILED                          = EC(620998, "run script failed (bash script.sh)")
 	ERR_RUN_A_BASH_COMMAND_FAILED                  = EC(620999, "run a bash command failed (bash -c)")
 
-	// 630: execute task (docker command)
-	ERR_GET_DOCKER_INFO_FAILED          = EC(630000, "get docker info failed (docker info)")
-	ERR_PULL_IMAGE_FAILED               = EC(630001, "pull image failed (docker pull IMAGE)")
-	ERR_CREATE_CONTAINER_FAILED         = EC(630002, "create container failed (docker create IMAGE)")
-	ERR_START_CONTAINER_FAILED          = EC(630003, "start container failed (docker start CONTAINER)")
-	ERR_STOP_CONTAINER_FAILED           = EC(630004, "stop container failed (docker stop CONTAINER)")
-	ERR_RESTART_CONTAINER_FAILED        = EC(630005, "restart container failed (docker restart CONTAINER)")
-	ERR_WAIT_CONTAINER_STOP_FAILED      = EC(630006, "wait container stop failed (docker wait CONTAINER)")
-	ERR_REMOVE_CONTAINER_FAILED         = EC(630007, "remove container failed (docker rm CONTAINER)")
-	ERR_LIST_CONTAINERS_FAILED          = EC(630008, "list containers failed (docker ps)")
-	ERR_RUN_COMMAND_IN_CONTAINER_FAILED = EC(630009, "run a command in container failed (docker exec CONTAINER COMMAND)")
-	ERR_COPY_FROM_CONTAINER_FAILED      = EC(630010, "copy file from container failed (docker cp CONTAINER:SRC_PATH DEST_PATH)")
-	ERR_COPY_INTO_CONTAINER_FAILED      = EC(630011, "copy file into container failed (docker cp SRC_PATH CONTAINER:DEST_PATH)")
-	ERR_INSPECT_CONTAINER_FAILED        = EC(630012, "get container low-level information failed (docker inspect ID)")
-	ERR_GET_CONTAINER_LOGS_FAILED       = EC(630013, "get container logs failed (docker logs ID)")
+	// 630: execute task (docker/podman command)
+	ERR_GET_CONTAINER_ENGINE_INFO_FAILED = EC(630000, "get container engine info failed")
+	ERR_PULL_IMAGE_FAILED                = EC(630001, "pull image failed")
+	ERR_CREATE_CONTAINER_FAILED          = EC(630002, "create container failed")
+	ERR_START_CONTAINER_FAILED           = EC(630003, "start container failed")
+	ERR_STOP_CONTAINER_FAILED            = EC(630004, "stop container failed")
+	ERR_RESTART_CONTAINER_FAILED         = EC(630005, "restart container failed")
+	ERR_WAIT_CONTAINER_STOP_FAILED       = EC(630006, "wait container stop failed")
+	ERR_REMOVE_CONTAINER_FAILED          = EC(630007, "remove container failed")
+	ERR_LIST_CONTAINERS_FAILED           = EC(630008, "list containers failed")
+	ERR_RUN_COMMAND_IN_CONTAINER_FAILED  = EC(630009, "run a command in container failed")
+	ERR_COPY_FROM_CONTAINER_FAILED       = EC(630010, "copy file from container failed")
+	ERR_COPY_INTO_CONTAINER_FAILED       = EC(630011, "copy file into container failed")
+	ERR_INSPECT_CONTAINER_FAILED         = EC(630012, "get container low-level information failed")
+	ERR_GET_CONTAINER_LOGS_FAILED        = EC(630013, "get container logs failed")
+	ERR_UPDATE_CONTAINER_FAILED          = EC(630014, "update container failed")
 
 	// 690: execuetr task (others)
 	ERR_START_CRONTAB_IN_CONTAINER_FAILED = EC(690000, "start crontab in container failed")
