@@ -2,7 +2,7 @@
 
 g_container_name="memcached-"${PORT}
 g_start_args=""
-g_docker_cmd="${SUDO_ALIAS} docker"
+g_docker_cmd="${SUDO_ALIAS} ${ENGINE}"
 g_volume_bind=""
 g_container_id=""
 g_status="running"

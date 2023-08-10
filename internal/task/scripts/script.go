@@ -30,7 +30,7 @@ const (
 
 var (
 	SCRIPT_WAIT              string = WAIT
-	SCRIPT_COLLECT           string = COLLECT
+	SCRIPT_COLLECT           string = COLLECT // not used
 	SCRIPT_REPORT            string = REPORT
 	SCRIPT_FORMAT            string = FORMAT
 	SCRIPT_MAP               string = MAP

@@ -31,21 +31,21 @@ import (
 )
 
 const (
-	TEMPLATE_DOCKER_INFO         = "docker info"
-	TEMPLATE_PULL_IMAGE          = "docker pull {{.options}} {{.name}}"
-	TEMPLATE_CREATE_CONTAINER    = "docker create {{.options}} {{.image}} {{.command}}"
-	TEMPLATE_START_CONTAINER     = "docker start {{.options}} {{.containers}}"
-	TEMPLATE_STOP_CONTAINER      = "docker stop {{.options}} {{.containers}}"
-	TEMPLATE_RESTART_CONTAINER   = "docker restart {{.options}} {{.containers}}"
-	TEMPLATE_WAIT_CONTAINER      = "docker wait {{.options}} {{.containers}}"
-	TEMPLATE_REMOVE_CONTAINER    = "docker rm {{.options}} {{.containers}}"
-	TEMPLATE_LIST_CONTAINERS     = "docker ps {{.options}}"
-	TEMPLATE_CONTAINER_EXEC      = "docker exec {{.options}} {{.container}} {{.command}}"
-	TEMPLATE_COPY_FROM_CONTAINER = "docker cp {{.options}} {{.container}}:{{.srcPath}} {{.destPath}}"
-	TEMPLATE_COPY_INTO_CONTAINER = "docker cp {{.options}}  {{.srcPath}} {{.container}}:{{.destPath}}"
-	TEMPLATE_INSPECT_CONTAINER   = "docker inspect {{.options}} {{.container}}"
-	TEMPLATE_CONTAINER_LOGS      = "docker logs {{.options}} {{.container}}"
-	TEMPLATE_UPDATE_CONTAINER    = "docker update {{.options}} {{.container}}"
+	TEMPLATE_DOCKER_INFO         = "{{.engine}} info"
+	TEMPLATE_PULL_IMAGE          = "{{.engine}} pull {{.options}} {{.name}}"
+	TEMPLATE_CREATE_CONTAINER    = "{{.engine}} create {{.options}} {{.image}} {{.command}}"
+	TEMPLATE_START_CONTAINER     = "{{.engine}} start {{.options}} {{.containers}}"
+	TEMPLATE_STOP_CONTAINER      = "{{.engine}} stop {{.options}} {{.containers}}"
+	TEMPLATE_RESTART_CONTAINER   = "{{.engine}} restart {{.options}} {{.containers}}"
+	TEMPLATE_WAIT_CONTAINER      = "{{.engine}} wait {{.options}} {{.containers}}"
+	TEMPLATE_REMOVE_CONTAINER    = "{{.engine}} rm {{.options}} {{.containers}}"
+	TEMPLATE_LIST_CONTAINERS     = "{{.engine}} ps {{.options}}"
+	TEMPLATE_CONTAINER_EXEC      = "{{.engine}} exec {{.options}} {{.container}} {{.command}}"
+	TEMPLATE_COPY_FROM_CONTAINER = "{{.engine}} cp {{.options}} {{.container}}:{{.srcPath}} {{.destPath}}"
+	TEMPLATE_COPY_INTO_CONTAINER = "{{.engine}} cp {{.options}}  {{.srcPath}} {{.container}}:{{.destPath}}"
+	TEMPLATE_INSPECT_CONTAINER   = "{{.engine}} inspect {{.options}} {{.container}}"
+	TEMPLATE_CONTAINER_LOGS      = "{{.engine}} logs {{.options}} {{.container}}"
+	TEMPLATE_UPDATE_CONTAINER    = "{{.engine}} update {{.options}} {{.container}}"
 )
 
 type DockerCli struct {
@@ -71,6 +71,7 @@ func (s *DockerCli) AddOption(format string, args ...interface{}) *DockerCli {
 
 func (cli *DockerCli) Execute(options ExecOptions) (string, error) {
 	cli.data["options"] = strings.Join(cli.options, " ")
+	cli.data["engine"] = options.ExecWithEngine
 	return execCommand(cli.sshClient, cli.tmpl, cli.data, options)
 }
 
