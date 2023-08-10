@@ -107,7 +107,7 @@ func (s *ReadFile) Execute(ctx *context.Context) error {
 		dockerCli := ctx.Module().DockerCli().CopyFromContainer(s.ContainerId, s.ContainerSrcPath, remotePath)
 		_, err := dockerCli.Execute(s.ExecOptions)
 		if err != nil {
-			return errno.ERR_COPY_FROM_CONTAINER_FAILED.E(err)
+			return errno.ERR_COPY_FROM_CONTAINER_FAILED.FD("(%s cp CONTAINER:SRC_PATH DEST_PATH)", s.ExecWithEngine).E(err)
 		}
 	}
 
@@ -172,7 +172,7 @@ func (s *InstallFile) Execute(ctx *context.Context) error {
 		cli := ctx.Module().DockerCli().CopyIntoContainer(remotePath, *s.ContainerId, s.ContainerDestPath)
 		_, err = cli.Execute(s.ExecOptions)
 		if err != nil {
-			return errno.ERR_COPY_INTO_CONTAINER_FAILED.E(err)
+			return errno.ERR_COPY_INTO_CONTAINER_FAILED.FD(" (%scp SRC_PATH CONTAINER:DEST_PATH)", s.ExecWithEngine).E(err)
 		}
 	}
 	return nil

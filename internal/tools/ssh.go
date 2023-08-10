@@ -40,9 +40,9 @@ const (
 	TEMPLATE_SCP                             = `scp -P {{.port}} {{or .options ""}} {{.source}} {{.user}}@{{.host}}:{{.target}}`
 	TEMPLATE_SSH_COMMAND                     = `ssh {{.user}}@{{.host}} -p {{.port}} {{or .options ""}} {{or .become ""}} {{.command}}`
 	TEMPLATE_SSH_ATTACH                      = `ssh -tt {{.user}}@{{.host}} -p {{.port}} {{or .options ""}} {{or .become ""}} {{.command}}`
-	TEMPLATE_COMMAND_EXEC_CONTAINER          = `{{.sudo}} docker exec -it {{.container_id}} /bin/bash -c "cd {{.home_dir}}; /bin/bash"`
-	TEMPLATE_LOCAL_EXEC_CONTAINER            = `docker exec -it {{.container_id}} /bin/bash` // FIXME: merge it
-	TEMPLATE_COMMAND_EXEC_CONTAINER_NOATTACH = `{{.sudo}} docker exec -t {{.container_id}} /bin/bash -c "{{.command}}"`
+	TEMPLATE_COMMAND_EXEC_CONTAINER          = `{{.sudo}} {{.engine}} exec -it {{.container_id}} /bin/bash -c "cd {{.home_dir}}; /bin/bash"`
+	TEMPLATE_LOCAL_EXEC_CONTAINER            = `{{.engine}} exec -it {{.container_id}} /bin/bash` // FIXME: merge it
+	TEMPLATE_COMMAND_EXEC_CONTAINER_NOATTACH = `{{.sudo}} {{.engine}} exec -t {{.container_id}} /bin/bash -c "{{.command}}"`
 )
 
 func prepareOptions(curveadm *cli.CurveAdm, host string, become bool, extra map[string]interface{}) (map[string]interface{}, error) {
@@ -138,6 +138,7 @@ func AttachRemoteHost(curveadm *cli.CurveAdm, host string, become bool) error {
 func AttachRemoteContainer(curveadm *cli.CurveAdm, host, containerId, home string) error {
 	data := map[string]interface{}{
 		"sudo":         curveadm.Config().GetSudoAlias(),
+		"engine":       curveadm.Config().GetEngine(),
 		"container_id": containerId,
 		"home_dir":     home,
 	}
@@ -159,6 +160,7 @@ func AttachRemoteContainer(curveadm *cli.CurveAdm, host, containerId, home strin
 func AttachLocalContainer(curveadm *cli.CurveAdm, containerId string) error {
 	data := map[string]interface{}{
 		"container_id": containerId,
+		"engine":       curveadm.Config().GetEngine(),
 	}
 	tmpl := template.Must(template.New("command").Parse(TEMPLATE_LOCAL_EXEC_CONTAINER))
 	buffer := bytes.NewBufferString("")
@@ -172,6 +174,7 @@ func AttachLocalContainer(curveadm *cli.CurveAdm, containerId string) error {
 func ExecCmdInRemoteContainer(curveadm *cli.CurveAdm, host, containerId, cmd string) error {
 	data := map[string]interface{}{
 		"sudo":         curveadm.Config().GetSudoAlias(),
+		"engine":       curveadm.Config().GetEngine(),
 		"container_id": containerId,
 		"command":      cmd,
 	}

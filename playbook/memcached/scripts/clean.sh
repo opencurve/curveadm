@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 g_container_name="memcached-"${PORT}
-g_docker_cmd="${SUDO_ALIAS} docker"
+g_docker_cmd="${SUDO_ALIAS} ${ENGINE}"
 g_rm_cmd="${SUDO_ALIAS} rm -rf"
 
 function msg() {

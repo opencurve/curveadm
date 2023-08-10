@@ -87,7 +87,7 @@ func checkCreateDirectory(dc *topology.DeployConfig, path string, success *bool,
 	}
 }
 
-func CheckDockerInfo(host string, success *bool, out *string) step.LambdaType {
+func CheckEngineInfo(host, engine string, success *bool, out *string) step.LambdaType {
 	return func(ctx *context.Context) error {
 		if *success {
 			return nil
@@ -95,13 +95,13 @@ func CheckDockerInfo(host string, success *bool, out *string) step.LambdaType {
 
 		*out = strings.ToLower(*out)
 		if strings.Contains(*out, SIGNATURE_COMMAND_NOT_FOUND) {
-			return errno.ERR_DOCKER_NOT_INSTALLED.
+			return errno.ERR_CONTAINER_ENGINE_NOT_INSTALLED.
 				F("host=%s\n%s", host, *out)
 		} else if strings.Contains(*out, SIGNATURE_PERMISSION_DENIED) {
-			return errno.ERR_EXECUTE_DOCKER_COMMAND_PERMISSION_DENIED.
+			return errno.ERR_EXECUTE_CONTAINER_ENGINE_COMMAND_PERMISSION_DENIED.
 				F("host=%s\n%s", host, *out)
 		} else if strings.Contains(*out, SIGNATURE_PERMISSION_WITH_PASSWORD) {
-			return errno.ERR_EXECUTE_DOCKER_COMMAND_PERMISSION_DENIED.
+			return errno.ERR_EXECUTE_CONTAINER_ENGINE_COMMAND_PERMISSION_DENIED.
 				F("host=%s (need password)", host)
 		} else if strings.Contains(*out, SIGNATURE_DOCKER_DEAMON_IS_NOT_RUNNING) {
 			return errno.ERR_DOCKER_DAEMON_IS_NOT_RUNNING.
@@ -164,14 +164,14 @@ func NewCheckPermissionTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (
 			Lambda: checkCreateDirectory(dc, dir.Path, &success, &out),
 		})
 	}
-	// (4) check docker command {exist, permission, running}
-	t.AddStep(&step.DockerInfo{
+	// (4) check docker/podman engine command {exist, permission, running}
+	t.AddStep(&step.EngineInfo{
 		Success:     &success,
 		Out:         &out,
 		ExecOptions: curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.Lambda{
-		Lambda: CheckDockerInfo(dc.GetHost(), &success, &out),
+		Lambda: CheckEngineInfo(dc.GetHost(), curveadm.ExecOptions().ExecWithEngine, &success, &out),
 	})
 
 	return t, nil
