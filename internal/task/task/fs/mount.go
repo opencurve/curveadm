@@ -301,13 +301,13 @@ func NewMountFSTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.T
 	createfsScript := scripts.CREATE_FS
 	createfsScriptPath := "/client.sh"
 
-	t.AddStep(&step.DockerInfo{
+	t.AddStep(&step.EngineInfo{
 		Success:     &success,
 		Out:         &out,
 		ExecOptions: curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.Lambda{
-		Lambda: checker.CheckDockerInfo(options.Host, &success, &out),
+		Lambda: checker.CheckEngineInfo(options.Host, curveadm.ExecOptions().ExecWithEngine, &success, &out),
 	})
 	t.AddStep(&step.ListContainers{
 		ShowAll:     true,
