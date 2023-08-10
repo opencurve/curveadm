@@ -2,7 +2,7 @@
 
 g_container_name="memcached-"${PORT}
 g_start_args=""
-g_docker_cmd="${SUDO_ALIAS} docker"
+g_docker_cmd="${SUDO_ALIAS} ${ENGINE}"
 g_lsof_cmd="${SUDO_ALIAS} lsof"
 g_rm_cmd="${SUDO_ALIAS} rm -rf"
 g_mkdir_cmd="${SUDO_ALIAS} mkdir -p"

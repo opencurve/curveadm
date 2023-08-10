@@ -47,6 +47,7 @@ type (
 		ExecInLocal    bool
 		ExecSudoAlias  string
 		ExecTimeoutSec int
+		ExecWithEngine string
 	}
 
 	TimeoutError struct {

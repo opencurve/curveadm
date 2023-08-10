@@ -10,6 +10,7 @@ hosts:
       - memcached
     envs:
       - SUDO_ALIAS=sudo
+      - ENGINE=docker
       - IMAGE=memcached:1.6.17
       - LISTEN=10.0.1.1
       - PORT=11211
@@ -28,6 +29,7 @@ hosts:
       - memcached
     envs:
       - SUDO_ALIAS=sudo
+      - ENGINE=docker
       - IMAGE=memcached:1.6.17
       - LISTEN=10.0.1.2
       - PORT=11211
@@ -46,6 +48,7 @@ hosts:
       - memcached
     envs:
       - SUDO_ALIAS=sudo
+      - ENGINE=docker
       - IMAGE=memcached:1.6.17
       - LISTEN=10.0.1.3
       - PORT=11211

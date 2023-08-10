@@ -31,7 +31,7 @@ import (
 )
 
 type (
-	DockerInfo struct {
+	EngineInfo struct {
 		Success *bool
 		Out     *string
 		module.ExecOptions
@@ -164,16 +164,16 @@ type (
 	}
 )
 
-func (s *DockerInfo) Execute(ctx *context.Context) error {
+func (s *EngineInfo) Execute(ctx *context.Context) error {
 	cli := ctx.Module().DockerCli().DockerInfo()
 	out, err := cli.Execute(s.ExecOptions)
-	return PostHandle(s.Success, s.Out, out, err, errno.ERR_GET_DOCKER_INFO_FAILED)
+	return PostHandle(s.Success, s.Out, out, err, errno.ERR_GET_CONTAINER_ENGINE_INFO_FAILED.FD("(%s info)", s.ExecWithEngine))
 }
 
 func (s *PullImage) Execute(ctx *context.Context) error {
 	cli := ctx.Module().DockerCli().PullImage(s.Image)
 	out, err := cli.Execute(s.ExecOptions)
-	return PostHandle(nil, s.Out, out, err, errno.ERR_PULL_IMAGE_FAILED)
+	return PostHandle(nil, s.Out, out, err, errno.ERR_PULL_IMAGE_FAILED.FD("(%s pull IMAGE)", s.ExecWithEngine))
 }
 
 func (s *CreateContainer) Execute(ctx *context.Context) error {
@@ -239,13 +239,13 @@ func (s *CreateContainer) Execute(ctx *context.Context) error {
 	}
 
 	out, err := cli.Execute(s.ExecOptions)
-	return PostHandle(nil, s.Out, out, err, errno.ERR_CREATE_CONTAINER_FAILED)
+	return PostHandle(nil, s.Out, out, err, errno.ERR_CREATE_CONTAINER_FAILED.FD("(%s create IMAGE)", s.ExecWithEngine))
 }
 
 func (s *StartContainer) Execute(ctx *context.Context) error {
 	cli := ctx.Module().DockerCli().StartContainer(*s.ContainerId)
 	out, err := cli.Execute(s.ExecOptions)
-	return PostHandle(s.Success, s.Out, out, err, errno.ERR_START_CONTAINER_FAILED)
+	return PostHandle(s.Success, s.Out, out, err, errno.ERR_START_CONTAINER_FAILED.FD("(%s start CONTAINER)", s.ExecWithEngine))
 }
 
 func (s *StopContainer) Execute(ctx *context.Context) error {
@@ -255,25 +255,25 @@ func (s *StopContainer) Execute(ctx *context.Context) error {
 	}
 
 	out, err := cli.Execute(s.ExecOptions)
-	return PostHandle(nil, s.Out, out, err, errno.ERR_STOP_CONTAINER_FAILED)
+	return PostHandle(nil, s.Out, out, err, errno.ERR_STOP_CONTAINER_FAILED.FD("(%s stop CONTAINER)", s.ExecWithEngine))
 }
 
 func (s *RestartContainer) Execute(ctx *context.Context) error {
 	cli := ctx.Module().DockerCli().RestartContainer(s.ContainerId)
 	out, err := cli.Execute(s.ExecOptions)
-	return PostHandle(nil, s.Out, out, err, errno.ERR_RESTART_CONTAINER_FAILED)
+	return PostHandle(nil, s.Out, out, err, errno.ERR_RESTART_CONTAINER_FAILED.FD("(%s restart CONTAINER)", s.ExecWithEngine))
 }
 
 func (s *WaitContainer) Execute(ctx *context.Context) error {
 	cli := ctx.Module().DockerCli().WaitContainer(s.ContainerId)
 	out, err := cli.Execute(s.ExecOptions)
-	return PostHandle(nil, s.Out, out, err, errno.ERR_WAIT_CONTAINER_STOP_FAILED)
+	return PostHandle(nil, s.Out, out, err, errno.ERR_WAIT_CONTAINER_STOP_FAILED.FD("(%s wait CONTAINER)", s.ExecWithEngine))
 }
 
 func (s *RemoveContainer) Execute(ctx *context.Context) error {
 	cli := ctx.Module().DockerCli().RemoveContainer(s.ContainerId)
 	out, err := cli.Execute(s.ExecOptions)
-	return PostHandle(s.Success, s.Out, out, err, errno.ERR_REMOVE_CONTAINER_FAILED)
+	return PostHandle(s.Success, s.Out, out, err, errno.ERR_REMOVE_CONTAINER_FAILED.FD("(%s rm CONTAINER)", s.ExecWithEngine))
 }
 
 func (s *ListContainers) Execute(ctx *context.Context) error {
@@ -292,25 +292,25 @@ func (s *ListContainers) Execute(ctx *context.Context) error {
 	}
 
 	out, err := cli.Execute(s.ExecOptions)
-	return PostHandle(nil, s.Out, out, err, errno.ERR_LIST_CONTAINERS_FAILED)
+	return PostHandle(nil, s.Out, out, err, errno.ERR_LIST_CONTAINERS_FAILED.FD("(%s ps)", s.ExecWithEngine))
 }
 
 func (s *ContainerExec) Execute(ctx *context.Context) error {
 	cli := ctx.Module().DockerCli().ContainerExec(*s.ContainerId, s.Command)
 	out, err := cli.Execute(s.ExecOptions)
-	return PostHandle(s.Success, s.Out, out, err, errno.ERR_RUN_COMMAND_IN_CONTAINER_FAILED)
+	return PostHandle(s.Success, s.Out, out, err, errno.ERR_RUN_COMMAND_IN_CONTAINER_FAILED.FD("(%s exec CONTAINER COMMAND)", s.ExecWithEngine))
 }
 
 func (s *CopyFromContainer) Execute(ctx *context.Context) error {
 	cli := ctx.Module().DockerCli().CopyFromContainer(s.ContainerId, s.ContainerSrcPath, s.HostDestPath)
 	out, err := cli.Execute(s.ExecOptions)
-	return PostHandle(nil, s.Out, out, err, errno.ERR_COPY_FROM_CONTAINER_FAILED)
+	return PostHandle(nil, s.Out, out, err, errno.ERR_COPY_FROM_CONTAINER_FAILED.FD("(%s cp CONTAINER:SRC_PATH DEST_PATH)", s.ExecWithEngine))
 }
 
 func (s *CopyIntoContainer) Execute(ctx *context.Context) error {
 	cli := ctx.Module().DockerCli().CopyIntoContainer(s.HostSrcPath, s.ContainerId, s.ContainerDestPath)
 	out, err := cli.Execute(s.ExecOptions)
-	return PostHandle(nil, s.Out, out, err, errno.ERR_COPY_INTO_CONTAINER_FAILED)
+	return PostHandle(nil, s.Out, out, err, errno.ERR_COPY_INTO_CONTAINER_FAILED.FD("(%s cp SRC_PATH CONTAINER:DEST_PATH)", s.ExecWithEngine))
 }
 
 func (s *InspectContainer) Execute(ctx *context.Context) error {
@@ -320,13 +320,13 @@ func (s *InspectContainer) Execute(ctx *context.Context) error {
 	}
 
 	out, err := cli.Execute(s.ExecOptions)
-	return PostHandle(s.Success, s.Out, out, err, errno.ERR_INSPECT_CONTAINER_FAILED)
+	return PostHandle(s.Success, s.Out, out, err, errno.ERR_INSPECT_CONTAINER_FAILED.FD("(%s inspect ID)", s.ExecWithEngine))
 }
 
 func (s *ContainerLogs) Execute(ctx *context.Context) error {
 	cli := ctx.Module().DockerCli().ContainerLogs(s.ContainerId)
 	out, err := cli.Execute(s.ExecOptions)
-	return PostHandle(s.Success, s.Out, out, err, errno.ERR_GET_CONTAINER_LOGS_FAILED)
+	return PostHandle(s.Success, s.Out, out, err, errno.ERR_GET_CONTAINER_LOGS_FAILED.FD("(%s logs ID)", s.ExecWithEngine))
 }
 
 func (s *UpdateContainer) Execute(ctx *context.Context) error {
@@ -335,5 +335,5 @@ func (s *UpdateContainer) Execute(ctx *context.Context) error {
 		cli.AddOption("--restart %s", s.Restart)
 	}
 	out, err := cli.Execute(s.ExecOptions)
-	return PostHandle(s.Success, s.Out, out, err, errno.ERR_UPDATE_CONTAINER_FAILED)
+	return PostHandle(s.Success, s.Out, out, err, errno.ERR_UPDATE_CONTAINER_FAILED.FD("(%s update ID)", s.ExecWithEngine))
 }

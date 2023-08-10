@@ -44,6 +44,7 @@ import (
 const (
 	KEY_LOG_LEVEL    = "log_level"
 	KEY_SUDO_ALIAS   = "sudo_alias"
+	KEY_ENGINE       = "engine"
 	KEY_TIMEOUT      = "timeout"
 	KEY_AUTO_UPGRADE = "auto_upgrade"
 	KEY_SSH_RETRIES  = "retries"
@@ -56,6 +57,7 @@ type (
 	CurveAdmConfig struct {
 		LogLevel    string
 		SudoAlias   string
+		Engine      string
 		Timeout     int
 		AutoUpgrade bool
 		SSHRetries  int
@@ -74,6 +76,7 @@ var (
 	defaultCurveAdmConfig = &CurveAdmConfig{
 		LogLevel:    "error",
 		SudoAlias:   "sudo",
+		Engine:      "docker",
 		Timeout:     180,
 		AutoUpgrade: true,
 		SSHRetries:  3,
@@ -132,6 +135,10 @@ func parseDefaultsSection(cfg *CurveAdmConfig, defaults map[string]interface{}) 
 		// sudo_alias
 		case KEY_SUDO_ALIAS:
 			cfg.SudoAlias = v.(string)
+
+		// container engine
+		case KEY_ENGINE:
+			cfg.Engine = v.(string)
 
 		// timeout
 		case KEY_TIMEOUT:
@@ -229,6 +236,7 @@ func (cfg *CurveAdmConfig) GetTimeout() int      { return cfg.Timeout }
 func (cfg *CurveAdmConfig) GetAutoUpgrade() bool { return cfg.AutoUpgrade }
 func (cfg *CurveAdmConfig) GetSSHRetries() int   { return cfg.SSHRetries }
 func (cfg *CurveAdmConfig) GetSSHTimeout() int   { return cfg.SSHTimeout }
+func (cfg *CurveAdmConfig) GetEngine() string    { return cfg.Engine }
 func (cfg *CurveAdmConfig) GetSudoAlias() string {
 	if len(cfg.SudoAlias) == 0 {
 		return WITHOUT_SUDO
