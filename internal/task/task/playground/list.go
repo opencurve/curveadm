@@ -90,7 +90,6 @@ func NewGetPlaygroundStatusTask(curveadm *cli.CurveAdm, v interface{}) (*task.Ta
 	t.AddStep(&step.ListContainers{
 		ShowAll:     true,
 		Format:      "'{{.Status}}'",
-		Quiet:       true,
 		Filter:      fmt.Sprintf("name=%s", playground.Name),
 		Out:         &status,
 		ExecOptions: execOptions(curveadm),

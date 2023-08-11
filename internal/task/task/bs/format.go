@@ -252,7 +252,6 @@ func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *configure.FormatConf
 	t.AddStep(&step.ListContainers{
 		ShowAll:     true,
 		Format:      "'{{.ID}}'",
-		Quiet:       true,
 		Filter:      fmt.Sprintf("name=%s", containerName),
 		Out:         &oldContainerId,
 		ExecOptions: curveadm.ExecOptions(),
