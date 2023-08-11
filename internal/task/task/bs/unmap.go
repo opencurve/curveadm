@@ -148,7 +148,6 @@ func NewUnmapTask(curveadm *cli.CurveAdm, v interface{}) (*task.Task, error) {
 	t.AddStep(&step.ListContainers{
 		ShowAll:     true,
 		Format:      "'{{.ID}} {{.Status}}'",
-		Quiet:       true,
 		Filter:      fmt.Sprintf("id=%s", containerId),
 		Out:         &output,
 		ExecOptions: curveadm.ExecOptions(),

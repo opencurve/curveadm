@@ -167,7 +167,6 @@ func NewStartNEBDServiceTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig)
 	t.AddStep(&step.ListContainers{
 		ShowAll:     true,
 		Format:      "'{{.ID}}'",
-		Quiet:       true,
 		Filter:      fmt.Sprintf("name=%s", containerName),
 		Out:         &containerId,
 		ExecOptions: curveadm.ExecOptions(),

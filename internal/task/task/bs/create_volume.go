@@ -87,7 +87,6 @@ func NewCreateVolumeTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*t
 	t.AddStep(&step.ListContainers{
 		ShowAll:     true,
 		Format:      "'{{.Status}}'",
-		Quiet:       true,
 		Filter:      fmt.Sprintf("name=%s", containerName),
 		Out:         &out,
 		ExecOptions: curveadm.ExecOptions(),
