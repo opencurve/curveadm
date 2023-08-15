@@ -5,14 +5,14 @@ global:
 
 hosts:
   - host: server-host1
-    hostname: 10.0.1.1
+    hostIp: 10.0.1.1
     labels:
       - automount
     envs:
       - SUDO_ALIAS=sudo
       - OPTIONS=""
   - host: server-host2
-    hostname: 10.0.1.2
+    hostIp: 10.0.1.2
     labels:
       - automount
     envs:

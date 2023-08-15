@@ -145,7 +145,7 @@ func NewStartNEBDServiceTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig)
 		return nil, err
 	}
 
-	subname := fmt.Sprintf("hostname=%s image=%s", hc.GetHostname(), cc.GetContainerImage())
+	subname := fmt.Sprintf("hostip=%s image=%s", hc.GetHostIp(), cc.GetContainerImage())
 	t := task.NewTask("Start NEBD Service", subname, hc.GetSSHConfig())
 
 	// add step
@@ -154,7 +154,7 @@ func NewStartNEBDServiceTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig)
 	volume := fmt.Sprintf("%s:%s", options.User, options.Volume)
 	containerName := volume2ContainerName(options.User, options.Volume)
 	hostname := containerName
-	host2addr := fmt.Sprintf("%s:%s", hostname, hc.GetHostname())
+	host2addr := fmt.Sprintf("%s:%s", hostname, hc.GetHostIp())
 
 	t.AddStep(&step.DockerInfo{
 		Success:     &success,

@@ -72,7 +72,7 @@ func NewStartTargetDaemonTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig
 	var status, containerId, out string
 	containerName := DEFAULT_TGTD_CONTAINER_NAME
 	hostname := containerName
-	host2addr := fmt.Sprintf("%s:%s", hostname, hc.GetHostname())
+	host2addr := fmt.Sprintf("%s:%s", hostname, hc.GetHostIp())
 
 	t.AddStep(&step.ListContainers{
 		ShowAll:     true,
