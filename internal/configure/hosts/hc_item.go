@@ -45,8 +45,8 @@ var (
 		nil,
 	)
 
-	CONFIG_HOSTNAME = itemset.Insert(
-		"hostname",
+	CONFIG_HOSTIP = itemset.Insert(
+		"hostip",
 		comm.REQUIRE_STRING,
 		false,
 		nil,

@@ -68,7 +68,7 @@ func (hc *HostConfig) getBool(i *comm.Item) bool {
 }
 
 func (hc *HostConfig) GetHost() string           { return hc.getString(CONFIG_HOST) }
-func (hc *HostConfig) GetHostname() string       { return hc.getString(CONFIG_HOSTNAME) }
+func (hc *HostConfig) GetHostIp() string         { return hc.getString(CONFIG_HOSTIP) }
 func (hc *HostConfig) GetSSHHostname() string    { return hc.getString(CONFIG_SSH_HOSTNAME) }
 func (hc *HostConfig) GetUser() string           { return hc.getString(CONFIG_USER) }
 func (hc *HostConfig) GetSSHPort() int           { return hc.getInt(CONFIG_SSH_PORT) }
@@ -80,7 +80,7 @@ func (hc *HostConfig) GetEnvs() []string         { return hc.envs }
 func (hc *HostConfig) GetSSHConfig() *module.SSHConfig {
 	hostname := hc.GetSSHHostname()
 	if len(hostname) == 0 {
-		hostname = hc.GetHostname()
+		hostname = hc.GetHostIp()
 	}
 	return &module.SSHConfig{
 		User:              hc.GetUser(),

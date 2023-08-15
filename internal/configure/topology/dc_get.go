@@ -115,7 +115,7 @@ func (dc *DeployConfig) GetId() string                       { return dc.id }
 func (dc *DeployConfig) GetParentId() string                 { return dc.parentId }
 func (dc *DeployConfig) GetRole() string                     { return dc.role }
 func (dc *DeployConfig) GetHost() string                     { return dc.host }
-func (dc *DeployConfig) GetHostname() string                 { return dc.hostname }
+func (dc *DeployConfig) GetHostIp() string                   { return dc.hostIp }
 func (dc *DeployConfig) GetName() string                     { return dc.name }
 func (dc *DeployConfig) GetReplicas() int                    { return dc.replicas }
 func (dc *DeployConfig) GetHostSequence() int                { return dc.hostSequence }
