@@ -269,7 +269,7 @@ func (dc *DeployConfig) ResolveHost() error {
 	}
 	dc.hostIp = dc.ctx.Lookup(dc.GetHost())
 	if len(dc.hostIp) == 0 {
-		return errno.ERR_HOST_NOT_FOUND.
+		returtn errno.ERR_HOST_NOT_FOUND.
 			F("host: %s", dc.GetHost())
 	}
 	return nil
