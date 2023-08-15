@@ -265,7 +265,7 @@ func ParseMonitorConfig(curveadm *cli.CurveAdm, filename string, data string, hs
 		return nil, err
 	}
 	for _, hc := range hcs {
-		ctx.Add(hc.GetHost(), hc.GetHostname())
+		ctx.Add(hc.GetHost(), hc.GetHostIp())
 	}
 
 	mkind := dcs[0].GetKind()
