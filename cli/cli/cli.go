@@ -94,11 +94,11 @@ func NewCurveAdm() (*CurveAdm, error) {
 
 	rootDir := fmt.Sprintf("%s/.curveadm", home)
 	curveadm := &CurveAdm{
-		rootDir:   rootDir,
-		dataDir:   path.Join(rootDir, "data"),
-		pluginDir: path.Join(rootDir, "plugins"),
-		logDir:    path.Join(rootDir, "logs"),
-		tempDir:   path.Join(rootDir, "temp"),
+		rootDir:      rootDir,
+		dataDir:      path.Join(rootDir, "data"),
+		pluginDir:    path.Join(rootDir, "plugins"),
+		logDir:       path.Join(rootDir, "logs"),
+		tempDir:      path.Join(rootDir, "temp"),
 		httpConfPath: path.Join(rootDir, "http/conf"),
 		httpLogPath:  path.Join(rootDir, "http/logs"),
 	}
@@ -335,7 +335,7 @@ func (curveadm *CurveAdm) ParseTopologyData(data string) ([]*topology.DeployConf
 		return nil, err
 	}
 	for _, hc := range hcs {
-		ctx.Add(hc.GetHost(), hc.GetHostname())
+		ctx.Add(hc.GetHost(), hc.GetHostIp())
 	}
 
 	dcs, err := topology.ParseTopology(data, ctx)
@@ -499,7 +499,7 @@ func (curveadm *CurveAdm) DiffTopology(data1, data2 string) ([]topology.Topology
 		return nil, err
 	}
 	for _, hc := range hcs {
-		ctx.Add(hc.GetHost(), hc.GetHostname())
+		ctx.Add(hc.GetHost(), hc.GetHostIp())
 	}
 
 	if len(data1) == 0 {

@@ -241,7 +241,7 @@ func getValue(name string, dcs []*DeployConfig, idx int) string {
 	case "service_role":
 		return dc.GetRole()
 	case "service_host":
-		return dc.GetHostname()
+		return dc.GetHostIp()
 	case "service_host_sequence":
 		return strconv.Itoa(dc.GetHostSequence())
 	case "service_replica_sequence":

@@ -42,7 +42,7 @@ const (
 type (
 	step2FormatTarget struct {
 		host       string
-		hostname   string
+		hostIp     string
 		output     *string
 		memStorage *utils.SafeMap
 	}
@@ -88,7 +88,7 @@ func (s *step2FormatTarget) Execute(ctx *context.Context) error {
 				Tid:    mu[1],
 				Name:   mu[2],
 				Store:  "-",
-				Portal: fmt.Sprintf("%s:%d", s.hostname, DEFAULT_TGTD_LISTEN_PORT),
+				Portal: fmt.Sprintf("%s:%d", s.hostIp, DEFAULT_TGTD_LISTEN_PORT),
 			}
 			addTarget(s.memStorage, mu[1], target)
 			continue
@@ -110,7 +110,7 @@ func NewListTargetsTask(curveadm *cli.CurveAdm, v interface{}) (*task.Task, erro
 		return nil, err
 	}
 
-	subname := fmt.Sprintf("host=%s", hc.GetHostname())
+	subname := fmt.Sprintf("host=%s", hc.GetHostIp())
 	t := task.NewTask("List Targets", subname, hc.GetSSHConfig())
 
 	// add step
@@ -136,7 +136,7 @@ func NewListTargetsTask(curveadm *cli.CurveAdm, v interface{}) (*task.Task, erro
 	})
 	t.AddStep(&step2FormatTarget{
 		host:       options.Host,
-		hostname:   hc.GetHostname(),
+		hostIp:     hc.GetHostIp(),
 		output:     &output,
 		memStorage: curveadm.MemStorage(),
 	})

@@ -136,8 +136,8 @@ func NewUnmapTask(curveadm *cli.CurveAdm, v interface{}) (*task.Task, error) {
 		return nil, err
 	}
 
-	subname := fmt.Sprintf("hostname=%s volume=%s:%s containerId=%s",
-		hc.GetHostname(), options.User, options.Volume, tui.TrimContainerId(containerId))
+	subname := fmt.Sprintf("hostip=%s volume=%s:%s containerId=%s",
+		hc.GetHostIp(), options.User, options.Volume, tui.TrimContainerId(containerId))
 	t := task.NewTask("Unmap Volume", subname, hc.GetSSHConfig())
 
 	// add step
