@@ -271,7 +271,6 @@ func (dc *DeployConfig) ResolveHost() error {
 	if len(dc.hostIp) == 0 {
 		return errno.ERR_HOST_NOT_FOUND.
 			F("host: %s", dc.GetHost())
-		F("host: %s", dc.GetHost())
 	}
 	return nil
 }
