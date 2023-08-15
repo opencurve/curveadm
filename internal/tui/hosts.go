@@ -42,8 +42,7 @@ func FormatHosts(hcs []*configure.HostConfig, verbose bool) string {
 	lines := [][]interface{}{}
 	title := []string{
 		"Host",
-		"Hostip" +
-			"",
+		"Hostip",
 		"User",
 		"Port",
 		"Private Key File",
@@ -76,7 +75,7 @@ func FormatHosts(hcs []*configure.HostConfig, verbose bool) string {
 
 		lines = append(lines, []interface{}{
 			host,
-			hostip,
+			hostIp,
 			user,
 			port,
 			privateKeyFile,

@@ -146,10 +146,10 @@ func (hc *HostConfig) Build() error {
 			F("hosts[%d].host = nil", hc.sequence)
 	} else if len(hc.GetHostIp()) == 0 {
 		return errno.ERR_HOSTNAME_FIELD_MISSING.
-			F("hosts[%d].hostname = nil", hc.sequence)
+			F("hosts[%d].hostIp = nil", hc.sequence)
 	} else if !utils.IsValidAddress(hc.GetHostIp()) {
 		return errno.ERR_HOSTNAME_REQUIRES_VALID_IP_ADDRESS.
-			F("hosts[%d].hostname = %s", hc.sequence, hc.GetHostIp())
+			F("hosts[%d].hostIp = %s", hc.sequence, hc.GetHostIp())
 	} else if hc.GetSSHPort() > os.GetMaxPortNum() {
 		return errno.ERR_HOSTS_SSH_PORT_EXCEED_MAX_PORT_NUMBER.
 			F("hosts[%d].ssh_port = %d", hc.sequence, hc.GetSSHPort())

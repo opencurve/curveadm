@@ -5,7 +5,7 @@ global:
 
 hosts:
   - host: server-host1
-    hostname: 10.0.1.1
+    hostIp: 10.0.1.1
     labels:
       - memcached
     envs:
@@ -23,7 +23,7 @@ hosts:
                     # vv:  very verbose (also print client commands/responses)
                     # vvv: extremely verbose (internal state transitions)
   - host: server-host2
-    hostname: 10.0.1.2
+    hostIp: 10.0.1.2
     labels:
       - memcached
     envs:
@@ -41,7 +41,7 @@ hosts:
                     # vv:  very verbose (also print client commands/responses)
                     # vvv: extremely verbose (internal state transitions)
   - host: server-host3
-    hostname: 10.0.1.3
+    hostIp: 10.0.1.3
     labels:
       - memcached
     envs:

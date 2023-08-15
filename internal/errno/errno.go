@@ -302,13 +302,13 @@ var (
 	// 321: configure (hosts.yaml: invalid configure value)
 	ERR_UNSUPPORT_HOSTS_CONFIGURE_ITEM           = EC(321000, "unsupport hosts configure item")
 	ERR_HOST_FIELD_MISSING                       = EC(321001, "host field missing")
-	ERR_HOSTNAME_FIELD_MISSING                   = EC(321002, "hostname field missing")
+	ERR_HOSTNAME_FIELD_MISSING                   = EC(321002, "hostIp field missing")
 	ERR_HOSTS_SSH_PORT_EXCEED_MAX_PORT_NUMBER    = EC(321003, "ssh_port exceed max port number")
 	ERR_PRIVATE_KEY_FILE_REQUIRE_ABSOLUTE_PATH   = EC(321004, "SSH private key file needs to be an absolute path")
 	ERR_PRIVATE_KEY_FILE_NOT_EXIST               = EC(321005, "SSH private key file not exist")
 	ERR_PRIVATE_KEY_FILE_REQUIRE_600_PERMISSIONS = EC(321006, "SSH private key file require 600 permissions")
 	ERR_DUPLICATE_HOST                           = EC(321007, "host is duplicate")
-	ERR_HOSTNAME_REQUIRES_VALID_IP_ADDRESS       = EC(321008, "hostname requires valid IP address")
+	ERR_HOSTNAME_REQUIRES_VALID_IP_ADDRESS       = EC(321008, "hostIp requires valid IP address")
 
 	// 322: configure (disks.yaml: parse failed)
 	ERR_DISKS_FILE_NOT_FOUND   = EC(322000, "disks file not found")
@@ -470,7 +470,7 @@ var (
 
 	// 520: checker (permission)
 	ERR_USER_NOT_FOUND                           = EC(520000, "user not found")
-	ERR_HOSTNAME_NOT_RESOLVED                    = EC(520001, "hostname not resolved")
+	ERR_HOSTNAME_NOT_RESOLVED                    = EC(520001, "hostIp not resolved")
 	ERR_CREATE_DIRECOTRY_PERMISSION_DENIED       = EC(520002, "create direcotry permission denied")
 	ERR_EXECUTE_DOCKER_COMMAND_PERMISSION_DENIED = EC(520003, "execute docker command permission denied")
 
@@ -538,7 +538,7 @@ var (
 	ERR_GET_SYSTEM_INFORMATION_FAILED              = EC(620019, "get system information failed (uname)")
 	ERR_GET_KERNEL_MODULE_INFO_FAILED              = EC(620020, "get kernel module information failed (modinfo)")
 	ERR_ADD_MODUDLE_FROM_LINUX_KERNEL_FAILED       = EC(620021, "add module from linux kernel failed (modprobe)")
-	ERR_GET_HOSTNAME_FAILED                        = EC(620022, "get hostname failed (hostname)")
+	ERR_GET_HOSTNAME_FAILED                        = EC(620022, "get hostIp failed (hostIp)")
 	ERR_STORES_AND_EXTRACTS_FILES_FAILED           = EC(620023, "stores and extracts files failed (tar)")
 	ERR_INSTALL_OR_REMOVE_DEBIAN_PACKAGE_FAILED    = EC(620024, "install or remove debian package failed (dpkg)")
 	ERR_INSTALL_OR_REMOVE_RPM_PACKAGE_FAILED       = EC(620025, "install or remove rpm package failed (rpm)")
