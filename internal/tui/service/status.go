@@ -215,7 +215,7 @@ func FormatStatus(statuses []task.ServiceStatus, verbose, expand bool) string {
 		"Id",
 		"Role",
 		"Host",
-		"Replicas",
+		"Service Num",
 		"Container Id",
 		"Status",
 		"Ports",
