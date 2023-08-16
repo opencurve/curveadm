@@ -191,10 +191,10 @@ func mergeStatues(statuses []task.ServiceStatus) []task.ServiceStatus {
 		}
 		status := statuses[i]
 		ss = append(ss, task.ServiceStatus{
-			Id:          merge(statuses[i:j], ITEM_ID),
-			Role:        status.Role,
-			Host:        status.Host,
-			Replica:     fmt.Sprintf("%d/%s", j-i, strings.Split(status.Replica, "/")[1]),
+			Id:   merge(statuses[i:j], ITEM_ID),
+			Role: status.Role,
+			Host: status.Host,
+			//Replica:     fmt.Sprintf("%d/%s", j-i, strings.Split(status.Replica, "/")[1]),
 			ServiceNum:  fmt.Sprintf("%d/%s", j-i, strings.Split(status.ServiceNum, "/")[1]),
 			ContainerId: merge(statuses[i:j], ITEM_CONTAINER_ID),
 			Status:      merge(statuses[i:j], ITEM_STATUS),
@@ -236,7 +236,7 @@ func FormatStatus(statuses []task.ServiceStatus, verbose, expand bool) string {
 			status.Id,
 			status.Role,
 			status.Host,
-			status.Replica,
+			//status.Replica,
 			status.ServiceNum,
 			status.ContainerId,
 			tui.DecorateMessage{Message: status.Status, Decorate: statusDecorate},
