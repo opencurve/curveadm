@@ -86,7 +86,7 @@ func formatName(name string, hostSequence int) string {
 
 func newVariables(m map[string]interface{}) (*variable.Variables, error) {
 	vars := variable.NewVariables()
-	if m == nil || len(m) == 0 {
+	if len(m) == 0 {
 		return vars, nil
 	}
 
@@ -182,8 +182,8 @@ func (dc *DeployConfig) renderVariables() error {
 		}
 		dc.config[k] = realv
 		build.DEBUG(build.DEBUG_TOPOLOGY,
-			build.Field{k, v},
-			build.Field{k, realv})
+			build.Field{Key: k, Value: v},
+			build.Field{Key: k, Value: realv})
 	}
 	return nil
 }
@@ -192,7 +192,7 @@ func (dc *DeployConfig) convert() error {
 	// init service config
 	for k, v := range dc.config {
 		item := itemset.get(k)
-		if item == nil || item.exclude == false {
+		if item == nil || !item.exclude {
 			dc.serviceConfig[k] = v.(string)
 		}
 	}

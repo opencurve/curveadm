@@ -51,7 +51,6 @@ type (
 		steps     []Step
 		postSteps []Step
 		sshConfig *module.SSHConfig
-		context   context.Context
 	}
 )
 

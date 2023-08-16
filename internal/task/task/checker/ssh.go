@@ -51,7 +51,7 @@ func doNothing() step.LambdaType {
 func checkHost(hc *hosts.HostConfig) step.LambdaType {
 	return func(ctx *context.Context) error {
 		privateKeyFile := hc.GetPrivateKeyFile()
-		if hc.GetForwardAgent() == false {
+		if !hc.GetForwardAgent() {
 			if !utils.PathExist(privateKeyFile) {
 				return errno.ERR_PRIVATE_KEY_FILE_NOT_EXIST.
 					F("%s: no such file", privateKeyFile)

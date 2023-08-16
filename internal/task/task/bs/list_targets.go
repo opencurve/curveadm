@@ -129,7 +129,7 @@ func NewListTargetsTask(curveadm *cli.CurveAdm, v interface{}) (*task.Task, erro
 	})
 	t.AddStep(&step.ContainerExec{
 		ContainerId: &containerId,
-		Command:     fmt.Sprintf("tgtadm --lld iscsi --mode target --op show"),
+		Command:     "tgtadm --lld iscsi --mode target --op show",
 		Out:         &output,
 		ExecOptions: curveadm.ExecOptions(),
 	})

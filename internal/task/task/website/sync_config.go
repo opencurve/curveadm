@@ -59,7 +59,7 @@ func NewMutate(cfg *configure.WebsiteConfig, delimiter string) step.Mutate {
 
 func NewSyncConfigTask(curveadm *cli.CurveAdm, cfg *configure.WebsiteConfig) (*task.Task, error) {
 	serviceId := curveadm.GetWebsiteServiceId(cfg.GetId())
-	containerId, err := curveadm.GetContainerId(serviceId)
+	containerId, _ := curveadm.GetContainerId(serviceId)
 
 	role, host := cfg.GetRole(), cfg.GetHost()
 	hc, err := curveadm.GetHost(host)

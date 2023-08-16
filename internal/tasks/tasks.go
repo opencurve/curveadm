@@ -47,7 +47,7 @@ type (
 	Tasks struct {
 		tasks    []*task.Task
 		monitor  *monitor
-		wg       sync.WaitGroup
+		wg       *sync.WaitGroup
 		progress *mpb.Progress
 		mainBar  *mpb.Bar
 		subBar   map[string]*mpb.Bar
@@ -60,7 +60,7 @@ func NewTasks() *Tasks {
 	return &Tasks{
 		tasks:    []*task.Task{},
 		monitor:  newMonitor(),
-		wg:       wg,
+		wg:       &wg,
 		progress: mpb.New(mpb.WithWaitGroup(&wg)),
 		mainBar:  nil,
 		subBar:   map[string]*mpb.Bar{},

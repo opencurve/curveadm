@@ -93,7 +93,7 @@ func NewStartTargetDaemonTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig
 		AddHost:     []string{host2addr},
 		Envs:        []string{"LD_PRELOAD=/usr/local/lib/libjemalloc.so"},
 		Hostname:    hostname,
-		Command:     fmt.Sprintf("--role nebd"),
+		Command:     "--role nebd",
 		Name:        containerName,
 		Pid:         "host",
 		Privileged:  true,

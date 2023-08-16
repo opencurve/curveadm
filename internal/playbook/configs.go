@@ -133,72 +133,72 @@ func NewSmartConfig(configs interface{}) (*SmartConfig, error) {
 		anys:  []interface{}{},
 	}
 	build.DEBUG(build.DEBUG_SMART_CONFIGS,
-		build.Field{"len", c.len},
-		build.Field{"type", c.ctype})
+		build.Field{Key: "len", Value: c.len},
+		build.Field{Key: "type", Value: c.ctype})
 
-	switch configs.(type) {
+	switch configs := configs.(type) {
 	// multi-configs
 	case []*hosts.HostConfig:
 		c.ctype = TYPE_CONFIG_HOST
-		c.hcs = configs.([]*hosts.HostConfig)
+		c.hcs = configs
 		c.len = len(c.hcs)
 	case []*configure.FormatConfig:
 		c.ctype = TYPE_CONFIG_FORMAT
-		c.fcs = configs.([]*configure.FormatConfig)
+		c.fcs = configs
 		c.len = len(c.fcs)
 	case []*topology.DeployConfig:
 		c.ctype = TYPE_CONFIG_DEPLOY
-		c.dcs = configs.([]*topology.DeployConfig)
+		c.dcs = configs
 		c.len = len(c.dcs)
 	case []*configure.ClientConfig:
 		c.ctype = TYPE_CONFIG_CLIENT
-		c.ccs = configs.([]*configure.ClientConfig)
+		c.ccs = configs
 		c.len = len(c.ccs)
 	case []*configure.PlaygroundConfig:
 		c.ctype = TYPE_CONFIG_PLAYGROUND
-		c.pgcs = configs.([]*configure.PlaygroundConfig)
+		c.pgcs = configs
 		c.len = len(c.pgcs)
 	case []*configure.MonitorConfig:
 		c.ctype = TYPE_CONFIG_MONITOR
-		c.mcs = configs.([]*configure.MonitorConfig)
+		c.mcs = configs
 		c.len = len(c.mcs)
 	case []*configure.WebsiteConfig:
 		c.ctype = TYPE_CONFIG_WEBSITE
-		c.wcs = configs.([]*configure.WebsiteConfig)
+		c.wcs = configs
 		c.len = len(c.wcs)
 	case []interface{}:
 		c.ctype = TYPE_CONFIG_ANY
-		c.anys = configs.([]interface{})
+		c.anys = configs
 		c.len = len(c.anys)
 
 	// single-config
 	case *hosts.HostConfig:
 		c.ctype = TYPE_CONFIG_HOST
-		c.hcs = append(c.hcs, configs.(*hosts.HostConfig))
+		c.hcs = append(c.hcs, configs)
 		c.len = 1
 	case *configure.FormatConfig:
 		c.ctype = TYPE_CONFIG_FORMAT
-		c.fcs = append(c.fcs, configs.(*configure.FormatConfig))
+		c.fcs = append(c.fcs, configs)
 		c.len = 1
 	case *topology.DeployConfig:
 		c.ctype = TYPE_CONFIG_DEPLOY
-		c.dcs = append(c.dcs, configs.(*topology.DeployConfig))
+		c.dcs = append(c.dcs, configs)
 		c.len = 1
 	case *configure.ClientConfig:
 		c.ctype = TYPE_CONFIG_CLIENT
-		c.ccs = append(c.ccs, configs.(*configure.ClientConfig))
+		c.ccs = append(c.ccs, configs)
 		c.len = 1
 	case *configure.PlaygroundConfig:
 		c.ctype = TYPE_CONFIG_PLAYGROUND
-		c.pgcs = append(c.pgcs, configs.(*configure.PlaygroundConfig))
+		c.pgcs = append(c.pgcs, configs)
 		c.len = 1
 	case *configure.MonitorConfig:
 		c.ctype = TYPE_CONFIG_MONITOR
-		c.mcs = append(c.mcs, configs.(*configure.MonitorConfig))
+		c.mcs = append(c.mcs, configs)
 		c.len = 1
 	case *configure.WebsiteConfig:
 		c.ctype = TYPE_CONFIG_WEBSITE
-		c.wcs = append(c.wcs, configs.(*configure.WebsiteConfig))
+		c.wcs = append(c.wcs, configs)
 		c.len = 1
 	case nil:
 		c.ctype = TYPE_CONFIG_NULL

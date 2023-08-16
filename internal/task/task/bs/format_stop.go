@@ -34,7 +34,7 @@ import (
 
 func skipStopFormat(containerId *string) step.LambdaType {
 	return func(ctx *context.Context) error {
-		if len(*containerId) < 0 {
+		if len(*containerId) == 0 {
 			return task.ERR_SKIP_TASK
 		}
 		return nil

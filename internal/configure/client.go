@@ -83,7 +83,6 @@ type (
 		config        map[string]interface{}
 		serviceConfig map[string]string
 		variables     *variable.Variables
-		data          string // configure file content
 	}
 )
 
@@ -165,14 +164,6 @@ func (cc *ClientConfig) getString(key string) string {
 		return ""
 	}
 	return v.(string)
-}
-
-func (cc *ClientConfig) getBool(key string) bool {
-	v := cc.config[strings.ToLower(key)]
-	if v == nil {
-		return false
-	}
-	return v.(bool)
 }
 
 func (cc *ClientConfig) GetKind() string                     { return cc.getString(KEY_KIND) }

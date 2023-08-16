@@ -25,7 +25,6 @@
 package utils
 
 import (
-	"errors"
 	"fmt"
 	"io"
 
@@ -145,7 +144,7 @@ func SetFlagErrorFunc(cmd *cobra.Command) {
 			return nil
 		}
 
-		return errors.New(fmt.Sprintf("%s\nSee '%s --help'.", err, cmd.CommandPath()))
+		return fmt.Errorf("%s\nSee '%s --help'.", err, cmd.CommandPath())
 	})
 }
 

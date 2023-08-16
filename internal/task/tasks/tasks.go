@@ -45,7 +45,7 @@ type (
 	Tasks struct {
 		tasks    []*task.Task
 		monitor  *monitor
-		wg       sync.WaitGroup
+		wg       *sync.WaitGroup
 		progress *mpb.Progress
 		mainBar  *mpb.Bar
 		subBar   map[string]*mpb.Bar
@@ -58,7 +58,7 @@ func NewTasks() *Tasks {
 	return &Tasks{
 		tasks:    []*task.Task{},
 		monitor:  newMonitor(),
-		wg:       wg,
+		wg:       &wg,
 		progress: mpb.New(mpb.WithWaitGroup(&wg)),
 		mainBar:  nil,
 		subBar:   map[string]*mpb.Bar{},
@@ -212,7 +212,7 @@ func (ts *Tasks) Execute(option ExecOptions) error {
 
 	// execute task by concurrency
 	for _, t := range ts.tasks {
-		if ts.monitor.error() != nil && option.SkipError == false {
+		if ts.monitor.error() != nil && !option.SkipError {
 			break
 		}
 

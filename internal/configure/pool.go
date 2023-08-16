@@ -241,9 +241,7 @@ func ScaleOutClusterPool(old *CurveClusterTopo, dcs []*topology.DeployConfig, po
 	npools := old.NPools
 	topo := generateClusterPool(dcs, fmt.Sprintf("pool%d", npools+1), poolset, diskType)
 	if dcs[0].GetKind() == KIND_CURVEBS {
-		for _, pool := range topo.LogicalPools {
-			old.LogicalPools = append(old.LogicalPools, pool)
-		}
+		old.LogicalPools = append(old.LogicalPools, topo.LogicalPools...)
 		for _, newPst := range topo.Poolsets {
 			isExist := false
 			for _, oldPst := range old.Poolsets {
@@ -256,13 +254,9 @@ func ScaleOutClusterPool(old *CurveClusterTopo, dcs []*topology.DeployConfig, po
 			}
 		}
 	} else {
-		for _, pool := range topo.Pools {
-			old.Pools = append(old.Pools, pool)
-		}
+		old.Pools = append(old.Pools, topo.Pools...)
 	}
-	for _, server := range topo.Servers {
-		old.Servers = append(old.Servers, server)
-	}
+	old.Servers = append(old.Servers, topo.Servers...)
 	old.NPools = old.NPools + 1
 }
 

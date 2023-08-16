@@ -67,7 +67,7 @@ func (vars *Variables) Get(name string) (string, error) {
 	v, ok := vars.m[name]
 	if !ok {
 		return "", fmt.Errorf("variable '%s' not found", name)
-	} else if v.Resolved == false {
+	} else if !v.Resolved {
 		return "", fmt.Errorf("variable '%s' unresolved", name)
 	}
 
@@ -152,6 +152,9 @@ func (vars *Variables) Rendering(s string) (string, error) {
 
 func (vars *Variables) Debug() {
 	for _, v := range vars.m {
-		log.Info("Variable", log.Field(v.Name, v.Value))
+		err := log.Info("Variable", log.Field(v.Name, v.Value))
+		if err != nil {
+			return
+		}
 	}
 }

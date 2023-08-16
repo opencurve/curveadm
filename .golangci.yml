@@ -1,0 +1,38 @@
+run:
+  timeout: 5m
+linters:
+  enable:
+    # Simple linter to check that your code does not contain non-ASCII identifiers.
+    - asciicheck
+    # Go linter that checks if package imports are in a list of acceptable packages.
+    - depguard
+    # Checks for pointers to enclosing loop variables.
+    - exportloopref
+    # Gofmt checks whether code was gofmt-ed
+    - gofmt
+    # Inspects source code for security problems.	
+    - gosec
+    # Finds naked returns in functions greater than a specified function length.
+    - nakedret
+    # Reports ill-formed or insufficient nolint directives.
+    - nolintlint
+    # Checks for dangerous unicode character sequences.
+    - bidichk
+  disable:
+    # ignore errcheck
+    - errcheck
+linters-settings:
+  gosec:
+    # Available rules: https://github.com/securego/gosec#available-rules
+    excludes:
+      - G101	# Look for hard coded credentials
+      - G204	# Audit use of command execution
+      - G401	# Detect the usage of DES, RC4, MD5 or SHA1
+      - G403	# Ensure minimum RSA key length of 2048 bits
+      - G404	# Insecure random number source (rand)
+      - G501	# Import blocklist: crypto/md5
+      - G502	# Import blocklist: crypto/des
+      - G503	# Import blocklist: crypto/rc4
+      - G504	# Import blocklist: net/http/cgi
+      - G505	# Import blocklist: crypto/sha1
+      - G601	# Implicit memory aliasing of items from a range statement

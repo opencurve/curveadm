@@ -72,7 +72,7 @@ func VerifyHost(host string, remote net.Addr, key ssh.PublicKey) error {
 		return err
 	} else if hostFound && err == nil { // handshake because public key already exists.
 		return nil
-	} else if askIsHostTrusted(host, key) == false { // Ask user to check if he trust the host public key.
+	} else if !askIsHostTrusted(host, key) { // Ask user to check if he trust the host public key.
 		// Make sure to return error on non trusted keys.
 		return errors.New("you typed no, aborted!")
 	}

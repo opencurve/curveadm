@@ -35,7 +35,7 @@ import (
 
 func NewStopServiceTask(curveadm *cli.CurveAdm, cfg *configure.WebsiteConfig) (*task.Task, error) {
 	serviceId := curveadm.GetWebsiteServiceId(cfg.GetId())
-	containerId, err := curveadm.GetContainerId(serviceId)
+	containerId, _ := curveadm.GetContainerId(serviceId)
 
 	hc, err := curveadm.GetHost(cfg.GetHost())
 	if err != nil {

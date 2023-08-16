@@ -158,7 +158,7 @@ func (hc *HostConfig) Build() error {
 			F("hosts[%d].private_key_file = %s", hc.sequence, privateKeyFile)
 	}
 
-	if hc.GetForwardAgent() == false {
+	if !hc.GetForwardAgent() {
 		if !utils.PathExist(privateKeyFile) {
 			return errno.ERR_PRIVATE_KEY_FILE_NOT_EXIST.
 				F("%s: no such file", privateKeyFile)

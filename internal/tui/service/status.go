@@ -260,7 +260,7 @@ func sortMonitorStatues(statuses []monitor.MonitorStatus) {
 	sort.Slice(statuses, func(i, j int) bool {
 		s1, s2 := statuses[i], statuses[j]
 		if s1.Role == s2.Role {
-			return s1.Host < s1.Host
+			return s1.Host < s2.Host
 		}
 		return MONITOT_ROLE_SCORE[s1.Role] < ROLE_SCORE[s2.Role]
 	})

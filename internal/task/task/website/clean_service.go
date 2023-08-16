@@ -51,7 +51,7 @@ func getCleanFiles(clean map[string]bool, cfg *configure.WebsiteConfig) []string
 
 func NewCleanWebsiteTask(curveadm *cli.CurveAdm, cfg *configure.WebsiteConfig) (*task.Task, error) {
 	serviceId := curveadm.GetWebsiteServiceId(cfg.GetId())
-	containerId, err := curveadm.GetContainerId(serviceId)
+	containerId, _ := curveadm.GetContainerId(serviceId)
 
 	hc, err := curveadm.GetHost(cfg.GetHost())
 	if err != nil {
@@ -71,7 +71,7 @@ func NewCleanWebsiteTask(curveadm *cli.CurveAdm, cfg *configure.WebsiteConfig) (
 		Files:       files,
 		ExecOptions: curveadm.ExecOptions(),
 	})
-	if clean[comm.CLEAN_ITEM_CONTAINER] == true {
+	if clean[comm.CLEAN_ITEM_CONTAINER] {
 		t.AddStep(&common.Step2CleanContainer{
 			ServiceId:   serviceId,
 			ContainerId: containerId,

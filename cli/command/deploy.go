@@ -229,9 +229,9 @@ func genDeployPlaybook(curveadm *cli.CurveAdm,
 			role := DEPLOY_FILTER_ROLE[step]
 			config = curveadm.FilterDeployConfigByRole(config, role)
 		}
-		n := len(config)
+
 		if DEPLOY_LIMIT_SERVICE[step] > 0 {
-			n = DEPLOY_LIMIT_SERVICE[step]
+			n := DEPLOY_LIMIT_SERVICE[step]
 			config = config[:n]
 		}
 

@@ -48,13 +48,13 @@ const (
 func newMutate(cfg interface{}, delimiter string) step.Mutate {
 	var serviceCfg map[string]string
 	var variables *variable.Variables
-	switch cfg.(type) {
+	switch cfg := cfg.(type) {
 	case *topology.DeployConfig:
-		dc := cfg.(*topology.DeployConfig)
+		dc := cfg
 		serviceCfg = dc.GetServiceConfig()
 		variables = dc.GetVariables()
 	case *configure.ClientConfig:
-		cc := cfg.(*configure.ClientConfig)
+		cc := cfg
 		serviceCfg = cc.GetServiceConfig()
 		variables = cc.GetVariables()
 	}

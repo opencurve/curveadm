@@ -102,7 +102,7 @@ func newToolV2Mutate(dc *topology.DeployConfig, delimiter string, forceRender bo
 
 func newCrontab(uuid string, dc *topology.DeployConfig, reportScriptPath string) string {
 	var period, command string
-	if dc.GetReportUsage() == true {
+	if dc.GetReportUsage() {
 		period = func(minute, hour, day, month, week string) string {
 			return fmt.Sprintf("%s %s %s %s %s", minute, hour, day, month, week)
 		}("0", "*", "*", "*", "*") // every hour
