@@ -55,7 +55,6 @@ type (
 		host             string
 		hostname         string
 		name             string
-		replicas         int
 		serviceNum       int
 		hostSequence     int // start with 0
 		replicasSequence int // start with 0
@@ -105,7 +104,7 @@ func newVariables(m map[string]interface{}) (*variable.Variables, error) {
 	return vars, nil
 }
 
-func NewDeployConfig(ctx *Context, kind, role, host, name string, replicas int,
+func NewDeployConfig(ctx *Context, kind, role, host, name string, serviceNum int,
 	hostSequence, replicasSequence int, config map[string]interface{}) (*DeployConfig, error) {
 	// variable section
 	v := config[CONFIG_VARIABLE.key]
@@ -144,7 +143,7 @@ func NewDeployConfig(ctx *Context, kind, role, host, name string, replicas int,
 		role:             role,
 		host:             host,
 		name:             name,
-		replicas:         replicas,
+		serviceNum:       serviceNum,
 		hostSequence:     hostSequence,
 		replicasSequence: replicasSequence,
 		config:           config,

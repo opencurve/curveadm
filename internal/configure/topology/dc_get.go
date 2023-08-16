@@ -110,7 +110,6 @@ func (dc *DeployConfig) getBool(i *item) bool {
 }
 
 // (1): config property
-// todo: change GetReplicas to GetServiceNum
 func (dc *DeployConfig) GetKind() string                     { return dc.kind }
 func (dc *DeployConfig) GetId() string                       { return dc.id }
 func (dc *DeployConfig) GetParentId() string                 { return dc.parentId }
@@ -118,7 +117,6 @@ func (dc *DeployConfig) GetRole() string                     { return dc.role }
 func (dc *DeployConfig) GetHost() string                     { return dc.host }
 func (dc *DeployConfig) GetHostname() string                 { return dc.hostname }
 func (dc *DeployConfig) GetName() string                     { return dc.name }
-func (dc *DeployConfig) GetReplicas() int                    { return dc.replicas }
 func (dc *DeployConfig) GetServiceNum() int                  { return dc.serviceNum }
 func (dc *DeployConfig) GetHostSequence() int                { return dc.hostSequence }
 func (dc *DeployConfig) GetReplicasSequence() int            { return dc.replicasSequence }
