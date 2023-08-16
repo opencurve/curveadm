@@ -23,14 +23,10 @@
 package common
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/configure/topology"
 	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/task/context"
-	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
 	"github.com/opencurve/curveadm/internal/utils"
 )
@@ -42,24 +38,6 @@ type (
 		secret string
 	}
 )
-
-func appendOut(command string, success *bool, out *string, outs *[]string) step.LambdaType {
-	return func(ctx *context.Context) error {
-		if !*success {
-			*outs = append(*outs, fmt.Sprintf("<%s>: failed", command))
-		} else {
-			*outs = append(*outs, *out)
-		}
-		return nil
-	}
-}
-
-func convert2Content(outs *[]string, content *string) step.LambdaType {
-	return func(ctx *context.Context) error {
-		*content = strings.Join(*outs, "\n---\n")
-		return nil
-	}
-}
 
 func (s *step2EncryptFile) Execute(ctx *context.Context) error {
 	err := utils.EncryptFile(s.source, s.dest, s.secret)

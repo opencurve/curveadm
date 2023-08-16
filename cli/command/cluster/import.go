@@ -138,10 +138,8 @@ func readDatabase(filename string) (storage.Cluster, []storage.Service, error) {
 		switch id {
 		case CLUSTER_DESCRIPTION:
 			cluster.Description = value
-			break
 		case CLUSTER_TOPOLOGY:
 			cluster.Topology = value
-			break
 		case SERVICE:
 			items := strings.Split(value, " ")
 			if len(items) != 2 {
@@ -166,7 +164,8 @@ func importCluster(storage *storage.Storage, name, dbfile string) error {
 	}
 
 	// insert cluster
-	if storage.InsertCluster(name, cluster.Description, cluster.Topology); err != nil {
+	err = storage.InsertCluster(name, cluster.Description, cluster.Topology)
+	if err != nil {
 		return err
 	}
 

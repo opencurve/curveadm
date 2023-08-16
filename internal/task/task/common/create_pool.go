@@ -94,7 +94,7 @@ func prepare(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (clusterPoolJson
 	var clusterPool configure.CurveClusterTopo
 	clusterPool, err = getClusterPool(curveadm, dc)
 	if err != nil {
-		return
+		return clusterPoolJson, clusterMDSAddrs, err
 	}
 
 	// 2. scale out cluster or migrate servers
@@ -112,14 +112,14 @@ func prepare(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (clusterPoolJson
 	var bytes []byte
 	bytes, err = json.Marshal(clusterPool)
 	if err != nil {
-		return
+		return clusterPoolJson, clusterMDSAddrs, err
 	}
 	clusterPoolJson = string(bytes)
 
 	// cluster MDS address
 	clusterMDSAddrs, err = dc.GetVariables().Get("cluster_mds_addr")
 	clusterMDSAddrs = strings.Replace(clusterMDSAddrs, ",", " ", -1)
-	return
+	return clusterPoolJson, clusterMDSAddrs, err
 }
 
 func checkWaitMDSElectionSuccess(success *bool, out *string) step.LambdaType {
@@ -210,7 +210,7 @@ func NewCreateTopologyTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*
 		return nil, err
 	}
 	build.DEBUG(build.DEBUG_CREATE_POOL,
-		build.Field{"pool json", clusterPoolJson})
+		build.Field{Key: "pool json", Value: clusterPoolJson})
 
 	t.AddStep(&step.ListContainers{
 		ShowAll:     true,

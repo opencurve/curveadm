@@ -27,7 +27,6 @@ import (
 	"strings"
 
 	"github.com/dustin/go-humanize"
-
 	"github.com/fatih/color"
 	"github.com/opencurve/curveadm/cli/cli"
 	comm "github.com/opencurve/curveadm/internal/common"

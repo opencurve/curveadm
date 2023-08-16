@@ -49,7 +49,6 @@ func convertLevel(level string) glg.LEVEL {
 	default:
 		return glg.DEBG
 	}
-	return glg.DEBG
 }
 
 func Init(level, filename string) error {
@@ -68,18 +67,18 @@ func Init(level, filename string) error {
 }
 
 func Field(key string, val interface{}) string {
-	switch val.(type) {
+	switch val := val.(type) {
 	case bool:
-		return fmt.Sprintf("%s: %s", key, strconv.FormatBool(val.(bool)))
+		return fmt.Sprintf("%s: %s", key, strconv.FormatBool(val))
 	case string:
 		return fmt.Sprintf("%s: %s", key, val)
 	case []byte:
-		return fmt.Sprintf("%s: %s", key, string(val.([]byte)))
+		return fmt.Sprintf("%s: %s", key, string(val))
 	case int:
 	case int64:
 		return fmt.Sprintf("%s: %d", key, val)
 	case error:
-		return fmt.Sprintf("%s: %s", key, val.(error).Error())
+		return fmt.Sprintf("%s: %s", key, val.Error())
 	}
 	return fmt.Sprintf("%s: %v", key, val)
 }

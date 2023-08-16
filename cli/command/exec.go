@@ -48,7 +48,6 @@ func NewExecCommand(curveadm *cli.CurveAdm) *cobra.Command {
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			options.id = args[0]
 			options.cmd = strings.Join(args[1:], " ")
-			args = args[:1]
 			return curveadm.CheckId(options.id)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {

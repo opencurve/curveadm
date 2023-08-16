@@ -84,7 +84,7 @@ func checkKernelVersion(out *string, dc *topology.DeployConfig) step.LambdaType 
 
 func checkKernelModule(name string, success *bool, out *string) step.LambdaType {
 	return func(ctx *context.Context) error {
-		if *success == true {
+		if *success {
 			return nil
 		}
 

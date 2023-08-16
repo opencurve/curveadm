@@ -73,7 +73,7 @@ func NewStatusCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	flags.StringVar(&options.role, "role", "*", "Specify service role")
 	flags.StringVar(&options.host, "host", "*", "Specify service host")
 	flags.BoolVarP(&options.verbose, "verbose", "v", false, "Verbose output for status")
-flags.BoolVarP(&options.showInstances, "show-instances", "s", false, "Display service instances")
+	flags.BoolVarP(&options.showInstances, "show-instances", "s", false, "Display service instances")
 
 	return cmd
 }

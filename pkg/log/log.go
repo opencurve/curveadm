@@ -59,19 +59,19 @@ func SwitchLevel(err error) func(msg string, fields ...zap.Field) {
 }
 
 func Field(key string, val interface{}) zap.Field {
-	switch val.(type) {
+	switch val := val.(type) {
 	case bool:
-		return zap.Bool(key, val.(bool))
+		return zap.Bool(key, val)
 	case string:
-		return zap.String(key, val.(string))
+		return zap.String(key, val)
 	case []byte:
-		return zap.String(key, string(val.([]byte)))
+		return zap.String(key, string(val))
 	case int:
-		return zap.Int(key, val.(int))
+		return zap.Int(key, val)
 	case int64:
-		return zap.Int64(key, val.(int64))
+		return zap.Int64(key, val)
 	case error:
-		return zap.String(key, val.(error).Error())
+		return zap.String(key, val.Error())
 	}
 	return zap.Skip()
 }

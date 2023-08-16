@@ -55,8 +55,7 @@ type (
 
 	// check whether directory path is absolute path
 	step2CheckDirectoryPath struct {
-		sequence int
-		dc       *topology.DeployConfig
+		dc *topology.DeployConfig
 	}
 
 	// check whether the data directory is duplicate

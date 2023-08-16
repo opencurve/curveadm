@@ -56,13 +56,15 @@ SERVER_PACKAGES := $(PWD)/cmd/service/main.go
 # tar
 VERSION := "unknown"
 
-build:
+build: fmt vet
 	$(GOENV) $(GO) build -o $(OUTPUT) $(BUILD_FLAGS) $(PACKAGES)
 	$(GOENV) $(GO) build -o $(SERVER_OUTPUT) $(BUILD_FLAGS) $(SERVER_PACKAGES)
 
-debug:
+
+debug: fmt vet
 	$(GOENV) $(GO) build -o $(OUTPUT) $(DEBUG_FLAGS) $(PACKAGES)
 	$(GOENV) $(GO) build -o $(SERVER_OUTPUT) $(DEBUG_FLAGS) $(SERVER_PACKAGES)
+
 
 test:
 	$(GO_TEST) $(TEST_FLAGS) ./...
@@ -74,3 +76,8 @@ lint:
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCILINT_VERSION)
 	$(GOBIN_GOLANGCILINT) run -v
 
+fmt:
+	go fmt ./...
+
+vet:
+	go vet ./...

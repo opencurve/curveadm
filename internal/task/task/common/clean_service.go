@@ -205,7 +205,7 @@ func NewCleanServiceTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*ta
 		Files:       files,
 		ExecOptions: curveadm.ExecOptions(),
 	})
-	if clean[comm.CLEAN_ITEM_CONTAINER] == true {
+	if clean[comm.CLEAN_ITEM_CONTAINER] {
 		t.AddStep(&Step2CleanContainer{
 			ServiceId:   serviceId,
 			ContainerId: containerId,

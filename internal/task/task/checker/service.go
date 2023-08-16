@@ -64,7 +64,7 @@ type (
 func (s *step2CheckChunkfilePool) Execute(ctx *context.Context) error {
 	dc := s.dc
 	dataDir := dc.GetDataDir()
-	if dc.GetEnableChunkfilePool() == false {
+	if !dc.GetEnableChunkfilePool() {
 		return nil
 	} else if len(dataDir) == 0 {
 		return errno.ERR_CHUNKFILE_POOL_NOT_EXIST

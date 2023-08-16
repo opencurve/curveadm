@@ -55,7 +55,7 @@ func Init(logpath string) {
 func List() error {
 	count := map[int]int{}
 	for _, e := range elist {
-		fmt.Printf(color.GreenString("%06d ", e.code))
+		fmt.Print(color.GreenString("%06d ", e.code))
 		fmt.Println(color.YellowString("%s", e.description))
 		count[e.code]++
 	}

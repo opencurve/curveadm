@@ -121,7 +121,7 @@ func genCleanPlaybook(curveadm *cli.CurveAdm,
 			Configs: dcs,
 			Options: map[string]interface{}{
 				comm.KEY_CLEAN_ITEMS:      options.only,
-				comm.KEY_CLEAN_BY_RECYCLE: options.withoutRecycle == false,
+				comm.KEY_CLEAN_BY_RECYCLE: !options.withoutRecycle,
 			},
 		})
 	}

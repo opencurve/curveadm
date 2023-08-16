@@ -43,11 +43,10 @@ const (
 )
 
 type Var struct {
-	name     string
-	kind     []string // kind limit for register variable
-	role     []string // role limit for register variable
-	lookup   bool     // whether need to lookup host
-	resolved bool
+	name   string
+	kind   []string // kind limit for register variable
+	role   []string // role limit for register variable
+	lookup bool     // whether need to lookup host
 }
 
 /*
@@ -141,7 +140,7 @@ func skip(dc *DeployConfig, v Var) bool {
 func addVariables(dcs []*DeployConfig, idx int, vars []Var) error {
 	dc := dcs[idx]
 	for _, v := range vars {
-		if skip(dc, v) == true {
+		if skip(dc, v) {
 			continue
 		}
 

@@ -308,7 +308,7 @@ func GetClusterServicesAddr(r *pigeon.Request, ctx *Context) bool {
 				pigeon.Field("error", err))
 			return core.ExitSuccessWithData(r, servicesAddr)
 		}
-	} 
+	}
 	servicesAddr.ClusterId = adm.ClusterId()
 	servicesAddr.Addrs = getServicesAddrFromConf(dcs, mcs)
 	return core.ExitSuccessWithData(r, servicesAddr)

@@ -30,23 +30,11 @@ import (
 
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/configure/topology"
-	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/task/context"
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
 	tui "github.com/opencurve/curveadm/internal/tui/common"
 )
-
-func checkContainerStatus(host, role, containerId string, status *string) step.LambdaType {
-	return func(ctx *context.Context) error {
-		if *status != "running" {
-			return errno.ERR_CONTAINER_IS_ABNORMAL.
-				F("host=%s role=%s containerId=%s",
-					host, role, tui.TrimContainerId(containerId))
-		}
-		return nil
-	}
-}
 
 func WaitContainerStart(seconds int) step.LambdaType {
 	return func(ctx *context.Context) error {

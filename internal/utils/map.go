@@ -40,12 +40,12 @@ func NewSafeMap() *SafeMap {
 
 func (m *SafeMap) Get(key string) interface{} {
 	if m.transaction {
-		val, _ := m.Map[key]
+		val := m.Map[key]
 		return val
 	}
 	m.RLock()
 	defer m.RUnlock()
-	val, _ := m.Map[key]
+	val := m.Map[key]
 	return val
 }
 

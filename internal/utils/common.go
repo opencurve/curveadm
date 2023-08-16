@@ -145,7 +145,7 @@ func Str2Bool(s string) (bool, bool) { // value, ok
 
 func IsTrueStr(s string) bool {
 	v, yes := Str2Bool(s)
-	return yes && v == true
+	return yes && v
 }
 
 func TrimSuffixRepeat(s, suffix string) string {
