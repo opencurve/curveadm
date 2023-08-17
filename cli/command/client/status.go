@@ -36,6 +36,7 @@ import (
 
 var (
 	GET_STATUS_PLAYBOOK_STEPS = []int{
+		playbook.INIT_CLIENT_STATUS,
 		playbook.GET_CLIENT_STATUS,
 	}
 )
@@ -81,7 +82,9 @@ func genStatusPlaybook(curveadm *cli.CurveAdm,
 				comm.KEY_CLIENT_STATUS_VERBOSE: options.verbose,
 			},
 			ExecOptions: playbook.ExecOptions{
-				SilentSubBar: true,
+				SilentSubBar:  true,
+				SilentMainBar: step == playbook.INIT_CLIENT_STATUS,
+				SkipError:     true,
 			},
 		})
 	}
@@ -119,11 +122,9 @@ func runStatus(curveadm *cli.CurveAdm, options statusOptions) error {
 	}
 
 	// 3) run playground
-	if err = pb.Run(); err != nil {
-		return err
-	}
+	err = pb.Run()
 
 	// 4) display service status
 	displayStatus(curveadm, clients, options)
-	return nil
+	return err
 }
