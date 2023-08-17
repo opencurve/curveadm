@@ -84,6 +84,7 @@ const (
 	KEY_MAP_OPTIONS           = "MAP_OPTIONS"
 	KEY_MOUNT_OPTIONS         = "MOUNT_OPTIONS"
 	CLIENT_STATUS_LOSED       = "Losed"
+	CLIENT_STATUS_UNKNOWN     = "Unknown"
 	KERNERL_MODULE_NBD        = "nbd"
 	KERNERL_MODULE_FUSE       = "fuse"
 
