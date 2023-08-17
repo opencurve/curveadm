@@ -77,6 +77,7 @@ const (
 	COLLECT_CLIENT
 	BACKUP_ETCD_DATA
 	CHECK_MDS_ADDRESS
+	INIT_CLIENT_STATUS
 	GET_CLIENT_STATUS
 	INSTALL_CLIENT
 	UNINSTALL_CLIENT
@@ -224,6 +225,8 @@ func (p *Playbook) createTasks(step *PlaybookStep) (*tasks.Tasks, error) {
 			t, err = comm.NewCollectClientTask(curveadm, config.GetAny(i))
 		case BACKUP_ETCD_DATA:
 			t, err = comm.NewBackupEtcdDataTask(curveadm, config.GetDC(i))
+		case INIT_CLIENT_STATUS:
+			t, err = comm.NewInitClientStatusTask(curveadm, config.GetAny(i))
 		case GET_CLIENT_STATUS:
 			t, err = comm.NewGetClientStatusTask(curveadm, config.GetAny(i))
 		case INSTALL_CLIENT:

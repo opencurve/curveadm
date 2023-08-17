@@ -33,7 +33,7 @@ import (
 
 func statusDecorate(status string) string {
 	switch status {
-	case comm.CLIENT_STATUS_LOSED:
+	case comm.CLIENT_STATUS_LOSED, comm.CLIENT_STATUS_UNKNOWN:
 		return color.RedString(status)
 	}
 	return status
