@@ -126,7 +126,10 @@ func (hc *HostConfig) Build() error {
 			hc.config[key] = nil // delete labels section
 			continue
 		}
-
+		//if we detect hostname instead of host ip, change it to host ip.
+		if key == "hostname" {
+			key = "hostip"
+		}
 		if itemset.Get(key) == nil {
 			return errno.ERR_UNSUPPORT_HOSTS_CONFIGURE_ITEM.
 				F("hosts[%d].%s = %v", hc.sequence, key, value)
@@ -139,7 +142,6 @@ func (hc *HostConfig) Build() error {
 			hc.config[key] = v
 		}
 	}
-
 	privateKeyFile := hc.GetPrivateKeyFile()
 	if len(hc.GetHost()) == 0 {
 		return errno.ERR_HOST_FIELD_MISSING.
