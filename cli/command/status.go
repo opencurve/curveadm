@@ -53,7 +53,6 @@ type statusOptions struct {
 	role           string
 	host           string
 	verbose        bool
-	showReplicas   bool
 	showServiceNum bool
 }
 
@@ -75,8 +74,7 @@ func NewStatusCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	flags.StringVar(&options.role, "role", "*", "Specify service role")
 	flags.StringVar(&options.host, "host", "*", "Specify service host")
 	flags.BoolVarP(&options.verbose, "verbose", "v", false, "Verbose output for status")
-	flags.BoolVarP(&options.showReplicas, "show-replicas", "s", false, "Display service replicas")
-	flags.BoolVarP(&options.showServiceNum, "show-service_num", "n", false, "Display service num")
+	flags.BoolVarP(&options.showServiceNum, "show-service_num", "s", false, "Display service num")
 
 	return cmd
 }
