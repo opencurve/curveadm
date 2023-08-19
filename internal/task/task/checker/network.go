@@ -43,6 +43,7 @@ const (
 	FORMAT_FILTER_SPORT = "( sport = :%d )"
 
 	HTTP_SERVER_CONTAINER_NAME = "curveadm-precheck-nginx"
+	CHECK_PORT_CONTAINER_NAME  = "curveadm-precheck-port"
 )
 
 // TASK: check port in use
@@ -71,6 +72,53 @@ func joinPorts(dc *topology.DeployConfig, addresses []Address) string {
 	return strings.Join(ports, ",")
 }
 
+func getCheckPortContainerName(curveadm *cli.CurveAdm, dc *topology.DeployConfig) string {
+	return fmt.Sprintf("%s-%s-%s",
+		CHECK_PORT_CONTAINER_NAME,
+		dc.GetRole(),
+		curveadm.GetServiceId(dc.GetId()))
+}
+
+type step2CheckPortStatus struct {
+	containerId *string
+	success     *bool
+	dc          *topology.DeployConfig
+	curveadm    *cli.CurveAdm
+	port        int
+}
+
+// execute the "ss" command within a temporary container
+func (s *step2CheckPortStatus) Execute(ctx *context.Context) error {
+	filter := fmt.Sprintf(FORMAT_FILTER_SPORT, s.port)
+	cli := ctx.Module().Shell().SocketStatistics(filter)
+	cli.AddOption("--no-header")
+	cli.AddOption("--listening")
+	command, err := cli.String()
+	if err != nil {
+		return err
+	}
+
+	var out string
+	steps := []task.Step{}
+	steps = append(steps, &step.ContainerExec{
+		ContainerId: s.containerId,
+		Command:     command,
+		Out:         &out,
+		ExecOptions: s.curveadm.ExecOptions(),
+	})
+	steps = append(steps, &step.Lambda{
+		Lambda: checkPortInUse(s.success, &out, s.dc.GetHost(), s.port),
+	})
+
+	for _, step := range steps {
+		err := step.Execute(ctx)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func NewCheckPortInUseTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task.Task, error) {
 	hc, err := curveadm.GetHost(dc.GetHost())
 	if err != nil {
@@ -82,19 +130,35 @@ func NewCheckPortInUseTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*
 		dc.GetHost(), dc.GetRole(), joinPorts(dc, addresses))
 	t := task.NewTask("Check Port In Use <network>", subname, hc.GetSSHConfig())
 
-	var out string
+	var containerId, out string
 	var success bool
+	t.AddStep(&step.PullImage{
+		Image:       dc.GetContainerImage(),
+		ExecOptions: curveadm.ExecOptions(),
+	})
+	t.AddStep(&step.CreateContainer{
+		Image:       dc.GetContainerImage(),
+		Command:     "-c 'sleep infinity'", // keep the container running
+		Entrypoint:  "/bin/bash",
+		Name:        getCheckPortContainerName(curveadm, dc),
+		Remove:      true,
+		Out:         &containerId,
+		ExecOptions: curveadm.ExecOptions(),
+	})
+	t.AddStep(&step.StartContainer{
+		ContainerId: &containerId,
+		Success:     &success,
+		Out:         &out,
+		ExecOptions: curveadm.ExecOptions(),
+	})
+
 	for _, address := range addresses {
-		t.AddStep(&step.SocketStatistics{
-			Filter:      fmt.Sprintf(FORMAT_FILTER_SPORT, address.Port),
-			Listening:   true,
-			NoHeader:    true,
-			Success:     &success,
-			Out:         &out,
-			ExecOptions: curveadm.ExecOptions(),
-		})
-		t.AddStep(&step.Lambda{
-			Lambda: checkPortInUse(&success, &out, dc.GetHost(), address.Port),
+		t.AddStep(&step2CheckPortStatus{
+			containerId: &containerId,
+			success:     &success,
+			dc:          dc,
+			curveadm:    curveadm,
+			port:        address.Port,
 		})
 	}
 
@@ -164,7 +228,7 @@ func getNginxListens(dc *topology.DeployConfig) string {
 	return strings.Join(listens, " ")
 }
 
-func getContainerName(curveadm *cli.CurveAdm, dc *topology.DeployConfig) string {
+func getHTTPServerContainerName(curveadm *cli.CurveAdm, dc *topology.DeployConfig) string {
 	return fmt.Sprintf("%s-%s-%s",
 		HTTP_SERVER_CONTAINER_NAME,
 		dc.GetRole(),
@@ -204,7 +268,7 @@ func NewStartHTTPServerTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (
 		Image:       dc.GetContainerImage(),
 		Command:     command,
 		Entrypoint:  "/bin/bash",
-		Name:        getContainerName(curveadm, dc),
+		Name:        getHTTPServerContainerName(curveadm, dc),
 		Remove:      true,
 		Out:         &containerId,
 		ExecOptions: curveadm.ExecOptions(),
@@ -283,7 +347,7 @@ func NewCheckNetworkFirewallTask(curveadm *cli.CurveAdm, dc *topology.DeployConf
 	return t, nil
 }
 
-// TASK: stop http server
+// TASK: stop container
 type step2StopContainer struct {
 	containerId *string
 	dc          *topology.DeployConfig
@@ -332,7 +396,19 @@ func NewCleanEnvironmentTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) 
 	t.AddStep(&step.ListContainers{
 		ShowAll:     true,
 		Format:      `"{{.ID}}"`,
-		Filter:      fmt.Sprintf("name=%s", getContainerName(curveadm, dc)),
+		Filter:      fmt.Sprintf("name=%s", getCheckPortContainerName(curveadm, dc)),
+		Out:         &out,
+		ExecOptions: curveadm.ExecOptions(),
+	})
+	t.AddStep(&step2StopContainer{
+		containerId: &out,
+		dc:          dc,
+		curveadm:    curveadm,
+	})
+	t.AddStep(&step.ListContainers{
+		ShowAll:     true,
+		Format:      `"{{.ID}}"`,
+		Filter:      fmt.Sprintf("name=%s", getHTTPServerContainerName(curveadm, dc)),
 		Out:         &out,
 		ExecOptions: curveadm.ExecOptions(),
 	})
