@@ -41,11 +41,11 @@ chunkserver_services:
     copysets: 100
   deploy:
     - host: ${machine1}
-      service_num: 3    
+      instance: 3
     - host: ${machine2}
-      service_num: 3
+      instance: 3
     - host: ${machine3}
-      service_num: 3
+      instance: 3
 
 snapshotclone_services:
   config:

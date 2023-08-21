@@ -81,12 +81,11 @@ type (
 	}
 
 	ServiceStatus struct {
-		Id       string
-		ParentId string
-		Role     string
-		Host     string
-		//Replica     string
-		ServiceNum  string
+		Id          string
+		ParentId    string
+		Role        string
+		Host        string
+		Instance    string
 		ContainerId string
 		Ports       string
 		IsLeader    bool
@@ -114,12 +113,11 @@ func (s *step2InitStatus) Execute(ctx *context.Context) error {
 	dc := s.dc
 	id := s.serviceId
 	setServiceStatus(s.memStorage, id, ServiceStatus{
-		Id:       id,
-		ParentId: dc.GetParentId(),
-		Role:     dc.GetRole(),
-		Host:     dc.GetHost(),
-		//Replica:     fmt.Sprintf("1/%d", dc.GetServiceNum()),
-		ServiceNum:  fmt.Sprintf("1/%d", dc.GetServiceNum()),
+		Id:          id,
+		ParentId:    dc.GetParentId(),
+		Role:        dc.GetRole(),
+		Host:        dc.GetHost(),
+		Instance:    fmt.Sprintf("1/%d", dc.GetInstance()),
 		ContainerId: tui.TrimContainerId(s.containerId),
 		Status:      comm.SERVICE_STATUS_UNKNOWN,
 		LogDir:      dc.GetLogDir(),
@@ -204,12 +202,11 @@ func (s *step2FormatServiceStatus) Execute(ctx *context.Context) error {
 	dc := s.dc
 	id := s.serviceId
 	setServiceStatus(s.memStorage, id, ServiceStatus{
-		Id:       id,
-		ParentId: dc.GetParentId(),
-		Role:     dc.GetRole(),
-		Host:     dc.GetHost(),
-		//Replica:     fmt.Sprintf("1/%d", dc.GetServiceNum()),
-		ServiceNum:  fmt.Sprintf("1/%d", dc.GetServiceNum()),
+		Id:          id,
+		ParentId:    dc.GetParentId(),
+		Role:        dc.GetRole(),
+		Host:        dc.GetHost(),
+		Instance:    fmt.Sprintf("1/%d", dc.GetInstance()),
 		ContainerId: tui.TrimContainerId(s.containerId),
 		Ports:       *s.ports,
 		IsLeader:    *s.isLeader,

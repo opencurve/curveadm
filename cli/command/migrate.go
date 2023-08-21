@@ -152,7 +152,7 @@ func checkMigrateTopology(curveadm *cli.CurveAdm, data string) error {
 		dcs2add[0].GetRole() != dcs2del[0].GetRole() {
 		return errno.ERR_REQUIRE_SAME_ROLE_SERVICES_FOR_MIGRATING
 	}
-	if len(dcs2del) != dcs2del[0].GetServiceNum() {
+	if len(dcs2del) != dcs2del[0].GetInstance() {
 		return errno.ERR_REQUIRE_WHOLE_HOST_SERVICES_FOR_MIGRATING
 	}
 

@@ -173,7 +173,7 @@ func createLogicalPool(dcs []*topology.DeployConfig, logicalPool string, poolset
 			// see issue: https://github.com/opencurve/curve/issues/1441
 			internalPort := dc.GetListenPort()
 			externalPort := dc.GetListenExternalPort()
-			if dc.GetServiceNum() > 1 {
+			if dc.GetInstance() > 1 {
 				internalPort = 0
 				externalPort = 0
 			}
