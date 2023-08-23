@@ -280,13 +280,14 @@ func (s *ListContainers) Execute(ctx *context.Context) error {
 	cli := ctx.Module().DockerCli().ListContainers()
 	if len(s.Format) > 0 {
 		cli.AddOption("--format %s", s.Format)
+	} else if s.Quiet {
+		cli.AddOption("--quiet")
 	}
+
 	if len(s.Filter) > 0 {
 		cli.AddOption("--filter %s", s.Filter)
 	}
-	if s.Quiet {
-		cli.AddOption("--quiet")
-	}
+
 	if s.ShowAll {
 		cli.AddOption("--all")
 	}
