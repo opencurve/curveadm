@@ -48,16 +48,16 @@ const (
 
 type (
 	DeployConfig struct {
-		kind             string // KIND_CURVEFS / KIND_CUVREBS
-		id               string // role_host_[name/hostSequence]_replicasSequence
-		parentId         string // role_host_[name/hostSequence]_0
-		role             string // etcd/mds/metaserevr/chunkserver
-		host             string
-		hostname         string
-		name             string
-		replicas         int
-		hostSequence     int // start with 0
-		replicasSequence int // start with 0
+		kind              string // KIND_CURVEFS / KIND_CUVREBS
+		id                string // role_host_[name/hostSequence]_instancesSequence
+		parentId          string // role_host_[name/hostSequence]_0
+		role              string // etcd/mds/metaserevr/chunkserver
+		host              string
+		hostname          string
+		name              string
+		instances         int
+		hostSequence      int // start with 0
+		instancesSequence int // start with 0
 
 		config        map[string]interface{}
 		serviceConfig map[string]string
@@ -73,8 +73,8 @@ type (
 )
 
 // etcd_hostname_0_0
-func formatId(role, host, name string, replicasSequence int) string {
-	return fmt.Sprintf("%s_%s_%s_%d", role, host, name, replicasSequence)
+func formatId(role, host, name string, instancesSequence int) string {
+	return fmt.Sprintf("%s_%s_%s_%d", role, host, name, instancesSequence)
 }
 
 func formatName(name string, hostSequence int) string {
@@ -104,8 +104,8 @@ func newVariables(m map[string]interface{}) (*variable.Variables, error) {
 	return vars, nil
 }
 
-func NewDeployConfig(ctx *Context, kind, role, host, name string, replicas int,
-	hostSequence, replicasSequence int, config map[string]interface{}) (*DeployConfig, error) {
+func NewDeployConfig(ctx *Context, kind, role, host, name string, instances int,
+	hostSequence, instancesSequence int, config map[string]interface{}) (*DeployConfig, error) {
 	// variable section
 	v := config[CONFIG_VARIABLE.key]
 	if !utils.IsStringAnyMap(v) && v != nil {
@@ -137,19 +137,19 @@ func NewDeployConfig(ctx *Context, kind, role, host, name string, replicas int,
 
 	name = formatName(name, hostSequence)
 	return &DeployConfig{
-		kind:             kind,
-		id:               formatId(role, host, name, replicasSequence),
-		parentId:         formatId(role, host, name, 0),
-		role:             role,
-		host:             host,
-		name:             name,
-		replicas:         replicas,
-		hostSequence:     hostSequence,
-		replicasSequence: replicasSequence,
-		config:           config,
-		serviceConfig:    map[string]string{},
-		variables:        vars,
-		ctx:              ctx,
+		kind:              kind,
+		id:                formatId(role, host, name, instancesSequence),
+		parentId:          formatId(role, host, name, 0),
+		role:              role,
+		host:              host,
+		name:              name,
+		instances:         instances,
+		hostSequence:      hostSequence,
+		instancesSequence: instancesSequence,
+		config:            config,
+		serviceConfig:     map[string]string{},
+		variables:         vars,
+		ctx:               ctx,
 	}, nil
 }
 
