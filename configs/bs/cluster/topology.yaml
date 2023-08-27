@@ -36,16 +36,16 @@ mds_services:
 chunkserver_services:
   config:
     listen.ip: ${service_host}
-    listen.port: 82${format_replicas_sequence}  # 8200,8201,8202
-    data_dir: /data/chunkserver${service_replicas_sequence}  # /data/chunkserver0, /data/chunksever1
+    listen.port: 82${format_instances_sequence}  # 8200,8201,8202
+    data_dir: /data/chunkserver${service_instances_sequence}  # /data/chunkserver0, /data/chunksever1
     copysets: 100
   deploy:
     - host: ${machine1}
-      replicas: 3    # 请注意这里的replica不代表存储池的副本数，而是节点上同类进程的数量，比如这里指的是chunkserver进程的数量，也就是配置的磁盘数，相关问题可以参考：https://github.com/opencurve/curveadm/issues/146
+      instances: 3
     - host: ${machine2}
-      replicas: 3
+      instances: 3
     - host: ${machine3}
-      replicas: 3
+      instances: 3
 
 snapshotclone_services:
   config:

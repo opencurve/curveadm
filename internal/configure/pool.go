@@ -98,7 +98,7 @@ type (
  *   logicalpools:
  *     - name: pool1
  *       physicalpool: pool1
- *       replicasnum: 3
+ *       replicassum: 3
  *       copysetnum: 100
  *       zonenum: 3
  *       type: 0
@@ -121,7 +121,7 @@ type (
  *     ...
  *   pools:
  *     - name: pool1
- *       replicasnum: 3
+ *		 replicasum: 3
  *       copysetnum: 100
  *       zonenum: 3
  */
@@ -139,7 +139,7 @@ func SortDeployConfigs(dcs []*topology.DeployConfig) {
 		dc1, dc2 := dcs[i], dcs[j]
 		if dc1.GetRole() == dc2.GetRole() {
 			if dc1.GetHostSequence() == dc2.GetHostSequence() {
-				return dc1.GetReplicasSequence() < dc2.GetReplicasSequence()
+				return dc1.GetInstancesSequence() < dc2.GetInstancesSequence()
 			}
 			return dc1.GetHostSequence() < dc2.GetHostSequence()
 		}
@@ -148,7 +148,7 @@ func SortDeployConfigs(dcs []*topology.DeployConfig) {
 }
 
 func formatName(dc *topology.DeployConfig) string {
-	return fmt.Sprintf("%s_%s_%d", dc.GetHost(), dc.GetName(), dc.GetReplicasSequence())
+	return fmt.Sprintf("%s_%s_%d", dc.GetHost(), dc.GetName(), dc.GetInstancesSequence())
 }
 
 func createLogicalPool(dcs []*topology.DeployConfig, logicalPool, poolset string) (LogicalPool, []Server) {
@@ -168,14 +168,14 @@ func createLogicalPool(dcs []*topology.DeployConfig, logicalPool, poolset string
 				zone = nextZone()
 			}
 
-			// NOTE: if we deploy chunkservers with replica feature
-			// and the value of replica greater than 1, we should
+			// NOTE: if we deploy chunkservers with instance feature
+			// and the value of instance greater than 1, we should
 			// set internal port and external port to 0 for let MDS
 			// attribute them as services on the same machine.
 			// see issue: https://github.com/opencurve/curve/issues/1441
 			internalPort := dc.GetListenPort()
 			externalPort := dc.GetListenExternalPort()
-			if dc.GetReplicas() > 1 {
+			if dc.GetInstances() > 1 {
 				internalPort = 0
 				externalPort = 0
 			}

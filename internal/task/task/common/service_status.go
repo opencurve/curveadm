@@ -86,7 +86,7 @@ type (
 		ParentId    string
 		Role        string
 		Host        string
-		Replica     string
+		Instances   string
 		ContainerId string
 		Ports       string
 		IsLeader    bool
@@ -118,7 +118,7 @@ func (s *step2InitStatus) Execute(ctx *context.Context) error {
 		ParentId:    dc.GetParentId(),
 		Role:        dc.GetRole(),
 		Host:        dc.GetHost(),
-		Replica:     fmt.Sprintf("1/%d", dc.GetReplicas()),
+		Instances:   fmt.Sprintf("1/%d", dc.GetInstances()),
 		ContainerId: tui.TrimContainerId(s.containerId),
 		Status:      comm.SERVICE_STATUS_UNKNOWN,
 		LogDir:      dc.GetLogDir(),
@@ -207,7 +207,7 @@ func (s *step2FormatServiceStatus) Execute(ctx *context.Context) error {
 		ParentId:    dc.GetParentId(),
 		Role:        dc.GetRole(),
 		Host:        dc.GetHost(),
-		Replica:     fmt.Sprintf("1/%d", dc.GetReplicas()),
+		Instances:   fmt.Sprintf("1/%d", dc.GetInstances()),
 		ContainerId: tui.TrimContainerId(s.containerId),
 		Ports:       *s.ports,
 		IsLeader:    *s.isLeader,
