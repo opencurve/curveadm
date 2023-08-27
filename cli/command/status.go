@@ -47,12 +47,13 @@ var (
 	}
 )
 
+// todo change status print from replicas to service num
 type statusOptions struct {
-	id           string
-	role         string
-	host         string
-	verbose      bool
-	showReplicas bool
+	id            string
+	role          string
+	host          string
+	verbose       bool
+	showInstances bool
 }
 
 func NewStatusCommand(curveadm *cli.CurveAdm) *cobra.Command {
@@ -73,7 +74,7 @@ func NewStatusCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	flags.StringVar(&options.role, "role", "*", "Specify service role")
 	flags.StringVar(&options.host, "host", "*", "Specify service host")
 	flags.BoolVarP(&options.verbose, "verbose", "v", false, "Verbose output for status")
-	flags.BoolVarP(&options.showReplicas, "show-replicas", "s", false, "Display service replicas")
+	flags.BoolVarP(&options.showInstances, "show-instances", "s", false, "Display service num")
 
 	return cmd
 }
@@ -113,7 +114,7 @@ func displayStatus(curveadm *cli.CurveAdm, dcs []*topology.DeployConfig, options
 		}
 	}
 
-	output := tui.FormatStatus(statuses, options.verbose, options.showReplicas)
+	output := tui.FormatStatus(statuses, options.verbose, options.showInstances)
 	curveadm.WriteOutln("")
 	curveadm.WriteOutln("cluster name      : %s", curveadm.ClusterName())
 	curveadm.WriteOutln("cluster kind      : %s", dcs[0].GetKind())
