@@ -59,8 +59,8 @@ type Var struct {
  *   ${service_role}               "mds"
  *   ${service_host}               "10.0.0.1"
  *   ${service_host_sequence}      "1"
- *   ${service_replicas_sequence}  "1"
- *   ${format_replicas_sequence}   "01"
+ *   ${service_instances_sequence} "1"
+ *   ${format_instances_sequence}  "01"
  *   ${service_addr}               "10.0.0.1"
  *   ${service_port}               "6666"
  *   ${service_client_port}        "2379" (etcd)
@@ -94,8 +94,10 @@ var (
 		{name: "service_host_sequence"},
 		{name: "service_replica_sequence"},
 		{name: "service_replicas_sequence"},
+		{name: "service_instances_sequence"},
 		{name: "format_replica_sequence"},
 		{name: "format_replicas_sequence"},
+		{name: "format_instances_sequence"},
 		{name: "service_addr", lookup: true},
 		{name: "service_port"},
 		{name: "service_client_port", role: []string{ROLE_ETCD}},
@@ -174,10 +176,10 @@ func joinEtcdPeer(dcs []*DeployConfig) string {
 		}
 
 		hostSequence := dc.GetHostSequence()
-		replicaSquence := dc.GetReplicasSequence()
+		instanceSquence := dc.GetInstancesSequence()
 		peerHost := dc.GetListenIp()
 		peerPort := dc.GetListenPort()
-		peer := fmt.Sprintf("etcd%d%d=http://%s:%d", hostSequence, replicaSquence, peerHost, peerPort)
+		peer := fmt.Sprintf("etcd%d%d=http://%s:%d", hostSequence, instanceSquence, peerHost, peerPort)
 		peers = append(peers, peer)
 	}
 	return strings.Join(peers, ",")
@@ -245,13 +247,17 @@ func getValue(name string, dcs []*DeployConfig, idx int) string {
 	case "service_host_sequence":
 		return strconv.Itoa(dc.GetHostSequence())
 	case "service_replica_sequence":
-		return strconv.Itoa(dc.GetReplicasSequence())
+		return strconv.Itoa(dc.GetInstancesSequence())
 	case "service_replicas_sequence":
-		return strconv.Itoa(dc.GetReplicasSequence())
+		return strconv.Itoa(dc.GetInstancesSequence())
+	case "service_instances_sequence":
+		return strconv.Itoa(dc.GetInstancesSequence())
 	case "format_replica_sequence":
-		return fmt.Sprintf("%02d", dc.GetReplicasSequence())
+		return fmt.Sprintf("%02d", dc.GetInstancesSequence())
 	case "format_replicas_sequence":
-		return fmt.Sprintf("%02d", dc.GetReplicasSequence())
+		return fmt.Sprintf("%02d", dc.GetInstancesSequence())
+	case "format_instances_sequence":
+		return fmt.Sprintf("%02d", dc.GetInstancesSequence())
 	case "service_addr":
 		return utils.Atoa(dc.get(CONFIG_LISTEN_IP))
 	case "service_port":

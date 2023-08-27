@@ -65,7 +65,7 @@ func joinPorts(dc *topology.DeployConfig, addresses []Address) string {
 	for _, address := range addresses {
 		ports = append(ports, strconv.Itoa(address.Port))
 	}
-	if dc.GetReplicas() > 1 { // replicas service
+	if dc.GetInstances() > 1 { // instances service
 		ports = append(ports, "...")
 	}
 	return strings.Join(ports, ",")
