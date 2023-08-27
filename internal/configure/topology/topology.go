@@ -34,12 +34,12 @@ import (
 
 type (
 	Deploy struct {
-		Host     string                 `mapstructure:"host"`
-		Name     string                 `mapstructure:"name"`
-		Replica  int                    `mapstructure:"replica"`  // old version
-		Replicas int                    `mapstructure:"replicas"` // old version
-		Instance int                    `mapstructure:"instance"`
-		Config   map[string]interface{} `mapstructure:"config"`
+		Host      string                 `mapstructure:"host"`
+		Name      string                 `mapstructure:"name"`
+		Replica   int                    `mapstructure:"replica"`  // old version
+		Replicas  int                    `mapstructure:"replicas"` // old version
+		Instances int                    `mapstructure:"instances"`
+		Config    map[string]interface{} `mapstructure:"config"`
 	}
 
 	Service struct {
@@ -150,28 +150,28 @@ func ParseTopology(data string, ctx *Context) ([]*DeployConfig, error) {
 			merge(servicesConfig, deployConfig, 1)
 
 			// create deploy config
-			instance := 1
+			instances := 1
 			if deploy.Replicas < 0 {
-				return nil, errno.ERR_REPLICAS_REQUIRES_POSITIVE_INTEGER.
+				return nil, errno.ERR_INSTANCES_REQUIRES_POSITIVE_INTEGER.
 					F("replicas: %d", deploy.Replicas)
 			} else if deploy.Replica < 0 {
-				return nil, errno.ERR_REPLICAS_REQUIRES_POSITIVE_INTEGER.
+				return nil, errno.ERR_INSTANCES_REQUIRES_POSITIVE_INTEGER.
 					F("replica: %d", deploy.Replica)
-			} else if deploy.Instance < 0 {
-				return nil, errno.ERR_REPLICAS_REQUIRES_POSITIVE_INTEGER.
-					F("replica: %d", deploy.Instance)
-			} else if deploy.Instance > 0 {
-				instance = deploy.Instance
+			} else if deploy.Instances < 0 {
+				return nil, errno.ERR_INSTANCES_REQUIRES_POSITIVE_INTEGER.
+					F("Instance: %d", deploy.Instances)
+			} else if deploy.Instances > 0 {
+				instances = deploy.Instances
 			} else if deploy.Replicas > 0 {
-				instance = deploy.Replicas
+				instances = deploy.Replicas
 			} else if deploy.Replica > 0 {
-				instance = deploy.Replica
+				instances = deploy.Replica
 			}
 
-			for replicasSequence := 0; replicasSequence < instance; replicasSequence++ {
+			for instancesSequence := 0; instancesSequence < instances; instancesSequence++ {
 				dc, err := NewDeployConfig(ctx, kind,
-					role, deploy.Host, deploy.Name, instance,
-					hostSequence, replicasSequence, utils.DeepCopy(deployConfig))
+					role, deploy.Host, deploy.Name, instances,
+					hostSequence, instancesSequence, utils.DeepCopy(deployConfig))
 				if err != nil {
 					return nil, err // already is error code
 				}
