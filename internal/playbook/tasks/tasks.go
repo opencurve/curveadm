@@ -122,7 +122,7 @@ func (ts *Tasks) displayStatus() func(static decor.Statistics) string {
 	}
 }
 
-func (ts *Tasks) displayReplica(t *task.Task) func(static decor.Statistics) string {
+func (ts *Tasks) displayInstance(t *task.Task) func(static decor.Statistics) string {
 	total := ts.CountPtid(t.Ptid())
 	return func(static decor.Statistics) string {
 		nsucc, nskip, _ := ts.monitor.sum(static.ID)
@@ -150,7 +150,7 @@ func (ts *Tasks) addSubBar(t *task.Task) {
 		mpb.PrependDecorators(
 			decor.Name("  + "),
 			decor.Name(t.Subname()+" "),
-			decor.Any(ts.displayReplica(t), decor.WCSyncWidthR),
+			decor.Any(ts.displayInstance(t), decor.WCSyncWidthR),
 			decor.Name(" "),
 			decor.OnComplete(decor.Spinner([]string{}), ""),
 			decor.Any(ts.displayStatus()),

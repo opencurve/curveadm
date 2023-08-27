@@ -55,7 +55,7 @@ const (
 	STATUS_CLEANED = comm.SERVICE_STATUS_CLEANED
 	STATUS_LOSED   = comm.SERVICE_STATUS_LOSED
 	STATUS_UNKNWON = comm.SERVICE_STATUS_UNKNOWN
-	// for replica merged status
+	// for instance merged status
 	STATUS_RUNNING  = "RUNNING"
 	STATUS_STOPPED  = "STOPPED"
 	STATUS_ABNORMAL = "ABNORMAL"
@@ -87,7 +87,7 @@ func sortStatues(statuses []task.ServiceStatus) {
 		c1, c2 := s1.Config, s2.Config
 		if s1.Role == s2.Role {
 			if c1.GetHostSequence() == c2.GetHostSequence() {
-				return c1.GetReplicasSequence() < c2.GetReplicasSequence()
+				return c1.GetInstancesSequence() < c2.GetInstancesSequence()
 			}
 			return c1.GetHostSequence() < c2.GetHostSequence()
 		}
@@ -99,7 +99,7 @@ func id(items []string) string {
 	if len(items) == 1 {
 		return items[0]
 	}
-	return "<replicas>"
+	return "<instances>"
 }
 
 func status(items []string) string {
@@ -186,7 +186,7 @@ func mergeStatues(statuses []task.ServiceStatus) []task.ServiceStatus {
 			Id:          merge(statuses[i:j], ITEM_ID),
 			Role:        status.Role,
 			Host:        status.Host,
-			Replica:     fmt.Sprintf("%d/%s", j-i, strings.Split(status.Replica, "/")[1]),
+			Instances:   fmt.Sprintf("%d/%s", j-i, strings.Split(status.Instances, "/")[1]),
 			ContainerId: merge(statuses[i:j], ITEM_CONTAINER_ID),
 			Status:      merge(statuses[i:j], ITEM_STATUS),
 			Ports:       merge(statuses[i:j], ITEM_PORTS),
@@ -206,7 +206,7 @@ func FormatStatus(statuses []task.ServiceStatus, verbose, expand bool) string {
 		"Id",
 		"Role",
 		"Host",
-		"Replicas",
+		"Instances",
 		"Container Id",
 		"Status",
 		"Ports",
@@ -227,7 +227,7 @@ func FormatStatus(statuses []task.ServiceStatus, verbose, expand bool) string {
 			status.Id,
 			status.Role,
 			status.Host,
-			status.Replica,
+			status.Instances,
 			status.ContainerId,
 			tui.DecorateMessage{Message: status.Status, Decorate: statusDecorate},
 			utils.Choose(len(status.Ports) == 0, "-", status.Ports),
