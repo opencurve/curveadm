@@ -36,6 +36,7 @@ import (
  * log_level = error
  * sudo_alias = "sudo"
  * timeout = 180
+ * debug = false
  *
  * [ssh_connections]
  * retries = 3
@@ -48,6 +49,7 @@ const (
 	KEY_AUTO_UPGRADE = "auto_upgrade"
 	KEY_SSH_RETRIES  = "retries"
 	KEY_SSH_TIMEOUT  = "timeout"
+	KEY_DEBUG_MODE   = "debug"
 
 	WITHOUT_SUDO = " "
 )
@@ -60,6 +62,7 @@ type (
 		AutoUpgrade bool
 		SSHRetries  int
 		SSHTimeout  int
+		DebugMode   bool
 	}
 
 	CurveAdm struct {
@@ -78,6 +81,7 @@ var (
 		AutoUpgrade: true,
 		SSHRetries:  3,
 		SSHTimeout:  10,
+		DebugMode:   false,
 	}
 
 	SUPPORT_LOG_LEVEL = map[string]bool{
@@ -148,10 +152,22 @@ func parseDefaultsSection(cfg *CurveAdmConfig, defaults map[string]interface{}) 
 			}
 			cfg.AutoUpgrade = yes
 
+		// debug mode
+		case KEY_DEBUG_MODE:
+			yes, err := requirePositiveBool(KEY_DEBUG_MODE, v)
+			if err != nil {
+				return err
+			}
+			cfg.DebugMode = yes
+
 		default:
 			return errno.ERR_UNSUPPORT_CURVEADM_CONFIGURE_ITEM.
 				F("%s: %s", k, v)
 		}
+	}
+
+	if cfg.DebugMode {
+		cfg.LogLevel = "debug"
 	}
 
 	return nil
@@ -229,6 +245,7 @@ func (cfg *CurveAdmConfig) GetTimeout() int      { return cfg.Timeout }
 func (cfg *CurveAdmConfig) GetAutoUpgrade() bool { return cfg.AutoUpgrade }
 func (cfg *CurveAdmConfig) GetSSHRetries() int   { return cfg.SSHRetries }
 func (cfg *CurveAdmConfig) GetSSHTimeout() int   { return cfg.SSHTimeout }
+func (cfg *CurveAdmConfig) GetDebugMode() bool   { return cfg.DebugMode }
 func (cfg *CurveAdmConfig) GetSudoAlias() string {
 	if len(cfg.SudoAlias) == 0 {
 		return WITHOUT_SUDO

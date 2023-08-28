@@ -205,7 +205,7 @@ func NewStartHTTPServerTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (
 		Command:     command,
 		Entrypoint:  "/bin/bash",
 		Name:        getContainerName(curveadm, dc),
-		Remove:      true,
+		Remove:      !curveadm.Config().GetDebugMode(),
 		Out:         &containerId,
 		ExecOptions: curveadm.ExecOptions(),
 	})
@@ -303,7 +303,7 @@ func (s *step2StopContainer) Execute(ctx *context.Context) error {
 		ExecOptions: s.curveadm.ExecOptions(),
 	})
 	steps = append(steps, &step.RemoveContainer{
-		Success:     &success, // FIXME(P1): rmeove iff container exist
+		Success:     &success, // FIXME(P1): remove if container exist
 		ContainerId: *s.containerId,
 		ExecOptions: s.curveadm.ExecOptions(),
 	})

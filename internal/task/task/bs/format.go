@@ -319,7 +319,7 @@ func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *configure.FormatConf
 		Command:     formatCommand,
 		Entrypoint:  "/bin/bash",
 		Name:        containerName,
-		Remove:      true,
+		Remove:      !curveadm.Config().GetDebugMode(),
 		Volumes:     []step.Volume{{HostPath: mountPoint, ContainerPath: chunkfilePoolRootDir}},
 		Out:         &containerId,
 		ExecOptions: curveadm.ExecOptions(),

@@ -61,6 +61,7 @@ log_level = error
 sudo_alias = "sudo"
 timeout = 300
 auto_upgrade = true
+debug = false
 
 [ssh_connections]
 retries = 3
