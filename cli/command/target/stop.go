@@ -40,6 +40,7 @@ var (
 
 type stopOptions struct {
 	host string
+	spdk bool
 }
 
 func NewStopCommand(curveadm *cli.CurveAdm) *cobra.Command {
@@ -57,6 +58,7 @@ func NewStopCommand(curveadm *cli.CurveAdm) *cobra.Command {
 
 	flags := cmd.Flags()
 	flags.StringVar(&options.host, "host", "localhost", "Specify target host")
+	flags.BoolVar(&options.spdk, "spdk", false, "stop iscsi spdk target")
 
 	return cmd
 }
@@ -71,6 +73,7 @@ func genStopPlaybook(curveadm *cli.CurveAdm, options stopOptions) (*playbook.Pla
 			Options: map[string]interface{}{
 				comm.KEY_TARGET_OPTIONS: bs.TargetOption{
 					Host: options.host,
+					Spdk: options.spdk,
 				},
 			},
 		})
@@ -79,6 +82,7 @@ func genStopPlaybook(curveadm *cli.CurveAdm, options stopOptions) (*playbook.Pla
 }
 
 func runStop(curveadm *cli.CurveAdm, options stopOptions) error {
+
 	// 1) generate stop playbook
 	pb, err := genStopPlaybook(curveadm, options)
 	if err != nil {

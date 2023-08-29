@@ -44,6 +44,7 @@ var (
 type startOptions struct {
 	host     string
 	filename string
+	spdk bool
 }
 
 func NewStartCommand(curveadm *cli.CurveAdm) *cobra.Command {
@@ -62,6 +63,7 @@ func NewStartCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	flags := cmd.Flags()
 	flags.StringVar(&options.host, "host", "localhost", "Specify target host")
 	flags.StringVarP(&options.filename, "conf", "c", "client.yaml", "Specify client configuration file")
+	flags.BoolVar(&options.spdk, "spdk", false, "start iscsi spdk target")
 
 	return cmd
 }
@@ -78,6 +80,7 @@ func genStartPlaybook(curveadm *cli.CurveAdm,
 			Options: map[string]interface{}{
 				comm.KEY_TARGET_OPTIONS: bs.TargetOption{
 					Host: options.host,
+					Spdk: options.spdk,
 				},
 			},
 		})

@@ -36,7 +36,25 @@ g_volume=$2
 g_create=$3
 g_size=$4
 g_blocksize=$5
+g_devno=$6
+g_originbdev=$7
+g_spdk=$8
+
 g_tid=1
+g_sockname="/var/tmp/spdk.sock"
+g_rpcpath="/usr/libexec/spdk/scripts/rpc.py"
+g_isexclusive=0
+g_targetip=10.0.0.1
+g_targetport=3260
+g_initiatorip=10.0.0.0
+g_initiatormask=8
+g_volumename=disk1
+
+g_cbdpath=//${g_devno}_${g_user}_
+g_curvebdev=cbd_${g_devno}
+g_ocf=ocf_${g_devno}
+g_aio=aio_${g_devno}
+
 g_image=cbd:pool/${g_volume}_${g_user}_
 g_image_md5=$(echo -n ${g_image} | md5sum | awk '{ print $1 }')
 g_targetname=iqn.$(date +"%Y-%m").com.opencurve:curve.${g_image_md5}
@@ -52,55 +70,71 @@ if [ $g_create == "true" ]; then
         fi
     fi
 fi
-for ((i=1;;i++)); do
-    tgtadm --lld iscsi --mode target --op show --tid $i 1>/dev/null 2>&1
-    if [ $? -ne 0 ]; then
-        g_tid=$i
-        break
-    fi
-done
 
-tgtadm --lld iscsi \
-   --mode target \
-   --op new \
-   --tid ${g_tid} \
-   --targetname ${g_targetname}
-if [ $? -ne 0 ]; then
-   echo "tgtadm target new failed"
-   exit 1
-fi
+if [ $g_spdk == "true" ]; then
+	for ((i=1;;i++)); do
+	    tgtadm --lld iscsi --mode target --op show --tid $i 1>/dev/null 2>&1
+	    if [ $? -ne 0 ]; then
+	        g_tid=$i
+	        break
+	    fi
+	done
 
-tgtadm --lld iscsi \
-    --mode logicalunit \
-    --op new \
-    --tid ${g_tid} \
-    --lun 1 \
-    --bstype curve \
-    --backing-store ${g_image} \
-    --blocksize ${g_blocksize}
-if [ $? -ne 0 ]; then
-   echo "tgtadm logicalunit new failed"
-   exit 1
-fi
+	tgtadm --lld iscsi \
+	   --mode target \
+	   --op new \
+	   --tid ${g_tid} \
+	   --targetname ${g_targetname}
+	if [ $? -ne 0 ]; then
+	   echo "tgtadm target new failed"
+	   exit 1
+	fi
 
-tgtadm --lld iscsi \
-    --mode logicalunit \
-    --op update \
-    --tid ${g_tid} \
-    --lun 1 \
-    --params vendor_id=NetEase,product_id=CurveVolume,product_rev=2.0
-if [ $? -ne 0 ]; then
-   echo "tgtadm logicalunit update failed"
-   exit 1
-fi
+	tgtadm --lld iscsi \
+	    --mode logicalunit \
+	    --op new \
+	    --tid ${g_tid} \
+	    --lun 1 \
+	    --bstype curve \
+	    --backing-store ${g_image} \
+	    --blocksize ${g_blocksize}
+	if [ $? -ne 0 ]; then
+	   echo "tgtadm logicalunit new failed"
+	   exit 1
+	fi
 
-tgtadm --lld iscsi \
-    --mode target \
-    --op bind \
-    --tid ${g_tid} \
-    -I ALL
-if [ $? -ne 0 ]; then
-   echo "tgtadm target bind failed"
-   exit 1
+	tgtadm --lld iscsi \
+	    --mode logicalunit \
+	    --op update \
+	    --tid ${g_tid} \
+	    --lun 1 \
+	    --params vendor_id=NetEase,product_id=CurveVolume,product_rev=2.0
+	if [ $? -ne 0 ]; then
+	   echo "tgtadm logicalunit update failed"
+	   exit 1
+	fi
+
+	tgtadm --lld iscsi \
+	    --mode target \
+	    --op bind \
+	    --tid ${g_tid} \
+	    -I ALL
+	if [ $? -ne 0 ]; then
+	   echo "tgtadm target bind failed"
+	   exit 1
+	fi
+else
+	if sudo ${g_rpcpath} -s ${g_sockname} iscsi_get_target_nodes >/dev/null | grep "$g_curvebdev" | grep name >/dev/null; then
+		echo "spdk target is already created, please try anther name"
+		exit 1
+	fi
+	sudo ${g_rpcpath} -s ${g_sockname} bdev_aio_create ${g_aio} ${g_originbdev} 512 >/dev/null
+	sudo ${g_rpcpath} -s ${g_sockname} bdev_cdb_create -b ${g_curvebdev} --cbd ${g_cbdpath} --exclusive=${g_isexclusive} --blocksize=${g_blocksize} >/dev/null
+	sudo ${g_rpcpath} -s ${g_sockname} bdev_ocf_create $g_ocf wb $g_aio $g_curvebdev > /dev/null
+	sudo ${g_rpcpath} -s ${g_sockname} iscsi_create_portal_group 1 ${g_targetip}:${g_targetport} > /dev/null
+	sudo ${g_rpcpath} -s ${g_sockname} iscsi_create_initiator_group 2 ANY ${g_initiatorip}/${g_initiatormask} > /dev/null
+	sudo ${g_rpcpath} -s ${g_sockname} iscsi_create_target_node ${g_volumename} "Data Disk1" "g_ocf:0 ${g_aio}:1" 1:2 64 -d > /dev/null
+	sudo iscsiadm --mode discovery -t sendtargets --portal 10.0.0.1:3260
+
 fi
 `

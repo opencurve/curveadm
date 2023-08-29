@@ -275,6 +275,7 @@ func (p *Playbook) createTasks(step *PlaybookStep) (*tasks.Tasks, error) {
 			t, err = bs.NewMapTask(curveadm, config.GetCC(i))
 		case UNMAP_IMAGE:
 			t, err = bs.NewUnmapTask(curveadm, nil)
+
 		// bs/target
 		case START_TARGET_DAEMON:
 			t, err = bs.NewStartTargetDaemonTask(curveadm, config.GetCC(i))
@@ -286,6 +287,7 @@ func (p *Playbook) createTasks(step *PlaybookStep) (*tasks.Tasks, error) {
 			t, err = bs.NewDeleteTargetTask(curveadm, nil)
 		case LIST_TARGETS:
 			t, err = bs.NewListTargetsTask(curveadm, nil)
+
 		// fs
 		case CHECK_CLIENT_S3:
 			t, err = checker.NewClientS3ConfigureTask(curveadm, config.GetCC(i))

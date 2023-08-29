@@ -36,13 +36,16 @@ import (
 )
 
 type TargetOption struct {
-	Host      string
-	User      string
-	Volume    string
-	Create    bool
-	Size      int
-	Tid       string
-	Blocksize uint64
+	Host           string
+	User           string
+	Volume         string
+	Create         bool
+	Size           int
+	Tid            string
+	Blocksize      uint64
+	Devno          string
+	OriginBdevname string
+	Spdk           bool
 }
 
 func NewAddTargetTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.Task, error) {
@@ -61,7 +64,10 @@ func NewAddTargetTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task
 	containerId := DEFAULT_TGTD_CONTAINER_NAME
 	targetScriptPath := "/curvebs/tools/sbin/target.sh"
 	targetScript := scripts.TARGET
-	cmd := fmt.Sprintf("/bin/bash %s %s %s %v %d %d", targetScriptPath, user, volume, options.Create, options.Size, options.Blocksize)
+	cmd := fmt.Sprintf("/bin/bash %s %s %d %s %v %d %v",
+		targetScriptPath, volume,
+		options.Devno, options.OriginBdevname,
+		options.Blocksize, user, options.Create, options.Size, options.Spdk)
 	toolsConf := fmt.Sprintf(FORMAT_TOOLS_CONF, cc.GetClusterMDSAddr())
 
 	t.AddStep(&step.ListContainers{
@@ -96,7 +102,9 @@ func NewAddTargetTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task
 	t.AddStep(&step.AddDaemonTask{ // install addTarget.task
 		ContainerId: &containerId,
 		Cmd:         "/bin/bash",
-		Args:        []string{targetScriptPath, user, volume, strconv.FormatBool(options.Create), strconv.Itoa(options.Size), strconv.FormatUint(options.Blocksize, 10)},
+		Args:        []string{targetScriptPath, options.Volume, options.Devno,
+				      options.OriginBdevname, strconv.FormatUint(options.Blocksize, 10),
+				      user, strconv.FormatBool(options.Create), strconv.Itoa(options.Size), strconv.FormatBool(options.Spdk)},
 		TaskName:    "addTarget" + TranslateVolumeName(volume, user),
 		ExecOptions: curveadm.ExecOptions(),
 	})

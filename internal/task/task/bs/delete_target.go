@@ -59,6 +59,8 @@ func NewDeleteTargetTask(curveadm *cli.CurveAdm, cc *client.ClientConfig) (*task
 
 	subname := fmt.Sprintf("hostname=%s tid=%s", hc.GetHostname(), options.Tid)
 	t := task.NewTask("Delete Target", subname, hc.GetSSHConfig())
+	listcmd := "/usr/libexec/spdk/scripts/rpc.py -s /var/tmp/spdk.sock iscsi_get_target_nodes"
+	sendtargetcmd := "sudo iscsiadm --mode discovery -t sendtargets --portal 10.0.0.1:3260"
 
 	// add step
 	var output string
@@ -75,29 +77,77 @@ func NewDeleteTargetTask(curveadm *cli.CurveAdm, cc *client.ClientConfig) (*task
 	t.AddStep(&step2CheckTgtdStatus{
 		output: &output,
 	})
-	t.AddStep(&step.ContainerExec{
-		ContainerId: &containerId,
-		Command:     fmt.Sprintf("tgtadm --lld iscsi --mode target --op show"),
-		Out:         &output,
-		ExecOptions: curveadm.ExecOptions(),
-	})
-	t.AddStep(&step2FormatTarget{
-		host:       options.Host,
-		hostname:   hc.GetHostname(),
-		output:     &output,
-		memStorage: curveadm.MemStorage(),
-	})
-	t.AddStep(&step.DelDaemonTask{
-		ContainerId: &containerId,
-		Tid:         tid,
-		MemStorage:  curveadm.MemStorage(),
-		ExecOptions: curveadm.ExecOptions(),
-	})
-	t.AddStep(&step.ContainerExec{
-		ContainerId: &containerId,
-		Command:     fmt.Sprintf("tgtadm --lld iscsi --mode target --op delete --tid %s", tid),
-		ExecOptions: curveadm.ExecOptions(),
-	})
+	if options.Spdk {
+		t.AddStep(&step.ContainerExec{
+			ContainerId: &containerId,
+			Command:     listcmd,
+			Out:         &output,
+			ExecOptions: curveadm.ExecOptions(),
+		})
+		t.AddStep(&step2FormatTarget{
+			host:       options.Host,
+			hostname:   hc.GetHostname(),
+			output:     &output,
+			memStorage: curveadm.MemStorage(),
+		})
+		t.AddStep(&step.DelDaemonTask{
+			ContainerId: &containerId,
+			Tid:         options.Tid,
+			MemStorage:  curveadm.MemStorage(),
+			ExecOptions: curveadm.ExecOptions(),
+		})
+		t.AddStep(&step.ContainerExec{
+			ContainerId: &containerId,
+			Command:     fmt.Sprintf("/usr/libexec/spdk/scripts/rpc.py -s /var/tmp/spdk.sock iscsi_delete_target_node %s", options.Tid),
+			ExecOptions: curveadm.ExecOptions(),
+		})
+		t.AddStep(&step.ContainerExec{
+			ContainerId: &containerId,
+			Command:     fmt.Sprintf("/usr/libexec/spdk/scripts/rpc.py -s /var/tmp/spdk.sock bdev_ocf_delete ocf_%s", options.Devno),
+			ExecOptions: curveadm.ExecOptions(),
+		})
+		t.AddStep(&step.ContainerExec{
+			ContainerId: &containerId,
+			Command:     fmt.Sprintf("/usr/libexec/spdk/scripts/rpc.py -s /var/tmp/spdk.sock bdev_cbd_delete cdb_%s", options.Devno),
+			ExecOptions: curveadm.ExecOptions(),
+		})
+		t.AddStep(&step.ContainerExec{
+			ContainerId: &containerId,
+			Command:     fmt.Sprintf("/usr/libexec/spdk/scripts/rpc.py -s /var/tmp/spdk.sock bdev_aio_delete aio_%s", options.Devno),
+			ExecOptions: curveadm.ExecOptions(),
+		})
+		t.AddStep(&step.ContainerExec{
+			ContainerId: &containerId,
+			Command:     sendtargetcmd,
+			ExecOptions: curveadm.ExecOptions(),
+		})
+
+	} else {
+		t.AddStep(&step.ContainerExec{
+			ContainerId: &containerId,
+			Command:     fmt.Sprintf("tgtadm --lld iscsi --mode target --op show"),
+			Out:         &output,
+			ExecOptions: curveadm.ExecOptions(),
+		})
+		t.AddStep(&step2FormatTarget{
+			host:       options.Host,
+			hostname:   hc.GetHostname(),
+			output:     &output,
+			memStorage: curveadm.MemStorage(),
+		})
+		t.AddStep(&step.DelDaemonTask{
+			ContainerId: &containerId,
+			Tid:         tid,
+			MemStorage:  curveadm.MemStorage(),
+			ExecOptions: curveadm.ExecOptions(),
+		})
+		t.AddStep(&step.ContainerExec{
+			ContainerId: &containerId,
+			Command:     fmt.Sprintf("tgtadm --lld iscsi --mode target --op delete --tid %s", tid),
+			ExecOptions: curveadm.ExecOptions(),
+		})
+	}
+
 
 	return t, nil
 }

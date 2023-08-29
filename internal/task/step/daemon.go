@@ -77,6 +77,9 @@ type AddDaemonTask struct {
 
 type DelDaemonTask struct {
 	ContainerId *string
+	Cmd         string
+	Args        []string
+	TaskName    string
 	Tid         string
 	MemStorage  *utils.SafeMap
 	module.ExecOptions
