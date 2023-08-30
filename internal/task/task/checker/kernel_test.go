@@ -39,6 +39,7 @@ func TestCheckKernelVersion(t *testing.T) {
 	}{
 		{"5.12.0", nil},
 		{"4.9.65-netease", nil},
+		{"4.18.0_80.7.1.el8_0_bch_v1.0", nil},
 		{"4.19.0-16-amd64", nil},
 		{"3.15.0", nil},
 		{"3.15.0.0.", errno.ERR_UNRECOGNIZED_KERNEL_VERSION},
