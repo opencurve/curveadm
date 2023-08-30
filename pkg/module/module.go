@@ -136,7 +136,6 @@ func execCommand(sshClient *SSHClient,
 		var cmd *goph.Cmd
 		cmd, err = sshClient.Client().CommandContext(ctx, command)
 		if err == nil {
-			cmd.Env = []string{"LANG=en_US.UTF-8"}
 			out, err = cmd.CombinedOutput()
 		}
 	}
