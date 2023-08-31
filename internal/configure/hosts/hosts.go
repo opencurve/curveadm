@@ -126,7 +126,10 @@ func (hc *HostConfig) Build() error {
 			hc.config[key] = nil // delete labels section
 			continue
 		}
-
+		//if we detect hostname instead of host ip, change it to host ip.
+		if key == "hostname" {
+			key = "hostip"
+		}
 		if itemset.Get(key) == nil {
 			return errno.ERR_UNSUPPORT_HOSTS_CONFIGURE_ITEM.
 				F("hosts[%d].%s = %v", hc.sequence, key, value)
@@ -139,17 +142,16 @@ func (hc *HostConfig) Build() error {
 			hc.config[key] = v
 		}
 	}
-
 	privateKeyFile := hc.GetPrivateKeyFile()
 	if len(hc.GetHost()) == 0 {
 		return errno.ERR_HOST_FIELD_MISSING.
 			F("hosts[%d].host = nil", hc.sequence)
-	} else if len(hc.GetHostname()) == 0 {
+	} else if len(hc.GetHostIp()) == 0 {
 		return errno.ERR_HOSTNAME_FIELD_MISSING.
-			F("hosts[%d].hostname = nil", hc.sequence)
-	} else if !utils.IsValidAddress(hc.GetHostname()) {
+			F("hosts[%d].hostIp = nil", hc.sequence)
+	} else if !utils.IsValidAddress(hc.GetHostIp()) {
 		return errno.ERR_HOSTNAME_REQUIRES_VALID_IP_ADDRESS.
-			F("hosts[%d].hostname = %s", hc.sequence, hc.GetHostname())
+			F("hosts[%d].hostIp = %s", hc.sequence, hc.GetHostIp())
 	} else if hc.GetSSHPort() > os.GetMaxPortNum() {
 		return errno.ERR_HOSTS_SSH_PORT_EXCEED_MAX_PORT_NUMBER.
 			F("hosts[%d].ssh_port = %d", hc.sequence, hc.GetSSHPort())

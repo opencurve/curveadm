@@ -53,7 +53,7 @@ type (
 		parentId         string // role_host_[name/hostSequence]_0
 		role             string // etcd/mds/metaserevr/chunkserver
 		host             string
-		hostname         string
+		hostIp           string
 		name             string
 		replicas         int
 		hostSequence     int // start with 0
@@ -251,7 +251,7 @@ func (dc *DeployConfig) convert() error {
 
 func (dc *DeployConfig) ResolveHost() error {
 	if dc.ctx == nil {
-		dc.hostname = dc.host
+		dc.hostIp = dc.host
 		return nil
 	}
 
@@ -267,8 +267,8 @@ func (dc *DeployConfig) ResolveHost() error {
 	if err != nil {
 		return errno.ERR_RENDERING_VARIABLE_FAILED.E(err)
 	}
-	dc.hostname = dc.ctx.Lookup(dc.GetHost())
-	if len(dc.hostname) == 0 {
+	dc.hostIp = dc.ctx.Lookup(dc.GetHost())
+	if len(dc.hostIp) == 0 {
 		return errno.ERR_HOST_NOT_FOUND.
 			F("host: %s", dc.GetHost())
 	}

@@ -136,7 +136,7 @@ var (
 		REQUIRE_STRING,
 		true,
 		func(dc *DeployConfig) interface{} {
-			return dc.GetHostname()
+			return dc.GetHostIp()
 		},
 	)
 
@@ -195,7 +195,7 @@ var (
 		REQUIRE_STRING,
 		true,
 		func(dc *DeployConfig) interface{} {
-			return dc.GetHostname()
+			return dc.GetHostIp()
 		},
 	)
 

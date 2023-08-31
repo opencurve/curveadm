@@ -32,8 +32,8 @@ func NewContext() *Context {
 	return &Context{m: map[string]string{}}
 }
 
-func (ctx *Context) Add(host, hostname string) {
-	ctx.m[host] = hostname
+func (ctx *Context) Add(host, hostIp string) {
+	ctx.m[host] = hostIp
 }
 
 func (ctx *Context) Lookup(host string) string {

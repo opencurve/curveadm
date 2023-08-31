@@ -10,20 +10,20 @@ const (
 	data = `
 hosts:
   - host: host1
-    hostname: 1.1.1.1
+    hostIp: 1.1.1.1
     labels:
       - all
       - host1
       - group1
   - host: host2
-    hostname: 2.2.2.2
+    hostIp: 2.2.2.2
     labels:
       - all
       - host2
       - group1
       - group2
   - host: host3
-    hostname: 3.3.3.3
+    hostIp: 3.3.3.3
     labels:
       - all
       - host3
