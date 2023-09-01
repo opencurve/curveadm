@@ -376,6 +376,7 @@ var (
 	ERR_MOUNT_POINT_REQUIRE_ABSOLUTE_PATH        = EC(341002, "mount point must be an absolute path")
 	ERR_FORMAT_PERCENT_REQUIRES_INTERGET         = EC(341003, "format percentage requires an integer")
 	ERR_FORMAT_PERCENT_MUST_BE_BETWEEN_1_AND_100 = EC(341004, "format percentage must be between 1 and 100")
+	ERR_INVALID_FORMAT_TYPE                      = EC(341005, "format type must be (data) or (wal)")
 
 	// 350: configure (client.yaml: parse failed)
 	ERR_PARSE_CLIENT_CONFIGURE_FAILED  = EC(350000, "parse client configure failed")

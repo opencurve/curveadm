@@ -124,6 +124,13 @@ var (
 		nil,
 	)
 
+	CONFIG_WAL_DIR = itemset.insert(
+		"wal_dir",
+		REQUIRE_STRING,
+		true,
+		nil,
+	)
+
 	CONFIG_CORE_DIR = itemset.insert(
 		"core_dir",
 		REQUIRE_STRING,

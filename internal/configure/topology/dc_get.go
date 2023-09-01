@@ -42,9 +42,11 @@ const (
 	LAYOUT_SERVICE_CONF_DIR                 = "/conf"
 	LAYOUT_SERVICE_LOG_DIR                  = "/logs"
 	LAYOUT_SERVICE_DATA_DIR                 = "/data"
+	LAYOUT_SERVICE_WAL_DIR                  = "/wal"
 	LAYOUT_TOOLS_DIR                        = "/tools"
 	LAYOUT_TOOLS_V2_DIR                     = "/tools-v2"
 	LAYOUT_CURVEBS_CHUNKFILE_POOL_DIR       = "chunkfilepool"
+	LAYOUT_CURVEBS_WALFILE_POOL_DIR         = "walfilepool"
 	LAYOUT_CURVEBS_COPYSETS_DIR             = "copysets"
 	LAYOUT_CURVEBS_RECYCLER_DIR             = "recycler"
 	LAYOUT_CURVEBS_TOOLS_CONFIG_SYSTEM_PATH = "/etc/curve/tools.conf"
@@ -57,6 +59,7 @@ const (
 	BINARY_CURVEFS_TOOL     = "curvefs_tool"
 	BINARY_CURVE_TOOL_V2    = "curve"
 	METAFILE_CHUNKFILE_POOL = "chunkfilepool.meta"
+	METAFILE_WALFILE_POOL   = "walfilepool.meta"
 	METAFILE_CHUNKSERVER_ID = "chunkserver.dat"
 )
 
@@ -131,6 +134,7 @@ func (dc *DeployConfig) GetContainerImage() string {
 }
 func (dc *DeployConfig) GetLogDir() string           { return dc.getString(CONFIG_LOG_DIR) }
 func (dc *DeployConfig) GetDataDir() string          { return dc.getString(CONFIG_DATA_DIR) }
+func (dc *DeployConfig) GetWalDir() string           { return dc.getString(CONFIG_WAL_DIR) }
 func (dc *DeployConfig) GetCoreDir() string          { return dc.getString(CONFIG_CORE_DIR) }
 func (dc *DeployConfig) GetListenIp() string         { return dc.getString(CONFIG_LISTEN_IP) }
 func (dc *DeployConfig) GetListenPort() int          { return dc.getInt(CONFIG_LISTEN_PORT) }
@@ -184,7 +188,8 @@ func (dc *DeployConfig) GetListenExternalPort() int {
  *  │   ├── conf
  *  │   ├── data
  *  │   ├── log
- *  │   └── sbin
+ *  │   ├── sbin
+ *  │   └── wal
  *  ├── snapshotclone
  *  │   ├── conf
  *  │   ├── data
@@ -215,6 +220,7 @@ type (
 		ServiceConfDir     string // /curvebs/mds/conf
 		ServiceLogDir      string // /curvebs/mds/logs
 		ServiceDataDir     string // /curvebs/mds/data
+		ServiceWalDir      string // /curvebs/chunkserver/wal
 		ServiceConfPath    string // /curvebs/mds/conf/mds.conf
 		ServiceConfSrcPath string // /curvebs/conf/mds.conf
 		ServiceConfFiles   []ConfFile
@@ -239,6 +245,9 @@ type (
 		ChunkfilePoolRootDir  string // /curvebs/chunkserver/data
 		ChunkfilePoolDir      string // /curvebs/chunkserver/data/chunkfilepool
 		ChunkfilePoolMetaPath string // /curvebs/chunkserver/data/chunkfilepool.meta
+		WalfilePoolRootDir    string // /curvebs/chunkserver/wal
+		WalfilePoolDir        string // /curvebs/chunkserver/wal/walfilepool
+		WalfilePoolMetaPath   string // /curvebs/chunkserver/wal/walfilepool.meta
 
 		// core
 		CoreSystemDir string
@@ -281,6 +290,7 @@ func (dc *DeployConfig) GetProjectLayout() Layout {
 
 	// format
 	chunkserverDataDir := fmt.Sprintf("%s/%s%s", root, ROLE_CHUNKSERVER, LAYOUT_SERVICE_DATA_DIR)
+	chunkserverWalDir := fmt.Sprintf("%s/%s%s", root, ROLE_CHUNKSERVER, LAYOUT_SERVICE_WAL_DIR)
 
 	return Layout{
 		// project
@@ -295,6 +305,7 @@ func (dc *DeployConfig) GetProjectLayout() Layout {
 		ServiceConfDir:     serviceRootDir + LAYOUT_SERVICE_CONF_DIR,
 		ServiceLogDir:      serviceRootDir + LAYOUT_SERVICE_LOG_DIR,
 		ServiceDataDir:     serviceRootDir + LAYOUT_SERVICE_DATA_DIR,
+		ServiceWalDir:      serviceRootDir + LAYOUT_SERVICE_WAL_DIR,
 		ServiceConfPath:    fmt.Sprintf("%s/%s.conf", serviceConfDir, role),
 		ServiceConfSrcPath: fmt.Sprintf("%s/%s.conf", confSrcDir, role),
 		ServiceConfFiles:   serviceConfFiles,
@@ -319,6 +330,9 @@ func (dc *DeployConfig) GetProjectLayout() Layout {
 		ChunkfilePoolRootDir:  chunkserverDataDir,
 		ChunkfilePoolDir:      fmt.Sprintf("%s/%s", chunkserverDataDir, LAYOUT_CURVEBS_CHUNKFILE_POOL_DIR),
 		ChunkfilePoolMetaPath: fmt.Sprintf("%s/%s", chunkserverDataDir, METAFILE_CHUNKFILE_POOL),
+		WalfilePoolRootDir:    chunkserverWalDir,
+		WalfilePoolDir:        fmt.Sprintf("%s/%s", chunkserverWalDir, LAYOUT_CURVEBS_WALFILE_POOL_DIR),
+		WalfilePoolMetaPath:   fmt.Sprintf("%s/%s", chunkserverWalDir, METAFILE_WALFILE_POOL),
 
 		// core
 		CoreSystemDir: LAYOUT_CORE_SYSTEM_DIR,
