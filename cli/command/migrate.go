@@ -104,6 +104,8 @@ var (
 
 type migrateOptions struct {
 	filename string
+	poolset         string
+	poolsetDiskType string
 }
 
 func NewMigrateCommand(curveadm *cli.CurveAdm) *cobra.Command {
@@ -119,6 +121,10 @@ func NewMigrateCommand(curveadm *cli.CurveAdm) *cobra.Command {
 		},
 		DisableFlagsInUseLine: true,
 	}
+
+	flags := cmd.Flags()
+	flags.StringVar(&options.poolset, "poolset", "default", "Specify the poolset")
+	flags.StringVar(&options.poolsetDiskType, "poolset-disktype", "ssd", "Specify the disk type of physical pool")
 
 	return cmd
 }
@@ -178,13 +184,15 @@ func getMigrates(curveadm *cli.CurveAdm, data string) []*configure.MigrateServer
 }
 
 func genMigratePlaybook(curveadm *cli.CurveAdm,
-	dcs []*topology.DeployConfig, data string) (*playbook.Playbook, error) {
+	dcs []*topology.DeployConfig, options migrateOptions,data string) (*playbook.Playbook, error) {
 	diffs, _ := diffTopology(curveadm, data)
 	dcs2add := diffs[topology.DIFF_ADD]
 	dcs2del := diffs[topology.DIFF_DELETE]
 	migrates := getMigrates(curveadm, data)
 	role := migrates[0].From.GetRole()
 	steps := MIGRATE_ROLE_STEPS[role]
+	poolset := options.poolset
+	poolsetDiskType := options.poolsetDiskType
 
 	pb := playbook.NewPlaybook(curveadm)
 	for _, step := range steps {
@@ -210,10 +218,14 @@ func genMigratePlaybook(curveadm *cli.CurveAdm,
 		case playbook.CREATE_PHYSICAL_POOL:
 			options[comm.KEY_CREATE_POOL_TYPE] = comm.POOL_TYPE_PHYSICAL
 			options[comm.KEY_MIGRATE_SERVERS] = migrates
+			options[comm.POOLSET] = poolset
+			options[comm.POOLSET_DISK_TYPE] = poolsetDiskType
 		case playbook.CREATE_LOGICAL_POOL:
 			options[comm.KEY_CREATE_POOL_TYPE] = comm.POOL_TYPE_LOGICAL
 			options[comm.KEY_MIGRATE_SERVERS] = migrates
 			options[comm.KEY_NEW_TOPOLOGY_DATA] = data
+			options[comm.POOLSET] = poolset
+			options[comm.POOLSET_DISK_TYPE] = poolsetDiskType
 		case playbook.UPDATE_TOPOLOGY:
 			options[comm.KEY_NEW_TOPOLOGY_DATA] = data
 		}
@@ -270,7 +282,7 @@ func runMigrate(curveadm *cli.CurveAdm, options migrateOptions) error {
 	}
 
 	// 6) generate migrate playbook
-	pb, err := genMigratePlaybook(curveadm, dcs, data)
+	pb, err := genMigratePlaybook(curveadm, dcs, options, data)
 	if err != nil {
 		return err
 	}

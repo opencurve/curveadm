@@ -245,6 +245,8 @@ func genDeployPlaybook(curveadm *cli.CurveAdm,
 			options[comm.POOLSET_DISK_TYPE] = diskType
 		} else if step == CREATE_LOGICAL_POOL {
 			options[comm.KEY_CREATE_POOL_TYPE] = comm.POOL_TYPE_LOGICAL
+			options[comm.POOLSET] = poolset
+			options[comm.POOLSET_DISK_TYPE] = diskType
 		}
 
 		pb.AddStep(&playbook.PlaybookStep{
