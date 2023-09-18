@@ -46,6 +46,8 @@ const (
 	KEY_CREATE_POOL_TYPE      = "POOL_TYPE"
 	POOL_TYPE_LOGICAL         = "logicalpool"
 	POOL_TYPE_PHYSICAL        = "physicalpool"
+	POOLSET                   = "poolset"
+	POOLSET_DISK_TYPE         = "poolset-disktype"
 	KEY_NUMBER_OF_CHUNKSERVER = "NUMBER_OF_CHUNKSERVER"
 
 	// format

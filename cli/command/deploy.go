@@ -231,6 +231,7 @@ func genDeployPlaybook(curveadm *cli.CurveAdm,
 		Name: options.poolset,
 		Type: options.poolsetDiskType,
 	}
+	diskType := options.poolsetDiskType
 
 	pb := playbook.NewPlaybook(curveadm)
 	for _, step := range steps {
@@ -253,7 +254,8 @@ func genDeployPlaybook(curveadm *cli.CurveAdm,
 			options[comm.KEY_POOLSET] = poolset
 		} else if step == CREATE_LOGICAL_POOL {
 			options[comm.KEY_CREATE_POOL_TYPE] = comm.POOL_TYPE_LOGICAL
-			options[comm.KEY_NUMBER_OF_CHUNKSERVER] = calcNumOfChunkserver(curveadm, dcs)
+			options[comm.POOLSET] = poolset
+			options[comm.POOLSET_DISK_TYPE] = diskType
 		}
 
 		pb.AddStep(&playbook.PlaybookStep{
