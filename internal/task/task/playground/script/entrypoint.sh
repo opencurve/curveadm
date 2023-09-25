@@ -41,7 +41,7 @@ function start_service() {
                 -raft_sync_segments=true \
                 -raft_max_install_snapshot_tasks_num=1 \
                 -chunkServerIp=127.0.0.1 \
-                -chunkFilePoolDir="${data_dir}" \
+                -chunkFilePoolDir="${data_dir}"/chunks \
                 -walFilePoolDir="${data_dir}" \
                 -raft_sync=true \
                 -raft_max_segment_size=8388608 \

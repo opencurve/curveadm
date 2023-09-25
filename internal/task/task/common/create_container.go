@@ -118,7 +118,7 @@ func getArguments(dc *topology.DeployConfig) string {
 		"enableExternalServer":  dc.GetEnableExternalServer(),
 		"chunkServerExternalIp": dc.GetListenExternalIp(),
 		"chunkServerPort":       dc.GetListenPort(),
-		"chunkFilePoolDir":      dataDir,
+		"chunkFilePoolDir":      fmt.Sprintf("%s/chunks", dataDir),
 		"chunkFilePoolMetaPath": fmt.Sprintf("%s/chunkfilepool.meta", dataDir),
 		"walFilePoolDir":        dataDir,
 		"walFilePoolMetaPath":   fmt.Sprintf("%s/walfilepool.meta", dataDir),
@@ -138,6 +138,12 @@ func getArguments(dc *topology.DeployConfig) string {
 		"raft_max_segment_size":                8388608,
 		"raft_max_install_snapshot_tasks_num":  1,
 		"raft_use_fsync_rather_than_fdatasync": false,
+	}
+	if dc.GetChunkFilePoolAllocatedPercent() != 0 {
+		chunkserverArguments["chunkFilePoolAllocatedPercent"] = dc.GetChunkFilePoolAllocatedPercent()
+	}
+	if dc.GetChunkFormatThreadNum() != 0 {
+		chunkserverArguments["chunkFormatThreadNum"] = dc.GetChunkFormatThreadNum()
 	}
 
 	arguments := []string{}

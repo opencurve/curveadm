@@ -139,6 +139,12 @@ func (dc *DeployConfig) GetListenDummyPort() int     { return dc.getInt(CONFIG_L
 func (dc *DeployConfig) GetListenProxyPort() int     { return dc.getInt(CONFIG_LISTEN_PROXY_PORT) }
 func (dc *DeployConfig) GetListenExternalIp() string { return dc.getString(CONFIG_LISTEN_EXTERNAL_IP) }
 func (dc *DeployConfig) GetCopysets() int            { return dc.getInt(CONFIG_COPYSETS) }
+func (dc *DeployConfig) GetChunkFilePoolAllocatedPercent() int {
+	return dc.getInt(CONFIG_CHUNK_FILE_POOL_ALLOCATED_PERCENT)
+}
+func (dc *DeployConfig) GetChunkFormatThreadNum() int {
+	return dc.getInt(CONFIG_CHUNK_FORMAT_THREAD_NUM)
+}
 func (dc *DeployConfig) GetS3AccessKey() string      { return dc.getString(CONFIG_S3_ACCESS_KEY) }
 func (dc *DeployConfig) GetS3SecretKey() string      { return dc.getString(CONFIG_S3_SECRET_KEY) }
 func (dc *DeployConfig) GetS3Address() string        { return dc.getString(CONFIG_S3_ADDRESS) }

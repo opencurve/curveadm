@@ -230,6 +230,20 @@ var (
 		},
 	)
 
+	CONFIG_CHUNK_FILE_POOL_ALLOCATED_PERCENT = itemset.insert(
+		"chunkfilepool.allocated_percent",
+		REQUIRE_POSITIVE_INTEGER,
+		true,
+		nil,
+	)
+
+	CONFIG_CHUNK_FORMAT_THREAD_NUM = itemset.insert(
+		"chunkfilepool.format_thread_num",
+		REQUIRE_POSITIVE_INTEGER,
+		true,
+		nil,
+	)
+
 	CONFIG_S3_ACCESS_KEY = itemset.insert(
 		"s3.ak",
 		REQUIRE_STRING,
