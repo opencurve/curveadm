@@ -29,6 +29,7 @@ import (
 	"os"
 	"strings"
 
+	comm "github.com/opencurve/curveadm/internal/common"
 	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/task/context"
 	"github.com/opencurve/curveadm/internal/utils"
@@ -475,6 +476,15 @@ func (s *UnixName) Execute(ctx *context.Context) error {
 }
 
 func (s *ModInfo) Execute(ctx *context.Context) error {
+	isWsl2, err := ctx.Module().Shell().IsWsl2()
+	if err == nil && isWsl2 {
+		// NOTE: FUSE is statically compiled into the WSL2 kernel
+		// See also: https://github.com/microsoft/WSL/issues/17#issuecomment-759817472
+		if s.Name == comm.KERNERL_MODULE_FUSE {
+			*s.Success = true
+			return nil
+		}
+	}
 	cmd := ctx.Module().Shell().ModInfo(s.Name)
 	out, err := cmd.Execute(s.ExecOptions)
 	return PostHandle(s.Success, s.Out, out, err, errno.ERR_GET_KERNEL_MODULE_INFO_FAILED)

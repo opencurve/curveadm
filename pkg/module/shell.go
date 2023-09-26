@@ -112,6 +112,18 @@ func (s *Shell) Execute(options ExecOptions) (string, error) {
 	return execCommand(s.sshClient, s.tmpl, s.data, options)
 }
 
+func (s *Shell) IsWsl2() (isWsl2 bool, err error) {
+	cmd := s.Command("uname -a | grep \"WSL2\" | wc -l")
+	out, err := cmd.Execute(ExecOptions{})
+	if err != nil {
+		return
+	}
+	if out != "" && out[0] == '1' {
+		isWsl2 = true
+	}
+	return
+}
+
 // text
 func (s *Shell) Sed(file ...string) *Shell {
 	s.tmpl = template.Must(template.New("sed").Parse(TEMPLATE_SED))
