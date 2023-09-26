@@ -1,24 +1,24 @@
 /*
- *  Copyright (c) 2021 NetEase Inc.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- */
+*  Copyright (c) 2021 NetEase Inc.
+*
+*  Licensed under the Apache License, Version 2.0 (the "License");
+*  you may not use this file except in compliance with the License.
+*  You may obtain a copy of the License at
+*
+*      http://www.apache.org/licenses/LICENSE-2.0
+*
+*  Unless required by applicable law or agreed to in writing, software
+*  distributed under the License is distributed on an "AS IS" BASIS,
+*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+*  See the License for the specific language governing permissions and
+*  limitations under the License.
+*/
 
 /*
- * Project: CurveAdm
- * Created Date: 2022-02-09
- * Author: Jingli Chen (Wine93)
- */
+* Project: CurveAdm
+* Created Date: 2022-02-09
+* Author: Jingli Chen (Wine93)
+*/
 
 package bs
 
@@ -46,7 +46,7 @@ type (
 		output     *string
 		memStorage *utils.SafeMap
 	}
-)
+	)
 
 func addTarget(memStorage *utils.SafeMap, id string, target *step.Target) {
 	memStorage.TX(func(kv *utils.SafeMap) error {
@@ -65,13 +65,13 @@ func addTarget(memStorage *utils.SafeMap, id string, target *step.Target) {
 Output Example:
 Target 3: iqn.2022-02.com.opencurve:curve.wine93/test03
 
-	...
-	LUN information:
-	    LUN: 0
-	        ...
-	    LUN: 1
-	        ...
-	        Backing store path: cbd:pool//test03_wine93_
+...
+LUN information:
+LUN: 0
+...
+LUN: 1
+...
+Backing store path: cbd:pool//test03_wine93_
 */
 func (s *step2FormatTarget) Execute(ctx *context.Context) error {
 	output := *s.output
@@ -127,12 +127,24 @@ func NewListTargetsTask(curveadm *cli.CurveAdm, v interface{}) (*task.Task, erro
 	t.AddStep(&step2CheckTgtdStatus{
 		output: &output,
 	})
-	t.AddStep(&step.ContainerExec{
-		ContainerId: &containerId,
-		Command:     fmt.Sprintf("tgtadm --lld iscsi --mode target --op show"),
-		Out:         &output,
-		ExecOptions: curveadm.ExecOptions(),
-	})
+	if options.Spdk {
+
+		t.AddStep(&step.ContainerExec{
+			ContainerId: &containerId,
+			Command:     fmt.Sprintf("/usr/libexec/spdk/scripts/rpc.py -s /var/tmp/spdk.sock iscsi_delete_target_node %s", options.Tid),
+			Out:         &output,
+			ExecOptions: curveadm.ExecOptions(),
+		})
+
+	} else {
+		t.AddStep(&step.ContainerExec{
+			ContainerId: &containerId,
+			Command:     fmt.Sprintf("tgtadm --lld iscsi --mode target --op show"),
+			Out:         &output,
+			ExecOptions: curveadm.ExecOptions(),
+		})
+	}
+
 	t.AddStep(&step2FormatTarget{
 		host:       options.Host,
 		hostname:   hc.GetHostname(),

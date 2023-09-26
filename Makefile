@@ -73,4 +73,3 @@ upload:
 lint:
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCILINT_VERSION)
 	$(GOBIN_GOLANGCILINT) run -v
-

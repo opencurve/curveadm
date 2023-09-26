@@ -110,6 +110,22 @@ func ParseSize(size string) (int, error) {
 	return n, nil
 }
 
+func ParseOriginDevname(origindevname string) error {
+	if !strings.HasSuffix(origindevname, "/dev/") {
+		return errno.ERR_SPDK_TARGET_DEVNAME_IS_ABNORMAL.
+			F("origindevname: %s", origindevname)
+	}
+	return nil
+}
+
+func ParseDevno(size string) (int, error) {
+	n, err := strconv.Atoi(size)
+	if err != nil || n < 0 {
+		return 0, errno.ERR_SPDK_TARGET_DEVNO_IS_ABNORMAL
+	}
+	return n, nil
+}
+
 func ParseBlockSize(blocksize string) (uint64, error) {
 	if !strings.HasSuffix(blocksize, "B") {
 		return 0, errno.ERR_VOLUME_BLOCKSIZE_MUST_END_WITH_BYTE_SUFFIX.

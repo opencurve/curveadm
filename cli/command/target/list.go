@@ -41,6 +41,7 @@ var (
 
 type listOptions struct {
 	host string
+	spdk bool
 }
 
 func NewListCommand(curveadm *cli.CurveAdm) *cobra.Command {
@@ -59,6 +60,7 @@ func NewListCommand(curveadm *cli.CurveAdm) *cobra.Command {
 
 	flags := cmd.Flags()
 	flags.StringVar(&options.host, "host", "localhost", "Specify target host")
+	flags.BoolVar(&options.spdk, "spdk", false, "list iscsi spdk target")
 
 	return cmd
 }
@@ -73,6 +75,7 @@ func genListPlaybook(curveadm *cli.CurveAdm, options listOptions) (*playbook.Pla
 			Options: map[string]interface{}{
 				comm.KEY_TARGET_OPTIONS: bs.TargetOption{
 					Host: options.host,
+					Spdk: options.spdk,
 				},
 			},
 		})

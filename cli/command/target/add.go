@@ -45,12 +45,15 @@ var (
 )
 
 type addOptions struct {
-	image     string
-	host      string
-	size      string
-	create    bool
-	filename  string
-	blocksize string
+	image          string
+	host           string
+	size           string
+	create         bool
+	filename       string
+	blocksize      string
+	devno          string
+	originbdevname string
+	spdk           bool
 }
 
 func checkAddOptions(curveadm *cli.CurveAdm, options addOptions) error {
@@ -60,6 +63,17 @@ func checkAddOptions(curveadm *cli.CurveAdm, options addOptions) error {
 		return err
 	} else if _, err = client.ParseBlockSize(options.blocksize); err != nil {
 		return err
+	} else if options.spdk {
+		if len(options.devno) != 0 {
+			if _, err = client.ParseDevno(options.size); err != nil {
+				return err
+			}
+		}
+		if len(options.originbdevname) != 0 {
+			if err = client.ParseOriginDevname(options.size); err != nil {
+				return err
+			}
+		}
 	} else if !utils.PathExist(options.filename) {
 		return errno.ERR_CLIENT_CONFIGURE_FILE_NOT_EXIST.
 			F("file path: %s", utils.AbsPath(options.filename))
@@ -91,6 +105,9 @@ func NewAddCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	flags.StringVar(&options.size, "size", "10GiB", "Specify volume size")
 	flags.StringVarP(&options.filename, "conf", "c", "client.yaml", "Specify client configuration file")
 	flags.StringVar(&options.blocksize, "blocksize", "4096B", "Specify volume blocksize")
+	flags.BoolVar(&options.spdk, "spdk", false, "create iscsi spdk target")
+	flags.StringVar(&options.devno, "devno", "0", "Specify bdev num(when set --spdk flag)")
+	flags.StringVar(&options.originbdevname, "originbdevname", "/dev/cbd0", "Specify cbd dev(when set --spdk flag)")
 	return cmd
 }
 
@@ -108,12 +125,15 @@ func genAddPlaybook(curveadm *cli.CurveAdm,
 			Configs: ccs,
 			Options: map[string]interface{}{
 				comm.KEY_TARGET_OPTIONS: bs.TargetOption{
-					Host:      options.host,
-					User:      user,
-					Volume:    name,
-					Size:      size,
-					Blocksize: blocksize,
-					Create:    options.create,
+					Host:           options.host,
+					User:           user,
+					Volume:         name,
+					Size:           size,
+					Blocksize:      blocksize,
+					Create:         options.create,
+					Devno:          options.devno,
+					OriginBdevname: options.originbdevname,
+					Spdk:           options.spdk,
 				},
 			},
 		})
@@ -130,7 +150,6 @@ func runAdd(curveadm *cli.CurveAdm, options addOptions) error {
 		return errno.ERR_REQUIRE_CURVEBS_KIND_CLIENT_CONFIGURE_FILE.
 			F("kind: %s", cc.GetKind())
 	}
-
 	// 2) generate map playbook
 	pb, err := genAddPlaybook(curveadm, []*configure.ClientConfig{cc}, options)
 	if err != nil {

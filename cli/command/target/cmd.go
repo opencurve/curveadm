@@ -32,7 +32,7 @@ func NewTargetCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "target",
 		Short: "Manage SCSI target of CurveBS",
-		Args:  cliutil.NoArgs,
+		Args:  cliutil.ExactArgs(1),
 		RunE:  cliutil.ShowHelp(curveadm.Err()),
 	}
 
