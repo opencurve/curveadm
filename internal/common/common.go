@@ -47,6 +47,7 @@ const (
 	POOL_TYPE_PHYSICAL     = "physicalpool"
 	POOLSET                = "poolset"
 	POOLSET_DISK_TYPE      = "poolset-disktype"
+	DEBUG_MODE             = "DEBUG_MODE"
 
 	// disk
 	DISK_DEFAULT_NULL_SIZE            = "-"

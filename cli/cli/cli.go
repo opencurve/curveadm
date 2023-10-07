@@ -31,6 +31,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kpango/glg"
 	comm "github.com/opencurve/curveadm/internal/common"
 	configure "github.com/opencurve/curveadm/internal/configure/curveadm"
 	"github.com/opencurve/curveadm/internal/configure/hosts"
@@ -309,6 +310,7 @@ func (curveadm *CurveAdm) ClusterName() string               { return curveadm.c
 func (curveadm *CurveAdm) ClusterTopologyData() string       { return curveadm.clusterTopologyData }
 func (curveadm *CurveAdm) ClusterPoolData() string           { return curveadm.clusterPoolData }
 func (curveadm *CurveAdm) Monitor() storage.Monitor          { return curveadm.monitor }
+func (curveadm *CurveAdm) SetDebugLevel()                    { glg.Get().SetLevel(glg.DEBG) }
 
 func (curveadm *CurveAdm) GetHost(host string) (*hosts.HostConfig, error) {
 	if len(curveadm.Hosts()) == 0 {

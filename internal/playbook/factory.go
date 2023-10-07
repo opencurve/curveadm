@@ -94,6 +94,7 @@ const (
 	CREATE_VOLUME
 	MAP_IMAGE
 	UNMAP_IMAGE
+	CLEAN_FORMAT
 
 	// monitor
 	PULL_MONITOR_IMAGE
@@ -266,6 +267,8 @@ func (p *Playbook) createTasks(step *PlaybookStep) (*tasks.Tasks, error) {
 			t, err = bs.NewGetFormatStatusTask(curveadm, config.GetFC(i))
 		case STOP_FORMAT:
 			t, err = bs.NewStopFormatTask(curveadm, config.GetFC(i))
+		case CLEAN_FORMAT:
+			t, err = bs.NewCleanFormatTask(curveadm, config.GetFC(i))
 		case BALANCE_LEADER:
 			t, err = bs.NewBalanceTask(curveadm, config.GetDC(i))
 		case START_NEBD_SERVICE:
