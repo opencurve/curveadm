@@ -95,7 +95,7 @@ func (s *step2FormatStatus) Execute(ctx *context.Context) error {
 	}
 	if usage == 0 {
 		status = "Mounting"
-	} else if len(*s.containerStatus) > 1 {
+	} else if len(*s.containerStatus) > 1 && !strings.Contains(*s.containerStatus, "Exited") {
 		status = "Formatting"
 	} else if usage < s.config.GetFormatPercent() {
 		status = "Pulling image"

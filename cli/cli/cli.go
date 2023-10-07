@@ -31,6 +31,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kpango/glg"
 	comm "github.com/opencurve/curveadm/internal/common"
 	configure "github.com/opencurve/curveadm/internal/configure/curveadm"
 	"github.com/opencurve/curveadm/internal/configure/hosts"
@@ -94,11 +95,11 @@ func NewCurveAdm() (*CurveAdm, error) {
 
 	rootDir := fmt.Sprintf("%s/.curveadm", home)
 	curveadm := &CurveAdm{
-		rootDir:   rootDir,
-		dataDir:   path.Join(rootDir, "data"),
-		pluginDir: path.Join(rootDir, "plugins"),
-		logDir:    path.Join(rootDir, "logs"),
-		tempDir:   path.Join(rootDir, "temp"),
+		rootDir:      rootDir,
+		dataDir:      path.Join(rootDir, "data"),
+		pluginDir:    path.Join(rootDir, "plugins"),
+		logDir:       path.Join(rootDir, "logs"),
+		tempDir:      path.Join(rootDir, "temp"),
 		httpConfPath: path.Join(rootDir, "http/conf"),
 		httpLogPath:  path.Join(rootDir, "http/logs"),
 	}
@@ -308,6 +309,7 @@ func (curveadm *CurveAdm) ClusterName() string               { return curveadm.c
 func (curveadm *CurveAdm) ClusterTopologyData() string       { return curveadm.clusterTopologyData }
 func (curveadm *CurveAdm) ClusterPoolData() string           { return curveadm.clusterPoolData }
 func (curveadm *CurveAdm) Monitor() storage.Monitor          { return curveadm.monitor }
+func (curveadm *CurveAdm) SetDebugLevel()                    { glg.Get().SetLevel(glg.DEBG) }
 
 func (curveadm *CurveAdm) GetHost(host string) (*hosts.HostConfig, error) {
 	if len(curveadm.Hosts()) == 0 {

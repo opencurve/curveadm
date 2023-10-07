@@ -29,6 +29,7 @@ import (
 	"time"
 
 	"github.com/opencurve/curveadm/cli/cli"
+	comm "github.com/opencurve/curveadm/internal/common"
 	"github.com/opencurve/curveadm/internal/configure"
 	"github.com/opencurve/curveadm/internal/configure/disks"
 	os "github.com/opencurve/curveadm/internal/configure/os"
@@ -247,6 +248,7 @@ func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *configure.FormatConf
 	formatScriptPath := fmt.Sprintf("%s/format.sh", layout.ToolsBinDir)
 	formatCommand := fmt.Sprintf("%s %s %d %d %s %s", formatScriptPath, layout.FormatBinaryPath,
 		usagePercent, DEFAULT_CHUNKFILE_SIZE, layout.ChunkfilePoolDir, layout.ChunkfilePoolMetaPath)
+	debug := curveadm.MemStorage().Get(comm.DEBUG_MODE).(bool)
 
 	// 1: skip if formating container exist
 	t.AddStep(&step.ListContainers{
@@ -319,7 +321,7 @@ func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *configure.FormatConf
 		Command:     formatCommand,
 		Entrypoint:  "/bin/bash",
 		Name:        containerName,
-		Remove:      true,
+		Remove:      !debug,
 		Volumes:     []step.Volume{{HostPath: mountPoint, ContainerPath: chunkfilePoolRootDir}},
 		Out:         &containerId,
 		ExecOptions: curveadm.ExecOptions(),
