@@ -28,12 +28,33 @@ percent=$2
 chunkfile_size=$3
 chunkfile_pool_dir=$4
 chunkfile_pool_meta_path=$5
+increment_format=$6
 
 mkdir -p $chunkfile_pool_dir
-$binary \
-  -allocatePercent=$percent \
-  -fileSize=$chunkfile_size \
-  -filePoolDir=$chunkfile_pool_dir \
-  -filePoolMetaPath=$chunkfile_pool_meta_path \
-  -fileSystemPath=$chunkfile_pool_dir
+
+if [ $increment_format == "true" ]
+then
+    rootdir=$(dirname $chunkfile_pool_dir)
+    used_percent=$(df $rootdir --output=pcent|tail -n 1|sed 's/%//'|xargs)
+    let minus=$percent-$used_percent
+    
+    if [ $minus -gt 0 ]
+    then
+      $binary \
+        -allocatePercent=$minus \
+        -fileSize=$chunkfile_size \
+        -filePoolDir=$chunkfile_pool_dir \
+        -filePoolMetaPath=$chunkfile_pool_meta_path \
+        -fileSystemPath=$chunkfile_pool_dir
+    fi  
+else
+    $binary \
+      -allocatePercent=$percent \
+      -fileSize=$chunkfile_size \
+      -filePoolDir=$chunkfile_pool_dir \
+      -filePoolMetaPath=$chunkfile_pool_meta_path \
+      -fileSystemPath=$chunkfile_pool_dir
+fi
+
+
 `
