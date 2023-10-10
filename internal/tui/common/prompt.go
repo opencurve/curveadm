@@ -190,6 +190,12 @@ func PromptCollectService() string {
 	return prompt.Build()
 }
 
+func PromptIncrementFormat() string {
+	prompt := NewPrompt(color.YellowString(PROMPT_WARNING) + DEFAULT_CONFIRM_PROMPT)
+	prompt.data["warning"] = "WARNING: increment format will stop chunkserver service"
+	return prompt.Build()
+}
+
 func prettyClue(clue string) string {
 	items := strings.Split(clue, "\n")
 	for {

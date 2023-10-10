@@ -24,10 +24,10 @@ package command
 
 import (
 	"fmt"
-
 	"github.com/opencurve/curveadm/cli/cli"
 	comm "github.com/opencurve/curveadm/internal/common"
 	"github.com/opencurve/curveadm/internal/configure"
+	"github.com/opencurve/curveadm/internal/configure/topology"
 	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/playbook"
 	"github.com/opencurve/curveadm/internal/task/task/bs"
@@ -39,11 +39,12 @@ import (
 
 const (
 	FORMAT_EXAMPLE = `Examples:
-  $ curveadm format -f /path/to/format.yaml           # Format chunkfile pool with specified configure file
-  $ curveadm format --status -f /path/to/format.yaml  # Display formatting status
-  $ curveadm format --stop   -f /path/to/format.yaml  # Stop formatting progress
-  $ curveadm format --debug  -f /path/to/format.yaml  # Format chunkfile with debug mode
-  $ curveadm format --clean  -f /path/to/format.yaml  # clean the container left by debug mode`
+  $ curveadm format -f /path/to/format.yaml              # Format chunkfile pool with specified configure file
+  $ curveadm format -f /path/to/format.yaml --increment  # Incremental Format chunkfile pool with specified configure file
+  $ curveadm format --status -f /path/to/format.yaml     # Display formatting status
+  $ curveadm format --stop   -f /path/to/format.yaml     # Stop formatting progress
+  $ curveadm format --debug  -f /path/to/format.yaml     # Format chunkfile with debug mode
+  $ curveadm format --clean  -f /path/to/format.yaml     # clean the container left by debug mode`
 )
 
 var (
@@ -62,6 +63,11 @@ var (
 	FORMAT_CLEAN_PLAYBOOK_STEPS = []int{
 		playbook.CLEAN_FORMAT,
 	}
+
+	FORMAT_INCREMENT_PLAYBOOK_STEPS = []int{
+		playbook.STOP_SERVICE,
+		playbook.FORMAT_CHUNKFILE_POOL,
+	}
 )
 
 type formatOptions struct {
@@ -70,6 +76,7 @@ type formatOptions struct {
 	stopFormat bool
 	debug      bool
 	clean      bool
+	increment  bool
 }
 
 func checkFormatOptions(options formatOptions) error {
@@ -116,6 +123,7 @@ func NewFormatCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	flags.BoolVar(&options.stopFormat, "stop", false, "Stop formatting progress")
 	flags.BoolVar(&options.debug, "debug", false, "Debug formatting progress")
 	flags.BoolVar(&options.clean, "clean", false, "Clean the Container")
+	flags.BoolVar(&options.increment, "increment", false, "Incremental formatting")
 
 	return cmd
 }
@@ -131,6 +139,7 @@ func genFormatPlaybook(curveadm *cli.CurveAdm,
 	stopFormat := options.stopFormat
 	debug := options.debug
 	clean := options.clean
+	increment := options.increment
 
 	steps := FORMAT_PLAYBOOK_STEPS
 	if showStatus {
@@ -142,6 +151,9 @@ func genFormatPlaybook(curveadm *cli.CurveAdm,
 	if clean {
 		steps = FORMAT_CLEAN_PLAYBOOK_STEPS
 	}
+	if increment {
+		steps = FORMAT_INCREMENT_PLAYBOOK_STEPS
+	}
 
 	pb := playbook.NewPlaybook(curveadm)
 	for _, step := range steps {
@@ -150,14 +162,34 @@ func genFormatPlaybook(curveadm *cli.CurveAdm,
 		if step == playbook.FORMAT_CHUNKFILE_POOL {
 			options[comm.DEBUG_MODE] = debug
 		}
-		pb.AddStep(&playbook.PlaybookStep{
-			Type:    step,
-			Configs: fcs,
-			ExecOptions: playbook.ExecOptions{
-				SilentSubBar: showStatus,
-			},
-			Options: options,
-		})
+		options[comm.FORMAT_INCREMENTAL] = increment
+		if step == playbook.STOP_SERVICE {
+			dcs, err := curveadm.ParseTopology()
+			if err != nil {
+				return nil, err
+			}
+			stopChunkServercs := curveadm.FilterDeployConfig(dcs, topology.FilterOption{
+				Id:   "*",
+				Role: "chunkserver",
+				Host: "*",
+			})
+			if len(stopChunkServercs) == 0 {
+				continue
+			}
+			pb.AddStep(&playbook.PlaybookStep{
+				Type:    step,
+				Configs: stopChunkServercs,
+			})
+		} else {
+			pb.AddStep(&playbook.PlaybookStep{
+				Type:    step,
+				Configs: fcs,
+				ExecOptions: playbook.ExecOptions{
+					SilentSubBar: showStatus,
+				},
+				Options: options,
+			})
+		}
 	}
 	return pb, nil
 }
@@ -179,6 +211,7 @@ func runFormat(curveadm *cli.CurveAdm, options formatOptions) error {
 	var fcs []*configure.FormatConfig
 	diskRecords := curveadm.DiskRecords()
 	debug := options.debug
+	increment := options.increment
 	if debug {
 		curveadm.SetDebugLevel()
 	}
@@ -224,13 +257,21 @@ func runFormat(curveadm *cli.CurveAdm, options formatOptions) error {
 		return err
 	}
 
-	// 3) run playbook
+	// 3) confirm by user
+	if increment {
+		if pass := tuicomm.ConfirmYes(tuicomm.PromptIncrementFormat()); !pass {
+			curveadm.WriteOut(tuicomm.PromptCancelOpetation("increment format"))
+			return errno.ERR_CANCEL_OPERATION
+		}
+	}
+
+	// 4) run playbook
 	err = pb.Run()
 	if err != nil {
 		return err
 	}
 
-	// 4) print status or prompt
+	// 5) print status or prompt
 	if options.showStatus {
 		output := displayFormatStatus(curveadm)
 		curveadm.WriteOutln("")

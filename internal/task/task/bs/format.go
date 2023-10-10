@@ -24,12 +24,12 @@ package bs
 
 import (
 	"fmt"
+	comm "github.com/opencurve/curveadm/internal/common"
 	"regexp"
 	"strings"
 	"time"
 
 	"github.com/opencurve/curveadm/cli/cli"
-	comm "github.com/opencurve/curveadm/internal/common"
 	"github.com/opencurve/curveadm/internal/configure"
 	"github.com/opencurve/curveadm/internal/configure/disks"
 	os "github.com/opencurve/curveadm/internal/configure/os"
@@ -246,8 +246,9 @@ func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *configure.FormatConf
 	chunkfilePoolRootDir := layout.ChunkfilePoolRootDir
 	formatScript := scripts.SCRIPT_FORMAT
 	formatScriptPath := fmt.Sprintf("%s/format.sh", layout.ToolsBinDir)
-	formatCommand := fmt.Sprintf("%s %s %d %d %s %s", formatScriptPath, layout.FormatBinaryPath,
-		usagePercent, DEFAULT_CHUNKFILE_SIZE, layout.ChunkfilePoolDir, layout.ChunkfilePoolMetaPath)
+	increment := curveadm.MemStorage().Get(comm.FORMAT_INCREMENTAL).(bool)
+	formatCommand := fmt.Sprintf("%s %s %d %d %s %s %t", formatScriptPath, layout.FormatBinaryPath,
+		usagePercent, DEFAULT_CHUNKFILE_SIZE, layout.ChunkfilePoolDir, layout.ChunkfilePoolMetaPath, increment)
 	debug := curveadm.MemStorage().Get(comm.DEBUG_MODE).(bool)
 
 	// 1: skip if formating container exist
@@ -279,10 +280,12 @@ func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *configure.FormatConf
 		Paths:       []string{mountPoint},
 		ExecOptions: curveadm.ExecOptions(),
 	})
-	t.AddStep(&step.CreateFilesystem{ // mkfs.ext4 MOUNT_POINT
-		Device:      device,
-		ExecOptions: curveadm.ExecOptions(),
-	})
+	if !increment {
+		t.AddStep(&step.CreateFilesystem{ // mkfs.ext4 MOUNT_POINT
+			Device:      device,
+			ExecOptions: curveadm.ExecOptions(),
+		})
+	}
 	t.AddStep(&step.MountFilesystem{
 		Source:      device,
 		Directory:   mountPoint,
