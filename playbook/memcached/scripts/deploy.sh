@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 
 g_container_name="memcached-"${PORT}
+g_expoter_container_name="memcached-exporter-"${EXPORTER_PORT}
 g_start_args=""
+g_expoter_start_args=""
 g_docker_cmd="${SUDO_ALIAS} ${ENGINE}"
 g_lsof_cmd="${SUDO_ALIAS} lsof"
 g_rm_cmd="${SUDO_ALIAS} rm -rf"
@@ -28,7 +30,21 @@ precheck() {
     container_id=`${g_docker_cmd} ps --format "{{.ID}}" --filter name=${g_container_name} --all`
     if [ "${container_id}" ]; then
         success "container [${g_container_name}] already exists, skip\n"
-        exit 0
+        exit 1
+    fi
+
+    if [ "${EXPORTER_PORT}" ];then
+        container_id=`${g_docker_cmd} ps --format "{{.ID}}" --filter name=${g_expoter_container_name} --all`
+        if [ "${container_id}" ]; then
+            success "container [${g_expoter_container_name}] already exists, skip\n"
+            exit 1
+        fi
+        
+        ${g_lsof_cmd} -i:${EXPORTER_PORT} >& /dev/null
+        if [ $? -eq 0 ];then
+            die "port[${EXPORTER_PORT}] is in use!\n"
+            exit 1
+        fi
     fi
 
     # check port
@@ -79,14 +95,25 @@ init() {
     if [ "${VERBOSE}" ];then
         g_start_args="${g_start_args} -${VERBOSE}"
     fi
+
+
+    if [ "${EXPORTER_PORT}" ];then
+        g_expoter_start_args="${g_expoter_start_args} --memcached.address=${LISTEN}:${PORT}"
+        g_expoter_start_args="${g_expoter_start_args} --web.listen-address=${LISTEN}:${EXPORTER_PORT}"
+    fi
 }
 
 create_container() {
-    success "create container [${g_container_name}]\n"
     ${g_docker_cmd} create --name ${g_container_name} ${g_user} --network host ${g_volume_bind} ${IMAGE} memcached ${g_start_args} >& /dev/null
-
-    success "start container [${g_container_name}]\n"
+    success "create container [${g_container_name}]\n"
+    if [ "${EXPORTER_PORT}" ];then
+        ${g_docker_cmd} create --name ${g_expoter_container_name} --network host ${EXPORTER_IMAGE} ${g_expoter_start_args} >& /dev/null
+        success "create container [${g_container_name}]\n"
+    fi
     ${g_docker_cmd} start ${g_container_name} >& /dev/null
+    success "start container [${g_container_name}]\n"
+    ${g_docker_cmd} start ${g_expoter_container_name} >& /dev/null
+    success "start container [${g_expoter_container_name}]\n"
 
     success "wait 3 seconds, check container status...\n"
     sleep 3
@@ -95,14 +122,21 @@ create_container() {
     if [ ${g_status} != "running" ]; then
         exit 1
     fi
+    if [ "${EXPORTER_PORT}" ];then
+        if [ ${g_expoter_status} != "running" ]; then
+            exit 1
+        fi
+    fi
 }
 
 get_status_container() {
     g_status=`${g_docker_cmd} inspect --format='{{.State.Status}}' ${g_container_name}`
+    g_expoter_status=`${g_docker_cmd} inspect --format='{{.State.Status}}' ${g_expoter_container_name}`
 }
 
 show_info_container() {
     ${g_docker_cmd} ps --all --filter "name=${g_container_name}" --format="table {{.ID}}\t{{.Names}}\t{{.Status}}"
+    ${g_docker_cmd} ps --all --filter "name=${g_expoter_container_name}" --format="table {{.ID}}\t{{.Names}}\t{{.Status}}"
 }
 
 precheck

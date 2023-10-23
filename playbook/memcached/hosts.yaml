@@ -12,8 +12,10 @@ hosts:
       - SUDO_ALIAS=sudo
       - ENGINE=docker
       - IMAGE=memcached:1.6.17
+      - EXPORTER_IMAGE=quay.io/prometheus/memcached-exporter:v0.13.0
       - LISTEN=10.0.1.1
       - PORT=11211
+      - EXPORTER_PORT=9150
       - USER=root
       - MEMORY_LIMIT=32768 # item memory in megabytes
       - MAX_ITEM_SIZE=8m # adjusts max item size (default: 1m, min: 1k, max: 1024m)
@@ -33,6 +35,7 @@ hosts:
       - IMAGE=memcached:1.6.17
       - LISTEN=10.0.1.2
       - PORT=11211
+      - EXPORTER_PORT=9150
       - USER=root
       - MEMORY_LIMIT=32768 # item memory in megabytes
       - MAX_ITEM_SIZE=8m # adjusts max item size (default: 1m, min: 1k, max: 1024m)
@@ -52,6 +55,7 @@ hosts:
       - IMAGE=memcached:1.6.17
       - LISTEN=10.0.1.3
       - PORT=11211
+      - EXPORTER_PORT=9150
       - USER=root
       - MEMORY_LIMIT=32768 # item memory in megabytes
       - MAX_ITEM_SIZE=8m # adjusts max item size (default: 1m, min: 1k, max: 1024m)
