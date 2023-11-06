@@ -553,6 +553,7 @@ var (
 	ERR_INSTALL_OR_REMOVE_DEBIAN_PACKAGE_FAILED    = EC(620024, "install or remove debian package failed (dpkg)")
 	ERR_INSTALL_OR_REMOVE_RPM_PACKAGE_FAILED       = EC(620025, "install or remove rpm package failed (rpm)")
 	ERR_SECURE_COPY_FILE_TO_REMOTE_FAILED          = EC(620026, "secure copy file to remote failed (scp)")
+	ERR_CHMOD_FILE_FAILED                          = EC(620027, "chmod file failed (chmod)")
 	ERR_RUN_SCRIPT_FAILED                          = EC(620998, "run script failed (bash script.sh)")
 	ERR_RUN_A_BASH_COMMAND_FAILED                  = EC(620999, "run a bash command failed (bash -c)")
 

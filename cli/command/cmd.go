@@ -26,7 +26,6 @@ package command
 
 import (
 	"fmt"
-
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/cli/command/client"
 	"github.com/opencurve/curveadm/cli/command/cluster"
@@ -34,6 +33,7 @@ import (
 	"github.com/opencurve/curveadm/cli/command/disks"
 	"github.com/opencurve/curveadm/cli/command/hosts"
 	"github.com/opencurve/curveadm/cli/command/http"
+	"github.com/opencurve/curveadm/cli/command/install"
 	"github.com/opencurve/curveadm/cli/command/monitor"
 	"github.com/opencurve/curveadm/cli/command/pfs"
 	"github.com/opencurve/curveadm/cli/command/playground"
@@ -72,6 +72,7 @@ func addSubCommands(cmd *cobra.Command, curveadm *cli.CurveAdm) {
 		monitor.NewMonitorCommand(curveadm),       // curveadm monitor ...
 		http.NewHttpCommand(curveadm),             // curveadm http
 		website.NewWebsiteCommand(curveadm),       // curveadm website ...
+		install.NewInstallCommand(curveadm),       // curveadm install
 
 		NewAuditCommand(curveadm),      // curveadm audit
 		NewCleanCommand(curveadm),      // curveadm clean

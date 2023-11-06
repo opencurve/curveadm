@@ -79,6 +79,22 @@ type (
 		module.ExecOptions
 	}
 
+	MoveFile struct {
+		Source    string
+		Dest      string
+		NoClobber bool // do not overwrite an existing file
+		Out       *string
+		module.ExecOptions
+	}
+
+	Chmod struct {
+		Mode      string
+		File      string
+		Recursive bool
+		Out       *string
+		module.ExecOptions
+	}
+
 	Stat struct {
 		Files  []string
 		Format string
@@ -322,6 +338,26 @@ func (s *CopyFile) Execute(ctx *context.Context) error {
 
 	out, err := cmd.Execute(s.ExecOptions)
 	return PostHandle(nil, s.Out, out, err, errno.ERR_COPY_FILES_AND_DIRECTORIES_FAILED)
+}
+
+func (s *MoveFile) Execute(ctx *context.Context) error {
+	cmd := ctx.Module().Shell().Rename(s.Source, s.Dest)
+	if s.NoClobber {
+		cmd.AddOption("--no-clobber")
+	}
+
+	out, err := cmd.Execute(s.ExecOptions)
+	return PostHandle(nil, s.Out, out, err, errno.ERR_RENAME_FILE_OR_DIRECTORY_FAILED)
+}
+
+func (s *Chmod) Execute(ctx *context.Context) error {
+	cmd := ctx.Module().Shell().Chmod(s.Mode, s.File)
+	if s.Recursive {
+		cmd.AddOption("--recursive")
+	}
+
+	out, err := cmd.Execute(s.ExecOptions)
+	return PostHandle(nil, s.Out, out, err, errno.ERR_CHMOD_FILE_FAILED)
 }
 
 func (s *Stat) Execute(ctx *context.Context) error {
