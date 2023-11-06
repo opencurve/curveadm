@@ -26,33 +26,21 @@ func NewInstallToolTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*tas
 	subname := fmt.Sprintf("host=%s", host)
 	t := task.NewTask("Install tool v2", subname, hc.GetSSHConfig())
 
-	var confContent string
-
-	t.AddStep(&step.ExtractFile{
+	t.AddStep(&step.CopyFromContainer{
 		ContainerSrcPath: layout.ToolsV2BinaryPath,
 		ContainerId:      containerId,
-		HostDestPath:     "/usr/bin/curve",
-		ExecOptions:      curveadm.ExecOptions(),
-	})
-	t.AddStep(&step.Chmod{
-		Mode:        "+x",
-		File:        "/usr/bin/curve",
-		ExecOptions: curveadm.ExecOptions(),
-	})
-	t.AddStep(&step.ReadFile{
-		ContainerSrcPath: layout.ToolsV2ConfSystemPath,
-		ContainerId:      containerId,
-		Content:          &confContent,
+		HostDestPath:     "/usr/local/bin/curve",
 		ExecOptions:      curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.CreateDirectory{
 		Paths:       []string{"~/.curve"},
 		ExecOptions: curveadm.ExecOptions(),
 	})
-	t.AddStep(&step.InstallFile{
-		Content:      &confContent,
-		HostDestPath: "~/.curve/curve.yaml",
-		ExecOptions:  curveadm.ExecOptions(),
+	t.AddStep(&step.CopyFromContainer{
+		ContainerSrcPath: layout.ToolsV2ConfSystemPath,
+		ContainerId:      containerId,
+		HostDestPath:     "~/.curve/curve.yaml",
+		ExecOptions:      curveadm.ExecOptions(),
 	})
 
 	return t, nil

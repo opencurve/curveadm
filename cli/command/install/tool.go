@@ -43,18 +43,13 @@ func genInstallToolPlaybook(curveadm *cli.CurveAdm,
 	dcs []*topology.DeployConfig,
 	options installOptions,
 ) (*playbook.Playbook, error) {
-	dcs = curveadm.FilterDeployConfig(dcs, topology.FilterOption{
-		Id:   "*",
-		Role: "*",
-		Host: options.host,
-	})
-
+	configs := curveadm.FilterDeployConfigByRole(dcs, topology.ROLE_MDS)[:1]
 	steps := INSTALL_TOOL_PLAYBOOK_STEPS
 	pb := playbook.NewPlaybook(curveadm)
 	for _, step := range steps {
 		pb.AddStep(&playbook.PlaybookStep{
 			Type:    step,
-			Configs: dcs,
+			Configs: configs,
 			Options: map[string]interface{}{
 				comm.KEY_CLIENT_HOST: options.host,
 			},

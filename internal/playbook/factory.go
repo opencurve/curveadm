@@ -171,8 +171,7 @@ func (p *Playbook) createTasks(step *PlaybookStep) (*tasks.Tasks, error) {
 		switch step.Type {
 		case CHECK_SSH_CONNECT,
 			GET_HOST_DATE,
-			PULL_IMAGE,
-			INSTALL_TOOL:
+			PULL_IMAGE:
 			host := config.GetDC(i).GetHost()
 			if once[host] {
 				continue
