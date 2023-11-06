@@ -84,6 +84,7 @@ const (
 	INSTALL_CLIENT
 	UNINSTALL_CLIENT
 	ATTACH_LEADER_OR_RANDOM_CONTAINER
+	COPY_TOOL
 
 	// bs
 	FORMAT_CHUNKFILE_POOL
@@ -250,6 +251,8 @@ func (p *Playbook) createTasks(step *PlaybookStep) (*tasks.Tasks, error) {
 			t, err = comm.NewInstallClientTask(curveadm, config.GetCC(i))
 		case UNINSTALL_CLIENT:
 			t, err = comm.NewUninstallClientTask(curveadm, nil)
+		case COPY_TOOL:
+			t, err = comm.NewCopyToolTask(curveadm, config.GetDC(i))
 		// bs
 		case FORMAT_CHUNKFILE_POOL:
 			t, err = bs.NewFormatChunkfilePoolTask(curveadm, config.GetFC(i))

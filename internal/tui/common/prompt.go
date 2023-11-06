@@ -71,6 +71,9 @@ to watch the formatting progress.
 `
 	PROMPT_CANCEL_OPERATION = `[x] {{.operation}} canceled`
 
+	PROMPT_PATH_EXIST = `{{.path}} already exists.
+`
+
 	DEFAULT_CONFIRM_PROMPT = "Do you want to continue?"
 )
 
@@ -210,7 +213,7 @@ func PromptErrorCode(code int, description, clue, logpath string) string {
 	if len(clue) > 0 {
 		prompt.data["clue"] = prettyClue(clue)
 	}
-	prompt.data["website"] = fmt.Sprintf("https://github.com/opencurve/curveadm/wiki/errno%d#%06d", code / 100000, code)
+	prompt.data["website"] = fmt.Sprintf("https://github.com/opencurve/curveadm/wiki/errno%d#%06d", code/100000, code)
 	if len(logpath) > 0 {
 		prompt.data["logpath"] = logpath
 	}
@@ -228,5 +231,11 @@ func PromptCancelOpetation(operation string) string {
 func PromptAutoUpgrade(version string) string {
 	prompt := NewPrompt(PROMPT_AUTO_UPGRADE)
 	prompt.data["version"] = version
+	return prompt.Build()
+}
+
+func PromptPathExist(path string) string {
+	prompt := NewPrompt(color.YellowString(PROMPT_PATH_EXIST) + DEFAULT_CONFIRM_PROMPT)
+	prompt.data["path"] = path
 	return prompt.Build()
 }
