@@ -1,0 +1,7 @@
+Instructions for using log_retention.sh file:
+
+1. Before executing this file, you need to use the chmod +x command to add execution permissions to this file.
+2. This program supports custom parameters to execute custom log retention plans. You can use ./log_retention.sh -h to view the use of relevant parameters.
+3. If no parameters are provided, all logs two days before the current date will be deleted by default.
+
+Tips: The default log folder path in this file is /tmp/curvefs/logs. If it is curvebs or a custom save path, it needs to be changed or provided through the -p parameter.
