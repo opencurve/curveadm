@@ -84,13 +84,6 @@ func (c *SmartConfig) GetDC(index int) *topology.DeployConfig {
 	return c.dcs[index]
 }
 
-func (c *SmartConfig) GetDCS() []*topology.DeployConfig {
-	if c.ctype != TYPE_CONFIG_DEPLOY {
-		return nil
-	}
-	return c.dcs
-}
-
 func (c *SmartConfig) GetCC(index int) *configure.ClientConfig {
 	if index < 0 || index >= c.len || c.ctype != TYPE_CONFIG_CLIENT {
 		return nil

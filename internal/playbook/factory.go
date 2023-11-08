@@ -264,7 +264,7 @@ func (p *Playbook) createTasks(step *PlaybookStep) (*tasks.Tasks, error) {
 		case UNINSTALL_CLIENT:
 			t, err = comm.NewUninstallClientTask(curveadm, nil)
 		case INSTALL_TOOL:
-			t, err = install.NewInstallToolTask(curveadm, config.GetDCS())
+			t, err = install.NewInstallToolTask(curveadm, config.GetDC(i))
 		// bs
 		case FORMAT_CHUNKFILE_POOL:
 			t, err = bs.NewFormatChunkfilePoolTask(curveadm, config.GetFC(i))

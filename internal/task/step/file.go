@@ -53,6 +53,13 @@ type (
 		module.ExecOptions
 	}
 
+	ExtractFile struct {
+		HostDestPath     string
+		ContainerId      string
+		ContainerSrcPath string
+		module.ExecOptions
+	}
+
 	InstallFile struct {
 		Content           *string
 		HostDestPath      string
@@ -148,6 +155,15 @@ func (s *ReadFile) Execute(ctx *context.Context) error {
 	*s.Content = data
 	if err != nil {
 		return errno.ERR_READ_FILE_FAILED.E(err)
+	}
+	return nil
+}
+
+func (s *ExtractFile) Execute(ctx *context.Context) error {
+	dockerCli := ctx.Module().DockerCli().CopyFromContainer(s.ContainerId, s.ContainerSrcPath, s.HostDestPath)
+	_, err := dockerCli.Execute(s.ExecOptions)
+	if err != nil {
+		return errno.ERR_COPY_FROM_CONTAINER_FAILED.FD("(%s cp CONTAINER:SRC_PATH DEST_PATH)", s.ExecWithEngine).E(err)
 	}
 	return nil
 }
