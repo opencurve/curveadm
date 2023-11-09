@@ -184,7 +184,7 @@ func checkTopology(curveadm *cli.CurveAdm, data string, options commitOptions) e
 func runCommit(curveadm *cli.CurveAdm, options commitOptions) error {
 	// 1) parse cluster topology
 	_, err := curveadm.ParseTopology()
-	if err != nil && !skipError(err) {
+	if err != nil && !skipError(err) && !options.force {
 		return err
 	}
 
