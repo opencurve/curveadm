@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 g_container_name="memcached-"${PORT}
-g_expoter_container_name="memcached-exporter-"${EXPORTER_PORT}
+g_exporter_container_name="memcached-exporter-"${EXPORTER_PORT}
 g_docker_cmd="${SUDO_ALIAS} ${ENGINE}"
 
 function msg() {
@@ -24,9 +24,9 @@ precheck() {
         exit 1
     fi
     if [ "${EXPORTER_PORT}" ];then
-        container_id=`${g_docker_cmd} ps --all --format "{{.ID}}" --filter name=${g_expoter_container_name}`
+        container_id=`${g_docker_cmd} ps --all --format "{{.ID}}" --filter name=${g_exporter_container_name}`
         if [ -z ${container_id} ]; then
-            die "container [${g_expoter_container_name}] not exists!!!\n"
+            die "container [${g_exporter_container_name}] not exists!!!\n"
             exit 1
         fi
     fi
@@ -36,8 +36,8 @@ stop_container() {
     ${g_docker_cmd} stop ${g_container_name} >& /dev/null
     success "stop container[${g_container_name}]\n"
     if [ "${EXPORTER_PORT}" ];then
-        ${g_docker_cmd} stop ${g_expoter_container_name} >& /dev/null
-        success "stop container[${g_expoter_container_name}]\n"
+        ${g_docker_cmd} stop ${g_exporter_container_name} >& /dev/null
+        success "stop container[${g_exporter_container_name}]\n"
     fi
 }
 
