@@ -25,25 +25,24 @@
 package hosts
 
 import (
-	comm "github.com/opencurve/curveadm/internal/configure/common"
 	"github.com/opencurve/curveadm/internal/configure/curveadm"
 	"github.com/opencurve/curveadm/internal/utils"
 	"github.com/opencurve/curveadm/pkg/module"
 )
 
-func (hc *HostConfig) get(i *comm.Item) interface{} {
+func (hc *HostConfig) get(i *item) interface{} {
 	if v, ok := hc.config[i.Key()]; ok {
 		return v
 	}
 
-	defaultValue := i.DefaultValue()
+	defaultValue := i.defaultValue
 	if defaultValue != nil && utils.IsFunc(defaultValue) {
 		return defaultValue.(func(*HostConfig) interface{})(hc)
 	}
 	return defaultValue
 }
 
-func (hc *HostConfig) getString(i *comm.Item) string {
+func (hc *HostConfig) getString(i *item) string {
 	v := hc.get(i)
 	if v == nil {
 		return ""
@@ -51,7 +50,7 @@ func (hc *HostConfig) getString(i *comm.Item) string {
 	return v.(string)
 }
 
-func (hc *HostConfig) getInt(i *comm.Item) int {
+func (hc *HostConfig) getInt(i *item) int {
 	v := hc.get(i)
 	if v == nil {
 		return 0
@@ -59,7 +58,7 @@ func (hc *HostConfig) getInt(i *comm.Item) int {
 	return v.(int)
 }
 
-func (hc *HostConfig) getBool(i *comm.Item) bool {
+func (hc *HostConfig) getBool(i *item) bool {
 	v := hc.get(i)
 	if v == nil {
 		return false
@@ -77,6 +76,8 @@ func (hc *HostConfig) GetForwardAgent() bool     { return hc.getBool(CONFIG_FORW
 func (hc *HostConfig) GetBecomeUser() string     { return hc.getString(CONFIG_BECOME_USER) }
 func (hc *HostConfig) GetLabels() []string       { return hc.labels }
 func (hc *HostConfig) GetEnvs() []string         { return hc.envs }
+func (hc *HostConfig) GetInstances() int         { return hc.instances }
+func (hc *HostConfig) GetInstancesSequence() int { return hc.instances_sequence }
 func (hc *HostConfig) GetSSHConfig() *module.SSHConfig {
 	hostname := hc.GetSSHHostname()
 	if len(hostname) == 0 {
