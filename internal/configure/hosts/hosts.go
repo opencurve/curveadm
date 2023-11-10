@@ -53,11 +53,14 @@ type (
 	}
 
 	HostConfig struct {
-		sequence          int
-		config            map[string]interface{}
-		labels            []string
-		envs              []string
-		replicas          int
+		sequence int
+		config   map[string]interface{}
+		labels   []string
+		envs     []string
+		//replicas and replicas_sequence only used in the memcached deploy
+		//replicas is the num of memcached servers will be deployed in the same host
+		replicas int
+		//replicas_sequence is the sequence num of memcached servers in the same host
 		replicas_sequence int
 	}
 )
@@ -117,6 +120,7 @@ func (hc *HostConfig) convertEnvs() error {
 	return nil
 }
 
+// read the replicas value from hc.config
 func (hc *HostConfig) convertReplicas() error {
 	value := hc.config[KEY_REPLICAS]
 	v, ok := utils.All2Str(value)
@@ -138,7 +142,7 @@ func (hc *HostConfig) convertReplicas() error {
 	}
 }
 
-// convret config item to its require type,
+// convret config item to its require type after rendering,
 // return error if convert failed
 func (hc *HostConfig) convert() error {
 	for _, item := range itemset.getAll() {
@@ -202,13 +206,13 @@ func (hc *HostConfig) Build() error {
 			if err := hc.convertEnvs(); err != nil {
 				return err
 			}
-			hc.config[key] = nil // delete labels section
+			hc.config[key] = nil // delete envs section
 			continue
-		} else if key == KEY_REPLICAS {
+		} else if key == KEY_REPLICAS { // convert replicas
 			if err := hc.convertReplicas(); err != nil {
 				return err
 			}
-			hc.config[key] = nil // delete labels section
+			hc.config[key] = nil // delete replicas section
 			continue
 		}
 
@@ -327,30 +331,31 @@ func (hc *HostConfig) renderReplicasSequence() error {
 			build.Field{Key: k, Value: realv})
 	}
 
-	//3. convert config item to its require type,
+	//3. convert config item to its require type after rendering,
 	//	 return error if convert failed
 	return hc.convert()
 }
 
 func NewHostConfig(sequence int, config map[string]interface{}) *HostConfig {
 	return &HostConfig{
-		sequence:          sequence,
-		config:            config,
-		labels:            []string{},
-		envs:              []string{},
+		sequence: sequence,
+		config:   config,
+		labels:   []string{},
+		envs:     []string{},
+		//replicas and replicas_sequence only used in the memcached deploy
 		replicas:          1,
 		replicas_sequence: 1,
 	}
 }
 
-// deepcopy a HostConfig
-func CopyHostConfig(src *HostConfig, replicas_sequence int) *HostConfig {
+// deepcopy a HostConfig with replicas_sequence and return it
+func replicateHostConfig(src *HostConfig, replicas_sequence int) *HostConfig {
+	//deepcopy labels
 	newlabels := make([]string, len(src.labels))
 	copy(newlabels, src.labels)
-
+	//deepcopy envs
 	newenvs := make([]string, len(src.envs))
 	copy(newenvs, src.envs)
-
 	return &HostConfig{
 		sequence:          src.sequence,
 		config:            utils.DeepCopy(src.config),
@@ -392,10 +397,10 @@ func ParseHosts(data string) ([]*HostConfig, error) {
 			return nil, errno.ERR_DUPLICATE_HOST.
 				F("duplicate host: %s", hc.GetHost())
 		}
-		//produce the replicas of hc
+		//produce the replicas of hc, then render the hc_new, last append to hcs.
 		replicas := hc.GetReplicas()
 		for i := 1; i <= replicas; i++ {
-			hc_new := CopyHostConfig(hc, i)
+			hc_new := replicateHostConfig(hc, i)
 			if err := hc_new.renderReplicasSequence(); err != nil {
 				return nil, err
 			}

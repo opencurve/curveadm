@@ -37,12 +37,16 @@ precheck() {
 
 show_info_container() {
     ${g_docker_cmd} ps --all --filter "name=${g_container_name}" --format="table {{.ID}}\t{{.Names}}\t{{.Status}}"
-    ${g_docker_cmd} ps --all --filter "name=${g_exporter_container_name}" --format="table {{.ID}}\t{{.Names}}\t{{.Status}}"
+    if [ "${EXPORTER_PORT}" ];then
+        ${g_docker_cmd} ps --all --filter "name=${g_exporter_container_name}" --format="table {{.ID}}\t{{.Names}}\t{{.Status}}"
+    fi
 }
 
 show_ip_port() {
     printf "memcached addr:\t%s:%d\n" ${LISTEN} ${PORT}
-    printf "memcached-exporter addr:\t%s:%d\n" ${LISTEN} ${EXPORTER_PORT}
+    if [ "${EXPORTER_PORT}" ];then
+        printf "memcached-exporter addr:\t%s:%d\n" ${LISTEN} ${EXPORTER_PORT}
+    fi
 }
 
 get_status_container() {
