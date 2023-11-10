@@ -26,18 +26,22 @@ package hosts
 
 import (
 	"bytes"
+	"github.com/opencurve/curveadm/pkg/variable"
+	"strconv"
 	"strings"
 
 	"github.com/opencurve/curveadm/internal/build"
 	"github.com/opencurve/curveadm/internal/configure/os"
 	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/utils"
+	log "github.com/opencurve/curveadm/pkg/log/glg"
 	"github.com/spf13/viper"
 )
 
 const (
-	KEY_LABELS = "labels"
-	KEY_ENVS   = "envs"
+	KEY_LABELS   = "labels"
+	KEY_ENVS     = "envs"
+	KEY_REPLICAS = "replicas"
 
 	PERMISSIONS_600 = 384 // -rw------- (256 + 128 = 384)
 )
@@ -49,10 +53,12 @@ type (
 	}
 
 	HostConfig struct {
-		sequence int
-		config   map[string]interface{}
-		labels   []string
-		envs     []string
+		sequence          int
+		config            map[string]interface{}
+		labels            []string
+		envs              []string
+		replicas          int
+		replicas_sequence int
 	}
 )
 
@@ -111,6 +117,79 @@ func (hc *HostConfig) convertEnvs() error {
 	return nil
 }
 
+func (hc *HostConfig) convertReplicas() error {
+	value := hc.config[KEY_REPLICAS]
+	v, ok := utils.All2Str(value)
+	if !ok {
+		if !utils.IsAnySlice(value) {
+			return errno.ERR_UNSUPPORT_CONFIGURE_VALUE_TYPE.
+				F("hosts[%d].%s = %v", hc.sequence, KEY_REPLICAS, value)
+		}
+	}
+	if v, ok := utils.Str2Int(v); !ok {
+		return errno.ERR_CONFIGURE_VALUE_REQUIRES_INTEGER.
+			F("hosts[%d].%s = %v", hc.sequence, KEY_REPLICAS, value)
+	} else if v <= 0 {
+		return errno.ERR_CONFIGURE_VALUE_REQUIRES_POSITIVE_INTEGER.
+			F("hosts[%d].%s = %v", hc.sequence, KEY_REPLICAS, value)
+	} else {
+		hc.replicas = v
+		return nil
+	}
+}
+
+// convret config item to its require type,
+// return error if convert failed
+func (hc *HostConfig) convert() error {
+	for _, item := range itemset.getAll() {
+		k := item.key
+		value := hc.get(item) // return config value or default value
+		if value == nil {
+			continue
+		}
+		v, ok := utils.All2Str(value)
+		if !ok {
+			return errno.ERR_UNSUPPORT_CONFIGURE_VALUE_TYPE.
+				F("%s: %v", k, value)
+		}
+
+		switch item.require {
+		case REQUIRE_ANY:
+			// do nothing
+		case REQUIRE_INT:
+			if intv, ok := utils.Str2Int(v); !ok {
+				return errno.ERR_CONFIGURE_VALUE_REQUIRES_INTEGER.
+					F("%s: %v", k, value)
+			} else {
+				hc.config[k] = intv
+			}
+		case REQUIRE_STRING:
+			if len(v) == 0 {
+				return errno.ERR_CONFIGURE_VALUE_REQUIRES_NON_EMPTY_STRING.
+					F("%s: %v", k, value)
+			}
+		case REQUIRE_BOOL:
+			if boolv, ok := utils.Str2Bool(v); !ok {
+				return errno.ERR_CONFIGURE_VALUE_REQUIRES_BOOL.
+					F("%s: %v", k, value)
+			} else {
+				hc.config[k] = boolv
+			}
+		case REQUIRE_POSITIVE_INTEGER:
+			if intv, ok := utils.Str2Int(v); !ok {
+				return errno.ERR_CONFIGURE_VALUE_REQUIRES_INTEGER.
+					F("%s: %v", k, value)
+			} else if intv <= 0 {
+				return errno.ERR_CONFIGURE_VALUE_REQUIRES_POSITIVE_INTEGER.
+					F("%s: %v", k, value)
+			} else {
+				hc.config[k] = intv
+			}
+		}
+	}
+	return nil
+}
+
 func (hc *HostConfig) Build() error {
 	for key, value := range hc.config {
 		if key == KEY_LABELS { // convert labels
@@ -125,9 +204,15 @@ func (hc *HostConfig) Build() error {
 			}
 			hc.config[key] = nil // delete labels section
 			continue
+		} else if key == KEY_REPLICAS {
+			if err := hc.convertReplicas(); err != nil {
+				return err
+			}
+			hc.config[key] = nil // delete labels section
+			continue
 		}
 
-		if itemset.Get(key) == nil {
+		if itemset.get(key) == nil {
 			return errno.ERR_UNSUPPORT_HOSTS_CONFIGURE_ITEM.
 				F("hosts[%d].%s = %v", hc.sequence, key, value)
 		}
@@ -170,11 +255,109 @@ func (hc *HostConfig) Build() error {
 	return nil
 }
 
+// "PORT=1121${replicas_sequence}" -> "PORT=11211"
+func (hc *HostConfig) renderReplicasSequence() error {
+	//0. create vars
+	vars := variable.NewVariables()
+	if err := vars.Register(variable.Variable{
+		Name:        "replicas_sequence",
+		Description: "the sequence of memcache server of one host",
+		Value:       strconv.Itoa(hc.GetReplicasSequence()),
+	}); err != nil {
+		return err
+	}
+	//1. all config to str
+	for k, v := range hc.config {
+		if v == nil {
+			continue
+		}
+		if strv, ok := utils.All2Str(v); ok {
+			hc.config[k] = strv
+		} else {
+			return errno.ERR_UNSUPPORT_CONFIGURE_VALUE_TYPE.
+				F("%s: %v", k, v)
+		}
+	}
+	//2. rendering
+	if err := vars.Build(); err != nil {
+		log.Error("Build variables failed",
+			log.Field("error", err))
+		return errno.ERR_RESOLVE_VARIABLE_FAILED.E(err)
+	}
+	//render labels
+	for i, _ := range hc.labels {
+		err := func(value *string) error {
+			realValue, err := vars.Rendering(*value)
+			if err != nil {
+				return err
+			}
+			*value = realValue
+			return nil
+		}(&hc.labels[i])
+		if err != nil {
+			return errno.ERR_RENDERING_VARIABLE_FAILED.E(err)
+		}
+	}
+	//render envs
+	for i, _ := range hc.envs {
+		err := func(value *string) error {
+			realValue, err := vars.Rendering(*value)
+			if err != nil {
+				return err
+			}
+			*value = realValue
+			return nil
+		}(&hc.envs[i])
+		if err != nil {
+			return errno.ERR_RENDERING_VARIABLE_FAILED.E(err)
+		}
+	}
+	//render config
+	for k, v := range hc.config {
+		if v == nil {
+			continue
+		}
+		realv, err := vars.Rendering(v.(string))
+		if err != nil {
+			return errno.ERR_RENDERING_VARIABLE_FAILED.E(err)
+		}
+		hc.config[k] = realv
+		build.DEBUG(build.DEBUG_TOPOLOGY,
+			build.Field{Key: k, Value: v},
+			build.Field{Key: k, Value: realv})
+	}
+
+	//3. convert config item to its require type,
+	//	 return error if convert failed
+	return hc.convert()
+}
+
 func NewHostConfig(sequence int, config map[string]interface{}) *HostConfig {
 	return &HostConfig{
-		sequence: sequence,
-		config:   config,
-		labels:   []string{},
+		sequence:          sequence,
+		config:            config,
+		labels:            []string{},
+		envs:              []string{},
+		replicas:          1,
+		replicas_sequence: 1,
+	}
+}
+
+// deepcopy a HostConfig
+func CopyHostConfig(src *HostConfig, replicas_sequence int) *HostConfig {
+	newlabels := make([]string, len(src.labels))
+	copy(newlabels, src.labels)
+
+	newenvs := make([]string, len(src.envs))
+	copy(newenvs, src.envs)
+
+	return &HostConfig{
+		sequence:          src.sequence,
+		config:            utils.DeepCopy(src.config),
+		labels:            newlabels,
+		envs:              newenvs,
+		replicas:          src.replicas,
+		replicas_sequence: replicas_sequence,
 	}
 }
 
@@ -182,7 +365,6 @@ func ParseHosts(data string) ([]*HostConfig, error) {
 	if len(data) == 0 {
 		return nil, errno.ERR_EMPTY_HOSTS
 	}
-
 	parser := viper.NewWithOptions(viper.KeyDelimiter("::"))
 	parser.SetConfigType("yaml")
 	err := parser.ReadConfig(bytes.NewBuffer([]byte(data)))
@@ -210,7 +392,15 @@ func ParseHosts(data string) ([]*HostConfig, error) {
 			return nil, errno.ERR_DUPLICATE_HOST.
 				F("duplicate host: %s", hc.GetHost())
 		}
-		hcs = append(hcs, hc)
+		//produce the replicas of hc
+		replicas := hc.GetReplicas()
+		for i := 1; i <= replicas; i++ {
+			hc_new := CopyHostConfig(hc, i)
+			if err := hc_new.renderReplicasSequence(); err != nil {
+				return nil, err
+			}
+			hcs = append(hcs, hc_new)
+		}
 		exist[hc.GetHost()] = true
 	}
 	build.DEBUG(build.DEBUG_HOSTS, hosts)

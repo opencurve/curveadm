@@ -26,75 +26,201 @@ package hosts
 
 import (
 	"fmt"
+	"github.com/opencurve/curveadm/internal/errno"
 
-	comm "github.com/opencurve/curveadm/internal/configure/common"
 	"github.com/opencurve/curveadm/internal/utils"
 )
 
 const (
+	REQUIRE_ANY = iota
+	REQUIRE_INT
+	REQUIRE_STRING
+	REQUIRE_BOOL
+	REQUIRE_POSITIVE_INTEGER
+	REQUIRE_STRING_SLICE
+
 	DEFAULT_SSH_PORT = 22
 )
 
+type (
+	// config item
+	item struct {
+		key          string
+		require      int
+		exclude      bool        // exclude for service config
+		defaultValue interface{} // nil means no default value
+	}
+
+	itemSet struct {
+		items    []*item
+		key2item map[string]*item
+	}
+)
+
 var (
-	itemset = comm.NewItemSet()
+	itemset = &itemSet{
+		items:    []*item{},
+		key2item: map[string]*item{},
+	}
 
-	CONFIG_HOST = itemset.Insert(
+	CONFIG_HOST = itemset.insert(
 		"host",
-		comm.REQUIRE_STRING,
+		REQUIRE_STRING,
 		false,
 		nil,
 	)
 
-	CONFIG_HOSTNAME = itemset.Insert(
+	CONFIG_HOSTNAME = itemset.insert(
 		"hostname",
-		comm.REQUIRE_STRING,
+		REQUIRE_STRING,
 		false,
 		nil,
 	)
 
-	CONFIG_SSH_HOSTNAME = itemset.Insert(
+	CONFIG_SSH_HOSTNAME = itemset.insert(
 		"ssh_hostname",
-		comm.REQUIRE_STRING,
+		REQUIRE_STRING,
 		false,
 		nil,
 	)
 
-	CONFIG_USER = itemset.Insert(
+	CONFIG_USER = itemset.insert(
 		"user",
-		comm.REQUIRE_STRING,
+		REQUIRE_STRING,
 		false,
 		func(hc *HostConfig) interface{} {
 			return utils.GetCurrentUser()
 		},
 	)
 
-	CONFIG_SSH_PORT = itemset.Insert(
+	CONFIG_SSH_PORT = itemset.insert(
 		"ssh_port",
-		comm.REQUIRE_POSITIVE_INTEGER,
+		REQUIRE_POSITIVE_INTEGER,
 		false,
 		DEFAULT_SSH_PORT,
 	)
 
-	CONFIG_PRIVATE_CONFIG_FILE = itemset.Insert(
+	CONFIG_PRIVATE_CONFIG_FILE = itemset.insert(
 		"private_key_file",
-		comm.REQUIRE_STRING,
+		REQUIRE_STRING,
 		false,
 		func(hc *HostConfig) interface{} {
 			return fmt.Sprintf("%s/.ssh/id_rsa", utils.GetCurrentHomeDir())
 		},
 	)
 
-	CONFIG_FORWARD_AGENT = itemset.Insert(
+	CONFIG_FORWARD_AGENT = itemset.insert(
 		"forward_agent",
-		comm.REQUIRE_BOOL,
+		REQUIRE_BOOL,
 		false,
 		false,
 	)
 
-	CONFIG_BECOME_USER = itemset.Insert(
+	CONFIG_BECOME_USER = itemset.insert(
 		"become_user",
-		comm.REQUIRE_STRING,
+		REQUIRE_STRING,
 		false,
 		nil,
 	)
 )
+
+func convertSlice[T int | string | any](key, value any) ([]T, error) {
+	var slice []T
+	if !utils.IsAnySlice(value) || len(value.([]any)) == 0 {
+		return slice, errno.ERR_CONFIGURE_VALUE_REQUIRES_NONEMPTY_SLICE
+	}
+	anySlice := value.([]any)
+	switch anySlice[0].(type) {
+	case T:
+		for _, str := range anySlice {
+			slice = append(slice, str.(T))
+		}
+	default:
+		return slice, errno.ERR_UNSUPPORT_CONFIGURE_VALUE_TYPE.
+			F("%s: %v", key, value)
+	}
+
+	return slice, nil
+}
+
+func (i *item) Key() string {
+	return i.key
+}
+
+func (itemset *itemSet) insert(key string, require int, exclude bool, defaultValue interface{}) *item {
+	i := &item{key, require, exclude, defaultValue}
+	itemset.key2item[key] = i
+	itemset.items = append(itemset.items, i)
+	return i
+}
+
+func (itemset *itemSet) get(key string) *item {
+	return itemset.key2item[key]
+}
+
+func (itemset *itemSet) getAll() []*item {
+	return itemset.items
+}
+
+func (itemset *itemSet) Build(key string, value interface{}) (interface{}, error) {
+	item := itemset.get(key)
+	if item == nil {
+		return value, nil
+	}
+
+	v, ok := utils.All2Str(value)
+	if !ok {
+		if !utils.IsAnySlice(value) {
+			return nil, errno.ERR_UNSUPPORT_CONFIGURE_VALUE_TYPE.
+				F("%s: %v", key, value)
+		}
+	}
+
+	switch item.require {
+	case REQUIRE_ANY:
+		// do nothing
+
+	case REQUIRE_STRING:
+		if len(v) == 0 {
+			return nil, errno.ERR_CONFIGURE_VALUE_REQUIRES_NON_EMPTY_STRING.
+				F("%s: %v", key, value)
+		} else {
+			return v, nil
+		}
+
+	case REQUIRE_INT:
+		if v, ok := utils.Str2Int(v); !ok {
+			return nil, errno.ERR_CONFIGURE_VALUE_REQUIRES_INTEGER.
+				F("%s: %v", key, value)
+		} else {
+			return v, nil
+		}
+
+	case REQUIRE_POSITIVE_INTEGER:
+		if v, ok := utils.Str2Int(v); !ok {
+			return nil, errno.ERR_CONFIGURE_VALUE_REQUIRES_INTEGER.
+				F("%s: %v", key, value)
+		} else if v <= 0 {
+			return nil, errno.ERR_CONFIGURE_VALUE_REQUIRES_POSITIVE_INTEGER.
+				F("%s: %v", key, value)
+		} else {
+			return v, nil
+		}
+
+	case REQUIRE_BOOL:
+		if v, ok := utils.Str2Bool(v); !ok {
+			return nil, errno.ERR_CONFIGURE_VALUE_REQUIRES_BOOL.
+				F("%s: %v", key, value)
+		} else {
+			return v, nil
+		}
+
+	case REQUIRE_STRING_SLICE:
+		return convertSlice[string](key, value)
+
+	default:
+		// do nothing
+	}
+
+	return value, nil
+}
