@@ -1,0 +1,17 @@
+Instructions for using log_retention.sh file:
+
+1. Before executing this file, you need to use the chmod +x command to add execution permissions to this file.
+2. This program supports custom parameters to execute custom log retention plans. You can use ./log_retention.sh -h to view the use of relevant parameters.
+3. If no parameters are specified, all logs two days before the current date will be deleted by default.
+4. The default log folder path in this file is /tmp/curvefs/logs. If it is curvebs or a custom save path, it needs to be changed or provided through the -p parameter.
+
+Tip: This command must be used on the working node to delete the curve working log.
+----------------------------------------------
+log_retention.sh文件使用说明：
+
+1、执行该文件之前，需要使用chmod +x命令给该文件添加执行权限。
+2. 该程序支持自定义参数来执行自定义日志保留计划。 可以使用./log_retention.sh -h查看相关参数的使用情况。
+3. 如果不指定参数，则默认删除在当前日期两天之前的所有日志。
+4. 该文件中的默认日志文件夹路径为/tmp/curvefs/logs。 如果是curvebs或者自定义保存路径，需要更改或者通过-p参数提供。
+
+提示：此命令须在工作节点上使用，用于删除curve工作日志。
