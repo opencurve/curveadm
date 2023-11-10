@@ -153,6 +153,7 @@ func genStatusPlaybook(curveadm *cli.CurveAdm,
 }
 
 func runStatus(curveadm *cli.CurveAdm, options statusOptions) error {
+
 	// 1) parse cluster topology
 	dcs, err := curveadm.ParseTopology()
 	if err != nil {
