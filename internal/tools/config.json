@@ -1,0 +1,6 @@
+{
+  "interval": 0,
+  "logDirectory": "/tmp/curvefs/logs",
+  "compressOrClean": 1,
+  "maxTarFile": 7
+}
