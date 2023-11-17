@@ -126,7 +126,7 @@ func getServiceListenAddresses(dc *topology.DeployConfig) []Address {
 		if dc.GetEnableExternalServer() {
 			address = append(address, Address{
 				Role: ROLE_CHUNKSERVER,
-				IP:   dc.GetListenIp(),
+				IP:   dc.GetListenExternalIp(),
 				Port: dc.GetListenExternalPort(),
 			})
 		}
