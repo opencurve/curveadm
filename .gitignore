@@ -10,3 +10,4 @@ logs/*
 .build/
 .vscode/
 .CHANGELOG
+vendor/
