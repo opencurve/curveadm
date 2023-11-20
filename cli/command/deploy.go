@@ -109,6 +109,14 @@ var (
 	CAN_SKIP_ROLES = []string{
 		ROLE_SNAPSHOTCLONE,
 	}
+	SUPPORTED_DEPLOY_TYPES = []string{
+		"default",
+		"prod",
+		"staging",
+		"test",
+		"beta",
+		"dev",
+	}
 )
 
 type deployOptions struct {
@@ -117,6 +125,7 @@ type deployOptions struct {
 	poolset         string
 	poolsetDiskType string
 	debug           bool
+	deployType      string
 }
 
 func checkDeployOptions(options deployOptions) error {
@@ -126,6 +135,12 @@ func checkDeployOptions(options deployOptions) error {
 			return errno.ERR_UNSUPPORT_SKIPPED_SERVICE_ROLE.
 				F("skip role: %s", role)
 		}
+	}
+	// check deploy type
+	supportDeployType := utils.Slice2Map(SUPPORTED_DEPLOY_TYPES)
+	if !supportDeployType[options.deployType] {
+		return errno.ERR_UNSUPPORT_DEPLOY_TYPE.
+			F("deploy type: %s", options.deployType)
 	}
 	return nil
 }
@@ -152,6 +167,7 @@ func NewDeployCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	flags.StringVar(&options.poolset, "poolset", "default", "poolset name")
 	flags.StringVar(&options.poolsetDiskType, "poolset-disktype", "ssd", "Specify the disk type of physical pool")
 	flags.BoolVar(&options.debug, "debug", false, "Debug deploy progress")
+	flags.StringVar(&options.deployType, "deploy-type", "default", "Specify the type of deploy")
 	return cmd
 }
 
