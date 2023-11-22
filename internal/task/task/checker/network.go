@@ -54,9 +54,14 @@ func checkPortInUse(success *bool, out *string, host string, port int) step.Lamb
 		}
 
 		if len(*out) > 0 {
+			if *out == "RTNETLINK answers: Invalid argument" {
+				return nil
+			}
+
 			return errno.ERR_PORT_ALREADY_IN_USE.
 				F("host=%s, port=%d", host, port)
 		}
+
 		return nil
 	}
 }
@@ -103,6 +108,7 @@ func (s *step2CheckPortStatus) Execute(ctx *context.Context) error {
 	steps = append(steps, &step.ContainerExec{
 		ContainerId: s.containerId,
 		Command:     command,
+		Success:     s.success,
 		Out:         &out,
 		ExecOptions: s.curveadm.ExecOptions(),
 	})
