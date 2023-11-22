@@ -3,7 +3,7 @@ global:
   report_usage: true
   data_dir: ${home}/curvefs/data/${service_role}${service_host_sequence}
   log_dir: ${home}/curvefs/logs/${service_role}${service_host_sequence}
-  container_image: opencurvedocker/curvefs:latest
+  container_image: quay.io/opencurve/curve/curvefs:v2.7.0-rc1_d8a1137
   variable:
     home: /tmp
     target: server-host
