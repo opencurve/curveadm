@@ -58,6 +58,7 @@ const (
 	SYNC_CONFIG
 	START_SERVICE
 	START_ETCD
+	ENABLE_ETCD_AUTH
 	START_MDS
 	START_CHUNKSERVER
 	START_SNAPSHOTCLONE
@@ -196,6 +197,8 @@ func (p *Playbook) createTasks(step *PlaybookStep) (*tasks.Tasks, error) {
 			START_SNAPSHOTCLONE,
 			START_METASERVER:
 			t, err = comm.NewStartServiceTask(curveadm, config.GetDC(i))
+		case ENABLE_ETCD_AUTH:
+			t, err = comm.NewEnableEtcdAuthTask(curveadm, config.GetDC(i))
 		case STOP_SERVICE:
 			t, err = comm.NewStopServiceTask(curveadm, config.GetDC(i))
 		case RESTART_SERVICE:
