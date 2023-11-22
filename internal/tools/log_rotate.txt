@@ -1,0 +1,23 @@
+log_rotate.sh文件使用说明：
+
+1. 执行该文件之前，需要使用chmod +x命令给该文件添加执行权限。
+2. 该程序须自定义参数来执行自定义日志保留计划，可以在config.json定义相关参数。
+3. interval参数为时间间隔，压缩或删除在当前日期的时间间隔之前的日志。
+4. logDirectory参数为日志文件夹的绝对路径。
+5. compressOrClean参数，等于0表示执行压缩操作，等于1表示删除操作。
+6. maxTarFile参数指定最多保留的压缩日志文件。
+
+
+提示：此命令须在工作节点上使用，用于压缩或删除curve工作日志。
+----------------------------------------------
+Instructions for using log_rotate.sh file:
+
+1. Before executing the file, you need to use the chmod +x command to add execution permissions to the file.
+2. The program requires customized parameters to execute a customized log retention plan. Relevant parameters can be defined in config.json.
+3. The interval parameter is the time interval, compress or delete logs before the time interval of the current date.
+4. The logDirectory parameter is the absolute path of the log folder.
+5. compressOrClean parameter, equal to 0 means performing compression operation, equal to 1 means deletion operation.
+6. The maxTarFile parameter specifies the maximum number of compressed log files to retain.
+
+
+Tip: This command must be used on the working node to compress or delete the curve working log.
