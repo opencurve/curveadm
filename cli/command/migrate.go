@@ -103,7 +103,7 @@ var (
 )
 
 type migrateOptions struct {
-	filename string
+	filename        string
 	poolset         string
 	poolsetDiskType string
 }
@@ -184,7 +184,7 @@ func getMigrates(curveadm *cli.CurveAdm, data string) []*configure.MigrateServer
 }
 
 func genMigratePlaybook(curveadm *cli.CurveAdm,
-	dcs []*topology.DeployConfig, options migrateOptions,data string) (*playbook.Playbook, error) {
+	dcs []*topology.DeployConfig, options migrateOptions, data string) (*playbook.Playbook, error) {
 	diffs, _ := diffTopology(curveadm, data)
 	dcs2add := diffs[topology.DIFF_ADD]
 	dcs2del := diffs[topology.DIFF_DELETE]
@@ -224,8 +224,6 @@ func genMigratePlaybook(curveadm *cli.CurveAdm,
 			options[comm.KEY_CREATE_POOL_TYPE] = comm.POOL_TYPE_LOGICAL
 			options[comm.KEY_MIGRATE_SERVERS] = migrates
 			options[comm.KEY_NEW_TOPOLOGY_DATA] = data
-			options[comm.POOLSET] = poolset
-			options[comm.POOLSET_DISK_TYPE] = poolsetDiskType
 		case playbook.UPDATE_TOPOLOGY:
 			options[comm.KEY_NEW_TOPOLOGY_DATA] = data
 		}
