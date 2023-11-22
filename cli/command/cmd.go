@@ -93,7 +93,7 @@ func addSubCommands(cmd *cobra.Command, curveadm *cli.CurveAdm) {
 }
 
 func setupRootCommand(cmd *cobra.Command, curveadm *cli.CurveAdm) {
-	cmd.SetVersionTemplate("CurveAdm v{{.Version}}\n")
+	cmd.SetVersionTemplate("{{.Version}}\n")
 	cliutil.SetFlagErrorFunc(cmd)
 	cliutil.SetHelpTemplate(cmd)
 	cliutil.SetUsageTemplate(cmd)
@@ -106,7 +106,7 @@ func NewCurveAdmCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "curveadm [OPTIONS] COMMAND [ARGS...]",
 		Short:   "Deploy and manage CurveBS/CurveFS cluster",
-		Version: cli.Version,
+		Version: fmt.Sprintf("CurveAdm v%s, build %s", cli.Version, cli.CommitId),
 		Example: curveadmExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if options.debug {
