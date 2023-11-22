@@ -143,6 +143,9 @@ func (dc *DeployConfig) GetS3Address() string        { return dc.getString(CONFI
 func (dc *DeployConfig) GetS3BucketName() string     { return dc.getString(CONFIG_S3_BUCKET_NAME) }
 func (dc *DeployConfig) GetEnableRDMA() bool         { return dc.getBool(CONFIG_ENABLE_RDMA) }
 func (dc *DeployConfig) GetEnableRenameAt2() bool    { return dc.getBool(CONFIG_ENABLE_RENAMEAT2) }
+func (dc *DeployConfig) GetEtcdAuthEnable() bool     { return dc.getBool(CONFIG_ETCD_AUTH_ENABLE) }
+func (dc *DeployConfig) GetEtcdAuthUsername() string { return dc.getString(CONFIG_ETCD_AUTH_USERNAME) }
+func (dc *DeployConfig) GetEtcdAuthPassword() string { return dc.getString(CONFIG_ETCD_AUTH_PASSWORD) }
 func (dc *DeployConfig) GetEnableChunkfilePool() bool {
 	return dc.getBool(CONFIG_ENABLE_CHUNKFILE_POOL)
 }
