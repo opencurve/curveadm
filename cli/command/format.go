@@ -60,6 +60,7 @@ type formatOptions struct {
 	filename   string
 	showStatus bool
 	stopFormat bool
+	concurrent uint
 }
 
 func NewFormatCommand(curveadm *cli.CurveAdm) *cobra.Command {
@@ -80,6 +81,7 @@ func NewFormatCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	flags.StringVarP(&options.filename, "formatting", "f", "format.yaml", "Specify the configure file for formatting chunkfile pool")
 	flags.BoolVar(&options.showStatus, "status", false, "Show formatting status")
 	flags.BoolVar(&options.stopFormat, "stop", false, "Stop formatting progress")
+	flags.UintVarP(&options.concurrent, "concurrent", "c", 10, "Specify the number of concurrent for formatting")
 
 	return cmd
 }
@@ -108,6 +110,7 @@ func genFormatPlaybook(curveadm *cli.CurveAdm,
 			Type:    step,
 			Configs: fcs,
 			ExecOptions: playbook.ExecOptions{
+				Concurrency:  options.concurrent,
 				SilentSubBar: options.showStatus,
 			},
 		})
