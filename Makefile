@@ -24,6 +24,7 @@ OUTPUT := bin/curveadm
 # build flags
 LDFLAGS := -s -w
 LDFLAGS += -extldflags "-static -fpic"
+LDFLAGS += -X github.com/opencurve/curveadm/cli/cli.CommitId=$(shell git rev-parse --short HEAD)
 
 BUILD_FLAGS := -a
 BUILD_FLAGS += -trimpath

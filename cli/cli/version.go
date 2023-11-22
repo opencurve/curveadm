@@ -26,4 +26,6 @@ package cli
 
 var (
 	Version = "0.2.1"
+
+	CommitId = "unknown"
 )
