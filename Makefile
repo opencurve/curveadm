@@ -5,12 +5,13 @@ GOPROXY     := "https://goproxy.cn,direct"
 GOOS        := $(if $(GOOS),$(GOOS),$(shell go env GOOS))
 GOARCH      := $(if $(GOARCH),$(GOARCH),$(shell go env GOARCH))
 CGO_LDFLAGS := "-static"
+CGO_CFLAGS  := "-D_LARGEFILE64_SOURCE"
 CC          := musl-gcc
 
 GOENV := GO111MODULE=on
 GOENV += GOPROXY=$(GOPROXY)
 GOENV += CC=$(CC)
-GOENV += CGO_ENABLED=1 CGO_LDFLAGS=$(CGO_LDFLAGS)
+GOENV += CGO_ENABLED=1 CGO_LDFLAGS=$(CGO_LDFLAGS) CGO_CFLAGS=$(CGO_CFLAGS)
 GOENV += GOOS=$(GOOS) GOARCH=$(GOARCH)
 GOLANGCILINT_VERSION ?= v1.50.0
 GOBIN := $(shell go env GOPATH)/bin
