@@ -118,7 +118,7 @@ func NewUmountFSTask(curveadm *cli.CurveAdm, v interface{}) (*task.Task, error) 
 	options := curveadm.MemStorage().Get(comm.KEY_MOUNT_OPTIONS).(MountOptions)
 	fsId := curveadm.GetFilesystemId(options.Host, options.MountPoint)
 	containerId, err := curveadm.Storage().GetClientContainerId(fsId)
-	if err != nil {
+	if err != nil || containerId == "" {
 		return nil, errno.ERR_GET_CLIENT_CONTAINER_ID_FAILED.E(err)
 	}
 	hc, err := curveadm.GetHost(options.Host)
