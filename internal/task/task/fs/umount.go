@@ -131,7 +131,7 @@ func NewUmountFSTask(curveadm *cli.CurveAdm, v interface{}) (*task.Task, error) 
 	// new task
 	mountPoint := options.MountPoint
 	subname := fmt.Sprintf("host=%s mountPoint=%s", options.Host, mountPoint)
-	t := task.NewTask("Umount FileSystem", subname, hc.GetSSHConfig())
+	t := task.NewTask("Umount FileSystem", subname, hc.GetSSHConfig(), hc.GetHttpConfig())
 
 	// add step to task
 	var status string

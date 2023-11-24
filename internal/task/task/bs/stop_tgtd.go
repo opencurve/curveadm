@@ -50,7 +50,7 @@ func NewStopTargetDaemonTask(curveadm *cli.CurveAdm, v interface{}) (*task.Task,
 
 	// new task
 	subname := fmt.Sprintf("host=%s", options.Host)
-	t := task.NewTask("Stop Target Daemon", subname, hc.GetSSHConfig())
+	t := task.NewTask("Stop Target Daemon", subname, hc.GetSSHConfig(), hc.GetHttpConfig())
 
 	// add step
 	var containerId string

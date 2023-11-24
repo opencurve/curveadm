@@ -41,7 +41,7 @@ func NewPullImageTask(curveadm *cli.CurveAdm, cfg *configure.MonitorConfig) (*ta
 
 	// new task
 	subname := fmt.Sprintf("host=%s image=%s", host, image)
-	t := task.NewTask("Pull Image", subname, hc.GetSSHConfig())
+	t := task.NewTask("Pull Image", subname, hc.GetSSHConfig(), hc.GetHttpConfig())
 	// add step to task
 	t.AddStep(&step.PullImage{
 		Image:       image,

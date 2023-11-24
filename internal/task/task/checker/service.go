@@ -138,7 +138,7 @@ func NewCheckChunkfilePoolTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig
 	}
 
 	subname := fmt.Sprintf("host=%s role=%s", dc.GetHost(), dc.GetRole())
-	t := task.NewTask("Check Chunkfile Pool <service>", subname, hc.GetSSHConfig())
+	t := task.NewTask("Check Chunkfile Pool <service>", subname, hc.GetSSHConfig(), hc.GetHttpConfig())
 
 	t.AddStep(&step2CheckChunkfilePool{
 		dc:          dc,
@@ -150,7 +150,7 @@ func NewCheckChunkfilePoolTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig
 
 func NewCheckS3Task(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task.Task, error) {
 	subname := fmt.Sprintf("host=%s role=%s", dc.GetHost(), dc.GetRole())
-	t := task.NewTask("Check S3", subname, nil)
+	t := task.NewTask("Check S3", subname, nil, nil)
 
 	t.AddStep(&step2CheckS3{
 		s3AccessKey:  dc.GetS3AccessKey(),
@@ -171,13 +171,13 @@ func NewCheckMdsAddressTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) 
 
 	address := cc.GetClusterMDSAddr()
 	subname := fmt.Sprintf("host=%s address=%s", host, address)
-	t := task.NewTask("Check MDS Address", subname, hc.GetSSHConfig())
+	t := task.NewTask("Check MDS Address", subname, hc.GetSSHConfig(), hc.GetHttpConfig())
 
 	return t, nil
 }
 
 func NewClientS3ConfigureTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.Task, error) {
-	t := task.NewTask("Check S3 Configure <service>", "", nil)
+	t := task.NewTask("Check S3 Configure <service>", "", nil, nil)
 
 	t.AddStep(&step2CheckClientS3Configure{
 		config: cc,

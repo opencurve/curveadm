@@ -149,7 +149,7 @@ func NewCleanServiceTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*ta
 	recycle := curveadm.MemStorage().Get(comm.KEY_CLEAN_BY_RECYCLE).(bool)
 	subname := fmt.Sprintf("host=%s role=%s containerId=%s clean=%s",
 		dc.GetHost(), dc.GetRole(), tui.TrimContainerId(containerId), strings.Join(only, ","))
-	t := task.NewTask("Clean Service", subname, hc.GetSSHConfig())
+	t := task.NewTask("Clean Service", subname, hc.GetSSHConfig(), hc.GetHttpConfig())
 
 	// add step to task
 	clean := utils.Slice2Map(only)

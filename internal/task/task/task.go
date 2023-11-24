@@ -44,25 +44,27 @@ type (
 	}
 
 	Task struct {
-		tid       string // task id
-		ptid      string // parent task id
-		name      string
-		subname   string
-		steps     []Step
-		postSteps []Step
-		sshConfig *module.SSHConfig
-		context   context.Context
+		tid        string // task id
+		ptid       string // parent task id
+		name       string
+		subname    string
+		steps      []Step
+		postSteps  []Step
+		sshConfig  *module.SSHConfig
+		httpConfig *module.HttpConfig
+		context    context.Context
 	}
 )
 
-func NewTask(name, subname string, sshConfig *module.SSHConfig) *Task {
+func NewTask(name, subname string, sshConfig *module.SSHConfig, httpConfig *module.HttpConfig) *Task {
 	tid := uuid.NewString()[:12]
 	return &Task{
-		tid:       tid,
-		ptid:      tid,
-		name:      name,
-		subname:   subname,
-		sshConfig: sshConfig,
+		tid:        tid,
+		ptid:       tid,
+		name:       name,
+		subname:    subname,
+		sshConfig:  sshConfig,
+		httpConfig: httpConfig,
 	}
 }
 
@@ -112,16 +114,22 @@ func (t *Task) executePost(ctx *context.Context) {
 }
 
 func (t *Task) Execute() error {
-	var sshClient *module.SSHClient
+	var remoteClient module.RemoteClient
 	if t.sshConfig != nil {
 		client, err := module.NewSSHClient(*t.sshConfig)
 		if err != nil {
 			return errno.ERR_SSH_CONNECT_FAILED.E(err)
 		}
-		sshClient = client
+		remoteClient = client
+	} else if t.httpConfig != nil {
+		client, err := module.NewHttpClient(*t.httpConfig)
+		if err != nil {
+			return errno.ERR_HTTP_CONNECT_FAILED.E(err)
+		}
+		remoteClient = client
 	}
 
-	ctx, err := context.NewContext(sshClient)
+	ctx, err := context.NewContext(remoteClient)
 	if err != nil {
 		return err
 	}

@@ -73,7 +73,7 @@ func NewCheckSSHConnectTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (
 	// new task
 	method := utils.Choose(hc.GetForwardAgent(), "forwardAgent", "privateKey")
 	subname := fmt.Sprintf("host=%s method=%s", dc.GetHost(), method)
-	t := task.NewTask("Check SSH Connect <ssh>", subname, hc.GetSSHConfig())
+	t := task.NewTask("Check SSH Connect <ssh>", subname, hc.GetSSHConfig(), hc.GetHttpConfig())
 
 	// add step to task
 	t.AddStep(&step.Lambda{

@@ -87,7 +87,7 @@ func NewGetHostDate(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task.Ta
 	}
 
 	subname := fmt.Sprintf("host=%s start=%d", dc.GetHost(), time.Now().Unix())
-	t := task.NewTask("Get Host Date <date>", subname, hc.GetSSHConfig())
+	t := task.NewTask("Get Host Date <date>", subname, hc.GetSSHConfig(), hc.GetHttpConfig())
 
 	var start int64
 	var out string
@@ -132,7 +132,7 @@ func checkDate(curveadm *cli.CurveAdm) step.LambdaType {
 }
 
 func NewCheckDate(curveadm *cli.CurveAdm, c interface{}) (*task.Task, error) {
-	t := task.NewTask("Check Host Date <date>", "", nil)
+	t := task.NewTask("Check Host Date <date>", "", nil, nil)
 	t.AddStep(&step.Lambda{
 		Lambda: checkDate(curveadm),
 	})

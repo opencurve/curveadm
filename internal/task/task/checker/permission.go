@@ -119,7 +119,7 @@ func NewCheckPermissionTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (
 
 	// new task
 	subname := fmt.Sprintf("host=%s role=%s", dc.GetHost(), dc.GetRole())
-	t := task.NewTask("Check Permission <permission>", subname, hc.GetSSHConfig())
+	t := task.NewTask("Check Permission <permission>", subname, hc.GetSSHConfig(), hc.GetHttpConfig())
 
 	// add step to task
 	var out, hostname string
@@ -145,7 +145,7 @@ func NewCheckPermissionTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (
 	t.AddStep(&step.Ping{
 		Destination: &hostname,
 		Count:       1,
-		Timeout: 1,
+		Timeout:     1,
 		Success:     &success,
 		ExecOptions: curveadm.ExecOptions(),
 	})

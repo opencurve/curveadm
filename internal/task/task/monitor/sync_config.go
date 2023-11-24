@@ -72,7 +72,7 @@ func NewSyncConfigTask(curveadm *cli.CurveAdm, cfg *configure.MonitorConfig) (*t
 	// new task
 	subname := fmt.Sprintf("host=%s role=%s containerId=%s",
 		cfg.GetHost(), cfg.GetRole(), tui.TrimContainerId(containerId))
-	t := task.NewTask("Sync Config", subname, hc.GetSSHConfig())
+	t := task.NewTask("Sync Config", subname, hc.GetSSHConfig(), hc.GetHttpConfig())
 	// add step to task
 	var out string
 	t.AddStep(&step.ListContainers{ // gurantee container exist

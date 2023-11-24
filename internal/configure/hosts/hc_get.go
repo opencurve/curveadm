@@ -85,7 +85,13 @@ func (hc *HostConfig) GetUser() string {
 	return user
 }
 
+func (hc *HostConfig) GetProtocol() string { return hc.getString(CONFIG_PROTOCOL) }
 func (hc *HostConfig) GetSSHConfig() *module.SSHConfig {
+
+	if hc.GetProtocol() != SSH_PROTOCOL {
+		return nil
+	}
+
 	hostname := hc.GetSSHHostname()
 	if len(hostname) == 0 {
 		hostname = hc.GetHostname()
@@ -103,3 +109,17 @@ func (hc *HostConfig) GetSSHConfig() *module.SSHConfig {
 		ConnectRetries:    curveadm.GlobalCurveAdmConfig.GetSSHRetries(),
 	}
 }
+
+func (hc *HostConfig) GetHttpConfig() *module.HttpConfig {
+
+	if hc.GetProtocol() != HTTP_PROTOCOL {
+		return nil
+	}
+
+	return &module.HttpConfig{
+		Host: hc.GetHostname(),
+		Port: (uint)(hc.GetHTTPPort()),
+	}
+}
+
+func (hc *HostConfig) GetHTTPPort() int { return hc.getInt(CONFIG_HTTP_PORT) }

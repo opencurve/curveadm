@@ -37,7 +37,7 @@ func NewInitSupportTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*tas
 	kind := dc.GetKind()
 	subname := fmt.Sprintf("cluster=%s kind=%s",
 		curveadm.ClusterName(), kind)
-	t := task.NewTask("Init Support", subname, nil)
+	t := task.NewTask("Init Support", subname, nil, nil)
 
 	/*
 	 * 0d7a7103521da69c6331a96355142c3b

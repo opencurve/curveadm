@@ -45,6 +45,8 @@ func FormatHosts(hcs []*configure.HostConfig, verbose bool) string {
 		"Hostname",
 		"User",
 		"Port",
+		"Protocol",
+		"HTTP Port",
 		"Private Key File",
 		"Forward Agent",
 		"Become User",
@@ -60,8 +62,10 @@ func FormatHosts(hcs []*configure.HostConfig, verbose bool) string {
 
 		host := hc.GetHost()
 		hostname := hc.GetHostname()
+		protocol := hc.GetProtocol()
 		user := hc.GetUser()
 		port := strconv.Itoa(hc.GetSSHPort())
+		httpPort := strconv.Itoa(hc.GetHTTPPort())
 		forwardAgent := utils.Choose(hc.GetForwardAgent(), "Y", "N")
 		becomeUser := utils.Choose(len(hc.GetBecomeUser()) > 0, hc.GetBecomeUser(), "-")
 		labels := utils.Choose(len(hc.GetLabels()) > 0, strings.Join(hc.GetLabels(), ","), "-")
@@ -78,6 +82,8 @@ func FormatHosts(hcs []*configure.HostConfig, verbose bool) string {
 			hostname,
 			user,
 			port,
+			protocol,
+			httpPort,
 			privateKeyFile,
 			forwardAgent,
 			becomeUser,

@@ -89,7 +89,7 @@ func NewStartServiceTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*ta
 	// new task
 	subname := fmt.Sprintf("host=%s role=%s containerId=%s",
 		dc.GetHost(), dc.GetRole(), tui.TrimContainerId(containerId))
-	t := task.NewTask("Start Service", subname, hc.GetSSHConfig())
+	t := task.NewTask("Start Service", subname, hc.GetSSHConfig(), hc.GetHttpConfig())
 
 	// add step to task
 	var out string

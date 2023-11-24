@@ -49,18 +49,18 @@ const (
 )
 
 type DockerCli struct {
-	sshClient *SSHClient
-	options   []string
-	tmpl      *template.Template
-	data      map[string]interface{}
+	options      []string
+	tmpl         *template.Template
+	data         map[string]interface{}
+	remoteClient RemoteClient
 }
 
-func NewDockerCli(sshClient *SSHClient) *DockerCli {
+func NewDockerCli(remoteClient RemoteClient) *DockerCli {
 	return &DockerCli{
-		sshClient: sshClient,
-		options:   []string{},
-		tmpl:      nil,
-		data:      map[string]interface{}{},
+		remoteClient: remoteClient,
+		options:      []string{},
+		tmpl:         nil,
+		data:         map[string]interface{}{},
 	}
 }
 
@@ -72,7 +72,7 @@ func (s *DockerCli) AddOption(format string, args ...interface{}) *DockerCli {
 func (cli *DockerCli) Execute(options ExecOptions) (string, error) {
 	cli.data["options"] = strings.Join(cli.options, " ")
 	cli.data["engine"] = options.ExecWithEngine
-	return execCommand(cli.sshClient, cli.tmpl, cli.data, options)
+	return execCommand(cli.remoteClient, cli.tmpl, cli.data, options)
 }
 
 func (cli *DockerCli) DockerInfo() *DockerCli {

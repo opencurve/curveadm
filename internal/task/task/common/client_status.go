@@ -139,7 +139,7 @@ func (s *step2FormatClientStatus) Execute(ctx *context.Context) error {
 func NewInitClientStatusTask(curveadm *cli.CurveAdm, v interface{}) (*task.Task, error) {
 	client := v.(storage.Client)
 
-	t := task.NewTask("Init Client Status", "", nil)
+	t := task.NewTask("Init Client Status", "", nil, nil)
 
 	var cfgPath string
 	t.AddStep(&step.Lambda{
@@ -164,7 +164,7 @@ func NewGetClientStatusTask(curveadm *cli.CurveAdm, v interface{}) (*task.Task, 
 	containerId := client.ContainerId
 	subname := fmt.Sprintf("host=%s kind=%s containerId=%s",
 		hc.GetHost(), client.Kind, tui.TrimContainerId(containerId))
-	t := task.NewTask("Get Client Status", subname, hc.GetSSHConfig())
+	t := task.NewTask("Get Client Status", subname, hc.GetSSHConfig(), hc.GetHttpConfig())
 
 	// add step
 	var status string

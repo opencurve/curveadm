@@ -58,7 +58,7 @@ func NewDeleteTargetTask(curveadm *cli.CurveAdm, cc *client.ClientConfig) (*task
 	}
 
 	subname := fmt.Sprintf("hostname=%s tid=%s", hc.GetHostname(), options.Tid)
-	t := task.NewTask("Delete Target", subname, hc.GetSSHConfig())
+	t := task.NewTask("Delete Target", subname, hc.GetSSHConfig(), hc.GetHttpConfig())
 
 	// add step
 	var output string

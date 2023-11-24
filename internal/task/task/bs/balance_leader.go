@@ -48,7 +48,7 @@ func NewBalanceTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task.Ta
 
 	subname := fmt.Sprintf("host=%s role=%s containerId=%s",
 		dc.GetHost(), dc.GetRole(), tui.TrimContainerId(containerId))
-	t := task.NewTask("Balance Leader", subname, hc.GetSSHConfig())
+	t := task.NewTask("Balance Leader", subname, hc.GetSSHConfig(), hc.GetHttpConfig())
 
 	// add step
 	t.AddStep(&step.ContainerExec{

@@ -95,7 +95,7 @@ func NewRemovePlaygroundTask(curveadm *cli.CurveAdm, v interface{}) (*task.Task,
 	// new task
 	playground := v.(storage.Playground)
 	subname := fmt.Sprintf("name=%s", playground.Name)
-	t := task.NewTask("Remove Playground", subname, nil)
+	t := task.NewTask("Remove Playground", subname, nil, nil)
 
 	// add step to task
 	var containerId string

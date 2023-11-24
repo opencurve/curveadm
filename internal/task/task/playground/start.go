@@ -43,7 +43,7 @@ func wait(seconds int) step.LambdaType {
 func NewStartPlaygroundTask(curveadm *cli.CurveAdm, cfg *configure.PlaygroundConfig) (*task.Task, error) {
 	// new task
 	subname := fmt.Sprintf("kind=%s name=%s", cfg.GetKind(), cfg.GetName())
-	t := task.NewTask("Start Playground", subname, nil)
+	t := task.NewTask("Start Playground", subname, nil, nil)
 
 	// add step to task
 	containerId := cfg.GetName()

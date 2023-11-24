@@ -200,7 +200,7 @@ func NewCreateTopologyTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*
 		"Create Logical Pool", "Create Physical Pool")
 	subname := fmt.Sprintf("host=%s role=%s containerId=%s",
 		dc.GetHost(), dc.GetRole(), tui.TrimContainerId(containerId))
-	t := task.NewTask(name, subname, hc.GetSSHConfig())
+	t := task.NewTask(name, subname, hc.GetSSHConfig(), hc.GetHttpConfig())
 
 	// add step to task
 	var success bool

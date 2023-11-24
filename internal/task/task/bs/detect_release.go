@@ -75,7 +75,7 @@ func NewDetectOSReleaseTask(curveadm *cli.CurveAdm, v interface{}) (*task.Task, 
 	var success bool
 	var out string
 	subname := fmt.Sprintf("host=%s", host)
-	t := task.NewTask("Detect OS Release", subname, hc.GetSSHConfig())
+	t := task.NewTask("Detect OS Release", subname, hc.GetSSHConfig(), hc.GetHttpConfig())
 
 	// add step to task
 	t.AddStep(&step.Cat{

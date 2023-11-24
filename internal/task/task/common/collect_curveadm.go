@@ -40,7 +40,7 @@ func NewCollectCurveAdmTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (
 	kind := dc.GetKind()
 	subname := fmt.Sprintf("cluster=%s kind=%s",
 		curveadm.ClusterName(), kind)
-	t := task.NewTask("Collect CurveAdm", subname, nil)
+	t := task.NewTask("Collect CurveAdm", subname, nil, nil)
 
 	// add step to task
 	dbPath := curveadm.Config().GetDBPath()

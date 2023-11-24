@@ -41,7 +41,7 @@ func NewPullImageTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task.
 
 	// new task
 	subname := fmt.Sprintf("host=%s image=%s", dc.GetHost(), dc.GetContainerImage())
-	t := task.NewTask("Pull Image", subname, hc.GetSSHConfig())
+	t := task.NewTask("Pull Image", subname, hc.GetSSHConfig(), hc.GetHttpConfig())
 
 	// add step to task
 	t.AddStep(&step.PullImage{

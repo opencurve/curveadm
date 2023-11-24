@@ -49,7 +49,7 @@ func NewRestartServiceTask(curveadm *cli.CurveAdm, cfg *configure.MonitorConfig)
 	// new task
 	subname := fmt.Sprintf("host=%s role=%s containerId=%s",
 		cfg.GetHost(), cfg.GetRole(), tui.TrimContainerId(containerId))
-	t := task.NewTask("Restart Monitor Service", subname, hc.GetSSHConfig())
+	t := task.NewTask("Restart Monitor Service", subname, hc.GetSSHConfig(), hc.GetHttpConfig())
 
 	// add step to task
 	var out string

@@ -119,7 +119,7 @@ func NewListTargetsTask(curveadm *cli.CurveAdm, v interface{}) (*task.Task, erro
 	}
 
 	subname := fmt.Sprintf("host=%s", hc.GetHostname())
-	t := task.NewTask("List Targets", subname, hc.GetSSHConfig())
+	t := task.NewTask("List Targets", subname, hc.GetSSHConfig(), hc.GetHttpConfig())
 
 	// add step
 	var output string

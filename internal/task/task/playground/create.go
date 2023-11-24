@@ -100,7 +100,7 @@ func NewCreatePlaygroundTask(curveadm *cli.CurveAdm, cfg *configure.PlaygroundCo
 
 	// new task
 	subname := fmt.Sprintf("kind=%s name=%s image=%s", kind, name, containerImage)
-	t := task.NewTask("Create Playground", subname, nil)
+	t := task.NewTask("Create Playground", subname, nil, nil)
 	var containerId string
 
 	// add step to task

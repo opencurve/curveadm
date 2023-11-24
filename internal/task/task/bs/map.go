@@ -79,7 +79,7 @@ func NewMapTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.Task,
 	}
 
 	subname := fmt.Sprintf("hostname=%s volume=%s:%s", hc.GetHostname(), options.User, options.Volume)
-	t := task.NewTask("Map Volume", subname, hc.GetSSHConfig())
+	t := task.NewTask("Map Volume", subname, hc.GetSSHConfig(), hc.GetHttpConfig())
 
 	// add step
 	var out string

@@ -77,7 +77,7 @@ func NewUninstallPolarFSTask(curveadm *cli.CurveAdm, v interface{}) (*task.Task,
 	// new task
 	release := getRelease(curveadm)
 	subname := fmt.Sprintf("host=%s release=%s", host, release)
-	t := task.NewTask("Uninstall PolarFS", subname, hc.GetSSHConfig())
+	t := task.NewTask("Uninstall PolarFS", subname, hc.GetSSHConfig(), hc.GetHttpConfig())
 
 	// add step to task
 	t.AddStep(&step.RemoveFile{

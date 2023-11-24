@@ -81,7 +81,7 @@ func NewUninstallClientTask(curveadm *cli.CurveAdm, v interface{}) (*task.Task, 
 	kind := curveadm.MemStorage().Get(comm.KEY_CLIENT_KIND).(string)
 	subname := fmt.Sprintf("host=%s release=%s kind=%s", host, release, kind)
 	name := utils.Choose(kind == KIND_CURVEBS, "CurveBS", "CurveFS")
-	t := task.NewTask(fmt.Sprintf("Uninstall %s Client", name), subname, hc.GetSSHConfig())
+	t := task.NewTask(fmt.Sprintf("Uninstall %s Client", name), subname, hc.GetSSHConfig(), hc.GetHttpConfig())
 
 	// add step to task
 	t.AddPostStep(&step2UninstallPackage{

@@ -106,7 +106,7 @@ func NewCheckKernelVersionTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig
 	// new task
 	subname := fmt.Sprintf("host=%s role=%s require=(>=%s)",
 		dc.GetHost(), dc.GetRole(), CHUNKSERVER_LEAST_KERNEL_VERSION)
-	t := task.NewTask("Check Kernel Version <kernel>", subname, hc.GetSSHConfig())
+	t := task.NewTask("Check Kernel Version <kernel>", subname, hc.GetSSHConfig(), hc.GetHttpConfig())
 
 	// add step to task
 	var out string
@@ -132,7 +132,7 @@ func NewCheckKernelModuleTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig
 	// new task
 	name := curveadm.MemStorage().Get(comm.KEY_CHECK_KERNEL_MODULE_NAME).(string)
 	subname := fmt.Sprintf("host=%s module=%s", host, name)
-	t := task.NewTask("Check Kernel Module", subname, hc.GetSSHConfig())
+	t := task.NewTask("Check Kernel Module", subname, hc.GetSSHConfig(), hc.GetHttpConfig())
 
 	// add step to task
 	var out string

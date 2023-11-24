@@ -27,10 +27,10 @@ package common
 import (
 	"github.com/opencurve/curveadm/cli/cli"
 	comm "github.com/opencurve/curveadm/internal/common"
+	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/task/context"
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
-	"github.com/opencurve/curveadm/internal/errno"
 )
 
 func updateTopology(curveadm *cli.CurveAdm) step.LambdaType {
@@ -45,7 +45,7 @@ func updateTopology(curveadm *cli.CurveAdm) step.LambdaType {
 }
 
 func NewUpdateTopologyTask(curveadm *cli.CurveAdm, v interface{}) (*task.Task, error) {
-	t := task.NewTask("Update Topology", "", nil)
+	t := task.NewTask("Update Topology", "", nil, nil)
 
 	// add step to task
 	t.AddStep(&step.Lambda{

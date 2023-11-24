@@ -104,7 +104,7 @@ func NewInstallPolarFSTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (
 	// new task
 	release := getRelease(curveadm)
 	subname := fmt.Sprintf("host=%s release=%s", host, release)
-	t := task.NewTask("Install PolarFS", subname, hc.GetSSHConfig())
+	t := task.NewTask("Install PolarFS", subname, hc.GetSSHConfig(), hc.GetHttpConfig())
 
 	// add step to task
 	var input, output string

@@ -263,7 +263,7 @@ func NewCheckTopologyTask(curveadm *cli.CurveAdm, null interface{}) (*task.Task,
 	// new task
 	dcs := curveadm.MemStorage().Get(comm.KEY_ALL_DEPLOY_CONFIGS).([]*topology.DeployConfig)
 	subname := fmt.Sprintf("cluster=%s kind=%s", curveadm.ClusterName(), dcs[0].GetKind())
-	t := task.NewTask("Check Topology <topology>", subname, nil)
+	t := task.NewTask("Check Topology <topology>", subname, nil, nil)
 
 	// add step to task
 	for _, dc := range dcs {

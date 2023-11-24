@@ -607,18 +607,20 @@ func (s *Scp) Execute(ctx *context.Context) error {
 		return errno.ERR_WRITE_FILE_FAILED.E(err)
 	}
 
-	config := ctx.SSHClient().Config()
-	cmd := ctx.Module().Shell().Scp(localPath, config.User, config.Host, s.RemotePath)
-	cmd.AddOption("-P %d", config.Port)
-	if !config.ForwardAgent {
-		cmd.AddOption("-i %s", config.PrivateKeyPath)
-	}
+	//config := ctx.SSHClient().Config()
+	//cmd := ctx.Module().Shell().Scp(localPath, config.User, config.Host, s.RemotePath)
+	//cmd.AddOption("-P %d", config.Port)
+	//if !config.ForwardAgent {
+	//	cmd.AddOption("-i %s", config.PrivateKeyPath)
+	//}
+
+	err = ctx.Module().File().Upload(localPath, s.RemotePath)
 
 	options := s.ExecOptions
 	options.ExecWithSudo = false
 	options.ExecInLocal = true
-	out, err := cmd.Execute(options)
-	return PostHandle(nil, nil, out, err, errno.ERR_SECURE_COPY_FILE_TO_REMOTE_FAILED)
+	//out, err := cmd.Execute(options)
+	return PostHandle(nil, nil, "", err, errno.ERR_SECURE_COPY_FILE_TO_REMOTE_FAILED)
 }
 
 func (s *Command) Execute(ctx *context.Context) error {

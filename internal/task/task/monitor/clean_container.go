@@ -44,7 +44,7 @@ func NewCleanConfigContainerTask(curveadm *cli.CurveAdm, cfg *configure.MonitorC
 	if err != nil {
 		return nil, err
 	}
-	t := task.NewTask("Clean Config Container", "", hc.GetSSHConfig())
+	t := task.NewTask("Clean Config Container", "", hc.GetSSHConfig(), hc.GetHttpConfig())
 	t.AddStep(&common.Step2CleanContainer{
 		ServiceId:   serviceId,
 		ContainerId: containerId,

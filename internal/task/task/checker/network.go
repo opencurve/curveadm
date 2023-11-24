@@ -134,7 +134,7 @@ func NewCheckPortInUseTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*
 	addresses := getServiceListenAddresses(dc)
 	subname := fmt.Sprintf("host=%s role=%s ports={%s}",
 		dc.GetHost(), dc.GetRole(), joinPorts(dc, addresses))
-	t := task.NewTask("Check Port In Use <network>", subname, hc.GetSSHConfig())
+	t := task.NewTask("Check Port In Use <network>", subname, hc.GetSSHConfig(), hc.GetHttpConfig())
 
 	var containerId, out string
 	var success bool
@@ -203,7 +203,7 @@ func NewCheckDestinationReachableTask(curveadm *cli.CurveAdm, dc *topology.Deplo
 	addresses := unique(getServiceConnectAddress(dc, dcs))
 	subname := fmt.Sprintf("host=%s role=%s ping={%s}",
 		dc.GetHost(), dc.GetRole(), tui.TrimAddress(strings.Join(addresses, ",")))
-	t := task.NewTask("Check Destination Reachable <network>", subname, hc.GetSSHConfig())
+	t := task.NewTask("Check Destination Reachable <network>", subname, hc.GetSSHConfig(), hc.GetHttpConfig())
 
 	var out string
 	var success bool
@@ -258,7 +258,7 @@ func NewStartHTTPServerTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (
 	addresses := getServiceListenAddresses(dc)
 	subname := fmt.Sprintf("host=%s role=%s ports={%s}",
 		dc.GetHost(), dc.GetRole(), joinPorts(dc, addresses))
-	t := task.NewTask("Start Mock HTTP Server <network>", subname, hc.GetSSHConfig())
+	t := task.NewTask("Start Mock HTTP Server <network>", subname, hc.GetSSHConfig(), hc.GetHttpConfig())
 
 	// add step to task
 	var containerId, out string
@@ -329,7 +329,7 @@ func NewCheckNetworkFirewallTask(curveadm *cli.CurveAdm, dc *topology.DeployConf
 
 	// add task
 	subname := fmt.Sprintf("host=%s role=%s", dc.GetHost(), dc.GetRole())
-	t := task.NewTask("Check Network Firewall <network>", subname, hc.GetSSHConfig())
+	t := task.NewTask("Check Network Firewall <network>", subname, hc.GetSSHConfig(), hc.GetHttpConfig())
 
 	// add step to task
 	var out string
@@ -395,7 +395,7 @@ func NewCleanEnvironmentTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) 
 
 	// new task
 	subname := fmt.Sprintf("host=%s role=%s", dc.GetHost(), dc.GetRole())
-	t := task.NewTask("Clean Precheck Environment", subname, hc.GetSSHConfig())
+	t := task.NewTask("Clean Precheck Environment", subname, hc.GetSSHConfig(), hc.GetHttpConfig())
 
 	// add step to task
 	var out string

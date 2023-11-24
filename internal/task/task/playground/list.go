@@ -83,7 +83,7 @@ func NewGetPlaygroundStatusTask(curveadm *cli.CurveAdm, v interface{}) (*task.Ta
 	// new task
 	playground := v.(storage.Playground)
 	subname := fmt.Sprintf("id=%d name=%s", playground.Id, playground.Name)
-	t := task.NewTask("Get Playground Status", subname, nil)
+	t := task.NewTask("Get Playground Status", subname, nil, nil)
 
 	// add step to task
 	var status string

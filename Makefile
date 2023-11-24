@@ -21,6 +21,7 @@ GO := go
 
 # output
 OUTPUT := bin/curveadm
+SERVER_OUTPUT := bin/pigeon
 
 # build flags
 LDFLAGS := -s -w
@@ -52,12 +53,14 @@ TEST_FLAGS += -run $(CASE)
 
 # packages
 PACKAGES := $(PWD)/cmd/curveadm/main.go
+SERVER_PACKAGES := $(PWD)/cmd/service/main.go
 
 # tar
 VERSION := "unknown"
 
 build:
 	$(GOENV) $(GO) build -o $(OUTPUT) $(BUILD_FLAGS) $(PACKAGES)
+	$(GO) build -o $(SERVER_OUTPUT)  $(SERVER_PACKAGES)
 
 debug:
 	$(GOENV) $(GO) build -o $(OUTPUT) $(DEBUG_FLAGS) $(PACKAGES)
