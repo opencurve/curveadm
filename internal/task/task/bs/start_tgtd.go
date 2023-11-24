@@ -127,7 +127,8 @@ func NewStartTargetDaemonTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig
 		ExecOptions: curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.ContainerExec{
-		Command:     "tgtd -f &",
+		Command:     "tgtd -f",
+		Detached:    true,
 		ContainerId: &containerId,
 		ExecOptions: curveadm.ExecOptions(),
 	})
