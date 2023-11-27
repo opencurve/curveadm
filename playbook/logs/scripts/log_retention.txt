@@ -1,0 +1,27 @@
+log_retention.sh文件使用说明：
+
+1. 执行该文件之前，需要使用'chmod +x'命令给该文件添加执行权限。
+2. 该程序须自定义参数来执行自定义日志保留计划，可以在config.json定义相关参数。
+3. 该程序有清理日志，与日志轮转两种模式，可以通过cnofig文件的clean参数来选择。
+4. 其余日志轮转相关参数设定可使用 'man logrotate'查询。
+5. 清理日志模式，是一次性操作，会删除所有日志压缩文件。
+   成功执行的结果为：Clean all .gz files in $folder。
+6. 日志轮转模式，是logrotate自动执行的周期性操作，会根据设定的参数，将日志文件进行压缩。
+   成功执行的结果为：Logrotate started successfully.
+
+
+提示：此命令须在每个工作节点上以root权限执行，用于压缩或删除curve工作日志。
+#######################################################################
+Instructions for using log_retention.sh file:
+
+1. Before executing the file, you need to use the 'chmod +x' command to add execution permissions to the file.
+2. The program requires customized parameters to execute a customized log retention plan. Relevant parameters can be defined in config.json.
+3. This program has two modes: log cleaning and log rotation, which can be selected through the clean parameter of the cnofig file.
+4. The remaining log rotation related parameter settings can be queried using 'man logrotate'.
+5. Clean log mode is a one-time operation and will delete all compressed log files.
+    The result of successful execution is: Clean all .gz files in $folder.
+6. Log rotation mode is a periodic operation automatically performed by logrotate. It will compress log files according to the set parameters.
+    The result of successful execution is: Logrotate started successfully.
+
+
+Tip: This command must be executed with root privileges on each working node to compress or delete the curve working log.
