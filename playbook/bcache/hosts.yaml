@@ -1,0 +1,42 @@
+global:
+  user: curve
+  ssh_port: 22
+  private_key_file: /home/curve/.ssh/id_rsa
+
+hosts:
+  - host: server-host1
+    hostname: 10.0.1.1
+    labels:
+      - bcache
+    envs:
+      - SUDO_ALIAS=sudo
+      - BACKING_DEV="/dev/sdc /dev/sdd /dev/sde"
+      - CACHE_DEV_0="/dev/nvme0n1p1 /dev/nvme0n1p2 /dev/nvme0n1p3"
+      - CACHE_DEV_1="/dev/nvme1n1p1 /dev/nvme1n1p2 /dev/nvme1n1p3"
+      - CACHE_MODE=writeback
+      - PERF_TUNE=true
+      - CLEAN_DATA=true
+  - host: server-host2
+    hostname: 10.0.1.2
+    labels:
+      - bcache
+    envs:
+      - SUDO_ALIAS=sudo
+      - BACKING_DEV="/dev/sdb /dev/sdc /dev/sdd"
+      - CACHE_DEV_0="/dev/nvme0n1p1 /dev/nvme0n1p2 /dev/nvme0n1p3"
+      - CACHE_DEV_1="/dev/nvme1n1p1 /dev/nvme1n1p2 /dev/nvme1n1p3"
+      - CACHE_MODE=writeback
+      - PERF_TUNE=true
+      - CLEAN_DATA=true
+  - host: server-host3
+    hostname: 10.0.1.3
+    labels:
+      - bcache
+    envs:
+      - SUDO_ALIAS=sudo
+      - BACKING_DEV="/dev/sdb /dev/sdc /dev/sdd"
+      - CACHE_DEV_0="/dev/nvme0n1p1 /dev/nvme0n1p2 /dev/nvme0n1p3"
+      - CACHE_DEV_1="/dev/nvme1n1p1 /dev/nvme1n1p2 /dev/nvme1n1p3"
+      - CACHE_MODE=writeback
+      - PERF_TUNE=true
+      - CLEAN_DATA=true
