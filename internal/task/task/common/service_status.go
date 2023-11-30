@@ -80,6 +80,13 @@ type (
 		memStorage  *utils.SafeMap
 	}
 
+	step2FormatLeaderServiceStatus struct {
+		dc         *topology.DeployConfig
+		serviceId  string
+		isLeader   *bool
+		memStorage *utils.SafeMap
+	}
+
 	ServiceStatus struct {
 		Id          string
 		ParentId    string
@@ -94,6 +101,11 @@ type (
 		DataDir     string
 		Config      *topology.DeployConfig
 	}
+
+	LeaderServiceStatus struct {
+		IsLeader bool
+		Config   *topology.DeployConfig
+	}
 )
 
 func setServiceStatus(memStorage *utils.SafeMap, id string, status ServiceStatus) {
@@ -105,6 +117,19 @@ func setServiceStatus(memStorage *utils.SafeMap, id string, status ServiceStatus
 		}
 		m[id] = status
 		kv.Set(comm.KEY_ALL_SERVICE_STATUS, m)
+		return nil
+	})
+}
+
+func setleaderServiseStatus(memStorage *utils.SafeMap, id string, status LeaderServiceStatus) {
+	memStorage.TX(func(kv *utils.SafeMap) error {
+		m := map[string]LeaderServiceStatus{}
+		v := kv.Get(comm.KEY_LEADER_SERVICE_STATUS)
+		if v != nil {
+			m = v.(map[string]LeaderServiceStatus)
+		}
+		m[id] = status
+		kv.Set(comm.KEY_LEADER_SERVICE_STATUS, m)
 		return nil
 	})
 }
@@ -218,6 +243,16 @@ func (s *step2FormatServiceStatus) Execute(ctx *context.Context) error {
 	return nil
 }
 
+func (s *step2FormatLeaderServiceStatus) Execute(ctx *context.Context) error {
+	dc := s.dc
+	id := s.serviceId
+	setleaderServiseStatus(s.memStorage, id, LeaderServiceStatus{
+		IsLeader: *s.isLeader,
+		Config:   dc,
+	})
+	return nil
+}
+
 func NewInitServiceStatusTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task.Task, error) {
 	serviceId := curveadm.GetServiceId(dc.GetId())
 	containerId, err := curveadm.GetContainerId(serviceId)
@@ -302,6 +337,54 @@ func NewGetServiceStatusTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) 
 		ports:       &ports,
 		status:      &status,
 		memStorage:  curveadm.MemStorage(),
+	})
+
+	return t, nil
+}
+
+func NewGetMdsLeaderTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task.Task, error) {
+	serviceId := curveadm.GetServiceId(dc.GetId())
+	containerId, err := curveadm.GetContainerId(serviceId)
+	if curveadm.IsSkip(dc) {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	hc, err := curveadm.GetHost(dc.GetHost())
+	if err != nil {
+		return nil, err
+	}
+
+	// new task
+	subname := fmt.Sprintf("host=%s role=%s containerId=%s",
+		dc.GetHost(), dc.GetRole(), tui.TrimContainerId(containerId))
+	t := task.NewTask("Enter Leader container", subname, hc.GetSSHConfig())
+
+	// add step to task
+	var status string
+	var isLeader bool
+	t.AddStep(&step.ListContainers{
+		ShowAll:     true,
+		Format:      `"{{.Status}}"`,
+		Filter:      fmt.Sprintf("id=%s", containerId),
+		Out:         &status,
+		ExecOptions: curveadm.ExecOptions(),
+	})
+	t.AddStep(&step.Lambda{
+		Lambda: TrimContainerStatus(&status),
+	})
+	t.AddStep(&step2GetLeader{
+		dc:          dc,
+		containerId: containerId,
+		status:      &status,
+		isLeader:    &isLeader,
+		execOptions: curveadm.ExecOptions(),
+	})
+	t.AddStep(&step2FormatLeaderServiceStatus{
+		dc:         dc,
+		serviceId:  serviceId,
+		isLeader:   &isLeader,
+		memStorage: curveadm.MemStorage(),
 	})
 
 	return t, nil
