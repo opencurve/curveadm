@@ -49,6 +49,7 @@ const (
 	POOLSET                   = "poolset"
 	POOLSET_DISK_TYPE         = "poolset-disktype"
 	KEY_NUMBER_OF_CHUNKSERVER = "NUMBER_OF_CHUNKSERVER"
+	LEADER_OR_RANDOM_ID       = "LEADER_OR_RANDOM_ID"
 
 	// format
 	KEY_ALL_FORMAT_STATUS = "ALL_FORMAT_STATUS"

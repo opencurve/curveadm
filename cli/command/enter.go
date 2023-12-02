@@ -26,11 +26,18 @@ package command
 
 import (
 	"github.com/opencurve/curveadm/cli/cli"
+	comm "github.com/opencurve/curveadm/internal/common"
 	"github.com/opencurve/curveadm/internal/configure/topology"
 	"github.com/opencurve/curveadm/internal/errno"
+	"github.com/opencurve/curveadm/internal/playbook"
+	"github.com/opencurve/curveadm/internal/task/task/common"
 	"github.com/opencurve/curveadm/internal/tools"
 	"github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/cobra"
+)
+
+var (
+	ATTACH_LEADER_OR_RANDOM_CONTAINER = []int{playbook.ATTACH_LEADER_OR_RANDOM_CONTAINER}
 )
 
 type enterOptions struct {
@@ -43,8 +50,11 @@ func NewEnterCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "enter ID",
 		Short: "Enter service container",
-		Args:  utils.ExactArgs(1),
+		Args:  utils.RequiresMaxArgs(1),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 0 {
+				return nil
+			}
 			options.id = args[0]
 			return curveadm.CheckId(options.id)
 		},
@@ -57,6 +67,51 @@ func NewEnterCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	return cmd
 }
 
+func genLeaderOrRandomPlaybook(curveadm *cli.CurveAdm,
+	dcs []*topology.DeployConfig) (*playbook.Playbook, error) {
+	if len(dcs) == 0 {
+		return nil, errno.ERR_NO_SERVICES_MATCHED
+	}
+
+	steps := ATTACH_LEADER_OR_RANDOM_CONTAINER
+	pb := playbook.NewPlaybook(curveadm)
+	for _, step := range steps {
+		pb.AddStep(&playbook.PlaybookStep{
+			Type:    step,
+			Configs: dcs,
+			ExecOptions: playbook.ExecOptions{
+				SilentSubBar:  true,
+				SilentMainBar: true,
+				SkipError:     true,
+			},
+		})
+	}
+	return pb, nil
+}
+
+func checkOrGetId(curveadm *cli.CurveAdm, dcs []*topology.DeployConfig, options enterOptions) (string, error) {
+	id := options.id
+	if id != "" {
+		return id, nil
+	}
+	pb, err := genLeaderOrRandomPlaybook(curveadm, dcs)
+	if err != nil {
+		return "", err
+	}
+	// run playground
+	err = pb.Run()
+	if err != nil {
+		return "", err
+	}
+	// get leader or random container id
+	value := curveadm.MemStorage().Get(comm.LEADER_OR_RANDOM_ID)
+	if value == nil {
+		return "", errno.ERR_NO_LEADER_OR_RANDOM_CONTAINER_FOUND
+	}
+	id = value.(common.Leader0rRandom).Id
+	return id, nil
+}
+
 func runEnter(curveadm *cli.CurveAdm, options enterOptions) error {
 	// 1) parse cluster topology
 	dcs, err := curveadm.ParseTopology()
@@ -64,9 +119,15 @@ func runEnter(curveadm *cli.CurveAdm, options enterOptions) error {
 		return err
 	}
 
-	// 2) filter service
+	// 2) check id options
+	id, err := checkOrGetId(curveadm, dcs, options)
+	if err != nil {
+		return err
+	}
+
+	// 3) filter service
 	dcs = curveadm.FilterDeployConfig(dcs, topology.FilterOption{
-		Id:   options.id,
+		Id:   id,
 		Role: "*",
 		Host: "*",
 	})
@@ -74,7 +135,7 @@ func runEnter(curveadm *cli.CurveAdm, options enterOptions) error {
 		return errno.ERR_NO_SERVICES_MATCHED
 	}
 
-	// 3) get container id
+	// 4) get container id
 	dc := dcs[0]
 	serviceId := curveadm.GetServiceId(dc.GetId())
 	containerId, err := curveadm.GetContainerId(serviceId)
@@ -82,7 +143,7 @@ func runEnter(curveadm *cli.CurveAdm, options enterOptions) error {
 		return err
 	}
 
-	// 4) attch remote container
+	// 5) attach remote container
 	home := dc.GetProjectLayout().ServiceRootDir
 	return tools.AttachRemoteContainer(curveadm, dc.GetHost(), containerId, home)
 }

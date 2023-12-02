@@ -83,6 +83,7 @@ const (
 	GET_CLIENT_STATUS
 	INSTALL_CLIENT
 	UNINSTALL_CLIENT
+	ATTACH_LEADER_OR_RANDOM_CONTAINER
 
 	// bs
 	FORMAT_CHUNKFILE_POOL
@@ -225,6 +226,8 @@ func (p *Playbook) createTasks(step *PlaybookStep) (*tasks.Tasks, error) {
 			t, err = comm.NewInitServiceStatusTask(curveadm, config.GetDC(i))
 		case GET_SERVICE_STATUS:
 			t, err = comm.NewGetServiceStatusTask(curveadm, config.GetDC(i))
+		case ATTACH_LEADER_OR_RANDOM_CONTAINER:
+			t, err = comm.NewAttachLeaderOrRandomContainerTask(curveadm, config.GetDC(i))
 		case CLEAN_SERVICE:
 			t, err = comm.NewCleanServiceTask(curveadm, config.GetDC(i))
 		case INIT_SUPPORT:
