@@ -97,6 +97,10 @@ func IsStringAnyMap(v interface{}) bool {
 	return Type(v) == "string_interface_map"
 }
 
+func IsAnySlice(v interface{}) bool {
+	return Type(v) == "any_slice"
+}
+
 func IsFunc(v interface{}) bool {
 	return reflect.TypeOf(v).Kind() == reflect.Func
 }

@@ -253,8 +253,10 @@ var (
 	ERR_UNSUPPORT_CLEAN_ITEM           = EC(210005, "unsupport clean item")
 	ERR_NO_SERVICES_MATCHED            = EC(210006, "no services matched")
 	// TODO: please check pool set disk type
-	ERR_INVALID_DISK_TYPE = EC(210007, "poolset disk type must be lowercase and can only be one of ssd, hdd and nvme")
-
+	ERR_INVALID_DISK_TYPE                   = EC(210007, "poolset disk type must be lowercase and can only be one of ssd, hdd and nvme")
+	ERR_UNSUPPORT_DEPLOY_TYPE               = EC(210008, "unknown deploy type")
+	ERR_NO_LEADER_OR_RANDOM_CONTAINER_FOUND = EC(210009, "no leader or random container found")
+	
 	// 220: commad options (client common)
 	ERR_UNSUPPORT_CLIENT_KIND = EC(220000, "unsupport client kind")
 	// 221: command options (client/bs)
@@ -287,6 +289,7 @@ var (
 	ERR_CONFIGURE_VALUE_REQUIRES_NON_EMPTY_STRING = EC(301004, "configure value requires non-empty string")
 	ERR_CONFIGURE_VALUE_REQUIRES_POSITIVE_INTEGER = EC(301005, "configure value requires positive integer")
 	ERR_CONFIGURE_VALUE_REQUIRES_STRING_SLICE     = EC(301006, "configure value requires string array")
+	ERR_CONFIGURE_VALUE_REQUIRES_NONEMPTY_SLICE   = EC(301007, "configure value requires nonempty array")
 	ERR_UNSUPPORT_VARIABLE_VALUE_TYPE             = EC(301100, "unsupport variable value type")
 	ERR_INVALID_VARIABLE_VALUE                    = EC(301101, "invalid variable value")
 
@@ -310,7 +313,7 @@ var (
 	ERR_PRIVATE_KEY_FILE_REQUIRE_ABSOLUTE_PATH   = EC(321004, "SSH private key file needs to be an absolute path")
 	ERR_PRIVATE_KEY_FILE_NOT_EXIST               = EC(321005, "SSH private key file not exist")
 	ERR_PRIVATE_KEY_FILE_REQUIRE_600_PERMISSIONS = EC(321006, "SSH private key file require 600 permissions")
-	ERR_DUPLICATE_HOST                           = EC(321007, "host is duplicate")
+	ERR_DUPLICATE_NAME                           = EC(321007, "name is duplicate")
 	ERR_HOSTNAME_REQUIRES_VALID_IP_ADDRESS       = EC(321008, "hostname requires valid IP address")
 
 	// 322: configure (monitor.yaml: parse failed)

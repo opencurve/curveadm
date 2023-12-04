@@ -91,7 +91,7 @@ func NewPlaybookCommand(curveadm *cli.CurveAdm) *cobra.Command {
 
 func execute(curveadm *cli.CurveAdm, options playbookOptions, idx int, hc *hosts.HostConfig) {
 	defer func() { wg.Done() }()
-	name := hc.GetHost()
+	name := hc.GetName()
 	target := path.Join("/tmp", utils.RandString(8))
 	err := tools.Scp(curveadm, name, options.filepath, target)
 	if err != nil {

@@ -25,25 +25,25 @@
 package hosts
 
 import (
-	comm "github.com/opencurve/curveadm/internal/configure/common"
 	"github.com/opencurve/curveadm/internal/configure/curveadm"
 	"github.com/opencurve/curveadm/internal/utils"
 	"github.com/opencurve/curveadm/pkg/module"
+	"github.com/opencurve/curveadm/pkg/variable"
 )
 
-func (hc *HostConfig) get(i *comm.Item) interface{} {
+func (hc *HostConfig) get(i *item) interface{} {
 	if v, ok := hc.config[i.Key()]; ok {
 		return v
 	}
 
-	defaultValue := i.DefaultValue()
+	defaultValue := i.defaultValue
 	if defaultValue != nil && utils.IsFunc(defaultValue) {
 		return defaultValue.(func(*HostConfig) interface{})(hc)
 	}
 	return defaultValue
 }
 
-func (hc *HostConfig) getString(i *comm.Item) string {
+func (hc *HostConfig) getString(i *item) string {
 	v := hc.get(i)
 	if v == nil {
 		return ""
@@ -51,7 +51,7 @@ func (hc *HostConfig) getString(i *comm.Item) string {
 	return v.(string)
 }
 
-func (hc *HostConfig) getInt(i *comm.Item) int {
+func (hc *HostConfig) getInt(i *item) int {
 	v := hc.get(i)
 	if v == nil {
 		return 0
@@ -59,7 +59,7 @@ func (hc *HostConfig) getInt(i *comm.Item) int {
 	return v.(int)
 }
 
-func (hc *HostConfig) getBool(i *comm.Item) bool {
+func (hc *HostConfig) getBool(i *item) bool {
 	v := hc.get(i)
 	if v == nil {
 		return false
@@ -67,7 +67,7 @@ func (hc *HostConfig) getBool(i *comm.Item) bool {
 	return v.(bool)
 }
 
-func (hc *HostConfig) GetHost() string           { return hc.getString(CONFIG_HOST) }
+func (hc *HostConfig) GetName() string           { return hc.getString(CONFIG_NAME) }
 func (hc *HostConfig) GetHostname() string       { return hc.getString(CONFIG_HOSTNAME) }
 func (hc *HostConfig) GetSSHHostname() string    { return hc.getString(CONFIG_SSH_HOSTNAME) }
 func (hc *HostConfig) GetSSHPort() int           { return hc.getInt(CONFIG_SSH_PORT) }
@@ -77,6 +77,10 @@ func (hc *HostConfig) GetBecomeUser() string     { return hc.getString(CONFIG_BE
 func (hc *HostConfig) GetLabels() []string       { return hc.labels }
 func (hc *HostConfig) GetEnvs() []string         { return hc.envs }
 
+func (hc *HostConfig) GetInstances() int                 { return hc.instances }
+func (hc *HostConfig) GetInstancesSequence() int         { return hc.instancesSequence }
+func (hc *HostConfig) GetVariables() *variable.Variables { return hc.variables }
+
 func (hc *HostConfig) GetUser() string {
 	user := hc.getString(CONFIG_USER)
 	if user == "${user}" {
@@ -84,7 +88,6 @@ func (hc *HostConfig) GetUser() string {
 	}
 	return user
 }
-
 func (hc *HostConfig) GetSSHConfig() *module.SSHConfig {
 	hostname := hc.GetSSHHostname()
 	if len(hostname) == 0 {
