@@ -67,7 +67,17 @@ func (hc *HostConfig) getBool(i *comm.Item) bool {
 	return v.(bool)
 }
 
+func (hc *HostConfig) getName() string {
+	res := hc.GetHost()
+	if res != "" {
+		return res
+	}
+
+	return hc.getString(CONFIG_NAME)
+}
+
 func (hc *HostConfig) GetHost() string           { return hc.getString(CONFIG_HOST) }
+func (hc *HostConfig) GetName() string           { return hc.getName() }
 func (hc *HostConfig) GetHostname() string       { return hc.getString(CONFIG_HOSTNAME) }
 func (hc *HostConfig) GetSSHHostname() string    { return hc.getString(CONFIG_SSH_HOSTNAME) }
 func (hc *HostConfig) GetSSHPort() int           { return hc.getInt(CONFIG_SSH_PORT) }

@@ -141,9 +141,9 @@ func (hc *HostConfig) Build() error {
 	}
 
 	privateKeyFile := hc.GetPrivateKeyFile()
-	if len(hc.GetHost()) == 0 {
+	if len(hc.GetName()) == 0 {
 		return errno.ERR_HOST_FIELD_MISSING.
-			F("hosts[%d].host = nil", hc.sequence)
+			F("hosts[%d].host/name = nil", hc.sequence)
 	} else if len(hc.GetHostname()) == 0 {
 		return errno.ERR_HOSTNAME_FIELD_MISSING.
 			F("hosts[%d].hostname = nil", hc.sequence)
@@ -206,12 +206,12 @@ func ParseHosts(data string) ([]*HostConfig, error) {
 			return nil, err
 		}
 
-		if _, ok := exist[hc.GetHost()]; ok {
-			return nil, errno.ERR_DUPLICATE_HOST.
-				F("duplicate host: %s", hc.GetHost())
+		if _, ok := exist[hc.GetName()]; ok {
+			return nil, errno.ERR_DUPLICATE_NAME.
+				F("duplicate host: %s", hc.GetName())
 		}
 		hcs = append(hcs, hc)
-		exist[hc.GetHost()] = true
+		exist[hc.GetName()] = true
 	}
 	build.DEBUG(build.DEBUG_HOSTS, hosts)
 	return hcs, nil

@@ -163,7 +163,7 @@ func NewGetClientStatusTask(curveadm *cli.CurveAdm, v interface{}) (*task.Task, 
 
 	containerId := client.ContainerId
 	subname := fmt.Sprintf("host=%s kind=%s containerId=%s",
-		hc.GetHost(), client.Kind, tui.TrimContainerId(containerId))
+		hc.GetName(), client.Kind, tui.TrimContainerId(containerId))
 	t := task.NewTask("Get Client Status", subname, hc.GetSSHConfig())
 
 	// add step

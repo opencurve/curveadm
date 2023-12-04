@@ -278,10 +278,10 @@ func (curveadm *CurveAdm) ClusterTopologyData() string       { return curveadm.c
 func (curveadm *CurveAdm) ClusterPoolData() string           { return curveadm.clusterPoolData }
 func (curveadm *CurveAdm) Monitor() storage.Monitor          { return curveadm.monitor }
 
-func (curveadm *CurveAdm) GetHost(host string) (*hosts.HostConfig, error) {
+func (curveadm *CurveAdm) GetHost(name string) (*hosts.HostConfig, error) {
 	if len(curveadm.Hosts()) == 0 {
 		return nil, errno.ERR_HOST_NOT_FOUND.
-			F("host: %s", host)
+			F("host: %s", name)
 	}
 	hcs, err := hosts.ParseHosts(curveadm.Hosts())
 	if err != nil {
@@ -289,12 +289,12 @@ func (curveadm *CurveAdm) GetHost(host string) (*hosts.HostConfig, error) {
 	}
 
 	for _, hc := range hcs {
-		if hc.GetHost() == host {
+		if hc.GetName() == name {
 			return hc, nil
 		}
 	}
 	return nil, errno.ERR_HOST_NOT_FOUND.
-		F("host: %s", host)
+		F("host: %s", name)
 }
 
 func (curveadm *CurveAdm) ParseTopologyData(data string) ([]*topology.DeployConfig, error) {
@@ -304,7 +304,7 @@ func (curveadm *CurveAdm) ParseTopologyData(data string) ([]*topology.DeployConf
 		return nil, err
 	}
 	for _, hc := range hcs {
-		ctx.Add(hc.GetHost(), hc.GetHostname())
+		ctx.Add(hc.GetName(), hc.GetHostname())
 	}
 
 	dcs, err := topology.ParseTopology(data, ctx)
@@ -464,7 +464,7 @@ func (curveadm *CurveAdm) DiffTopology(data1, data2 string) ([]topology.Topology
 		return nil, err
 	}
 	for _, hc := range hcs {
-		ctx.Add(hc.GetHost(), hc.GetHostname())
+		ctx.Add(hc.GetName(), hc.GetHostname())
 	}
 
 	if len(data1) == 0 {

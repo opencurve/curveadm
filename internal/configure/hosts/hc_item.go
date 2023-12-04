@@ -45,6 +45,12 @@ var (
 		nil,
 	)
 
+	CONFIG_NAME = itemset.Insert(
+		"name",
+		comm.REQUIRE_STRING,
+		false,
+		nil,
+	)
 	CONFIG_HOSTNAME = itemset.Insert(
 		"hostname",
 		comm.REQUIRE_STRING,

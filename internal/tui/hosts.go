@@ -41,7 +41,7 @@ const (
 func FormatHosts(hcs []*configure.HostConfig, verbose bool) string {
 	lines := [][]interface{}{}
 	title := []string{
-		"Host",
+		"Name",
 		"Hostname",
 		"User",
 		"Port",
@@ -58,7 +58,7 @@ func FormatHosts(hcs []*configure.HostConfig, verbose bool) string {
 	for i := 0; i < len(hcs); i++ {
 		hc := hcs[i]
 
-		host := hc.GetHost()
+		name := hc.GetName()
 		hostname := hc.GetHostname()
 		user := hc.GetUser()
 		port := strconv.Itoa(hc.GetSSHPort())
@@ -74,7 +74,7 @@ func FormatHosts(hcs []*configure.HostConfig, verbose bool) string {
 		}
 
 		lines = append(lines, []interface{}{
-			host,
+			name,
 			hostname,
 			user,
 			port,
