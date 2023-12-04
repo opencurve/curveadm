@@ -37,7 +37,7 @@ func run(t *testing.T, data string, labels []string, out []string) {
 	assert.Nil(err)
 	assert.Equal(len(hcs), len(out))
 	for i, hc := range hcs {
-		assert.Equal(hc.GetHost(), out[i])
+		assert.Equal(hc.GetName(), out[i])
 	}
 }
 

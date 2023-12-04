@@ -310,7 +310,7 @@ var (
 	ERR_PRIVATE_KEY_FILE_REQUIRE_ABSOLUTE_PATH   = EC(321004, "SSH private key file needs to be an absolute path")
 	ERR_PRIVATE_KEY_FILE_NOT_EXIST               = EC(321005, "SSH private key file not exist")
 	ERR_PRIVATE_KEY_FILE_REQUIRE_600_PERMISSIONS = EC(321006, "SSH private key file require 600 permissions")
-	ERR_DUPLICATE_HOST                           = EC(321007, "host is duplicate")
+	ERR_DUPLICATE_NAME                           = EC(321007, "name is duplicate")
 	ERR_HOSTNAME_REQUIRES_VALID_IP_ADDRESS       = EC(321008, "hostname requires valid IP address")
 
 	// 322: configure (monitor.yaml: parse failed)
