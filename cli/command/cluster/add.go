@@ -47,12 +47,18 @@ var (
 	CHECK_TOPOLOGY_PLAYBOOK_STEPS = []int{
 		playbook.CHECK_TOPOLOGY,
 	}
+	SUPPORTED_DEPLOY_TYPES = []string{
+		"production",
+		"test",
+		"develop",
+	}
 )
 
 type addOptions struct {
 	name        string
 	descriotion string
 	filename    string
+	deployType  string
 }
 
 func NewAddCommand(curveadm *cli.CurveAdm) *cobra.Command {
@@ -63,6 +69,9 @@ func NewAddCommand(curveadm *cli.CurveAdm) *cobra.Command {
 		Short:   "Add cluster",
 		Args:    utils.ExactArgs(1),
 		Example: ADD_EXAMPLE,
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			return checkAddOptions(cmd)
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			options.name = args[0]
 			return runAdd(curveadm, options)
@@ -73,7 +82,7 @@ func NewAddCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	flags := cmd.Flags()
 	flags.StringVarP(&options.descriotion, "description", "m", "", "Description for cluster")
 	flags.StringVarP(&options.filename, "topology", "f", "", "Specify the path of topology file")
-
+	flags.StringVar(&options.deployType, "type", "develop", "Specify the type of cluster")
 	return cmd
 }
 
@@ -134,6 +143,19 @@ func checkTopology(curveadm *cli.CurveAdm, data string, options addOptions) erro
 	return pb.Run()
 }
 
+func checkAddOptions(cmd *cobra.Command) error {
+	deployType, err := cmd.Flags().GetString("deploy-type")
+	if err != nil {
+		return err
+	}
+	for _, t := range SUPPORTED_DEPLOY_TYPES {
+		if deployType == t {
+			return nil
+		}
+	}
+	return errno.ERR_UNSUPPORT_DEPLOY_TYPE.F("deploy type: %s", deployType)
+}
+
 func runAdd(curveadm *cli.CurveAdm, options addOptions) error {
 	// 1) check wether cluster already exist
 	name := options.name
@@ -163,7 +185,7 @@ func runAdd(curveadm *cli.CurveAdm, options addOptions) error {
 
 	// 4) insert cluster (with topology) into database
 	uuid := uuid.NewString()
-	err = storage.InsertCluster(name, uuid, options.descriotion, data)
+	err = storage.InsertCluster(name, uuid, options.descriotion, data, options.deployType)
 	if err != nil {
 		return errno.ERR_INSERT_CLUSTER_FAILED.E(err)
 	}

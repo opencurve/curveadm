@@ -103,6 +103,7 @@ type Cluster struct {
 	Topology    string
 	Pool        string
 	Current     bool
+	Type        string
 }
 
 var (
@@ -116,15 +117,21 @@ var (
 			topology TEXT NULL,
 			pool TEXT NULL,
 			create_time DATE NOT NULL,
-			current INTEGER DEFAULT 0
+			current INTEGER DEFAULT 0,
+			type TEXT NOT NULL
 		)
 	`
 
 	// insert cluster
 	InsertCluster = `
-		INSERT INTO clusters(uuid, name, description, topology, pool, create_time)
-		VALUES(?, ?, ?, ?, "", datetime('now','localtime'))
+		INSERT INTO clusters(uuid, name, description, topology, type, pool, create_time)
+		VALUES(?, ?, ?, ?, ?, "", datetime('now','localtime'))
 	`
+	// check new cluster column
+	GetTypeFiled = `SELECT COUNT(*) FROM pragma_table_info('clusters') WHERE name = 'type'`
+
+	// update new cluster column
+	UpdateCluster = `ALTER TABLE clusters ADD COLUMN type TEXT NOT NULL DEFAULT 'develop'`
 
 	// delete cluster
 	DeleteCluster = `DELETE from clusters WHERE name = ?`

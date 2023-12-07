@@ -254,7 +254,7 @@ var (
 	ERR_NO_SERVICES_MATCHED            = EC(210006, "no services matched")
 	// TODO: please check pool set disk type
 	ERR_INVALID_DISK_TYPE = EC(210007, "poolset disk type must be lowercase and can only be one of ssd, hdd and nvme")
-
+	ERR_UNSUPPORT_DEPLOY_TYPE          = EC(210008, "unknown deploy type")
 	// 220: commad options (client common)
 	ERR_UNSUPPORT_CLIENT_KIND = EC(220000, "unsupport client kind")
 	// 221: command options (client/bs)
