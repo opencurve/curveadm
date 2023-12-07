@@ -253,8 +253,8 @@ var (
 	ERR_UNSUPPORT_CLEAN_ITEM           = EC(210005, "unsupport clean item")
 	ERR_NO_SERVICES_MATCHED            = EC(210006, "no services matched")
 	// TODO: please check pool set disk type
-	ERR_INVALID_DISK_TYPE = EC(210007, "poolset disk type must be lowercase and can only be one of ssd, hdd and nvme")
-	ERR_UNSUPPORT_DEPLOY_TYPE          = EC(210008, "unknown deploy type")
+	ERR_INVALID_DISK_TYPE     = EC(210007, "poolset disk type must be lowercase and can only be one of ssd, hdd and nvme")
+	ERR_UNSUPPORT_DEPLOY_TYPE = EC(210008, "unknown deploy type")
 	// 220: commad options (client common)
 	ERR_UNSUPPORT_CLIENT_KIND = EC(220000, "unsupport client kind")
 	// 221: command options (client/bs)
@@ -272,6 +272,8 @@ var (
 	ERR_VOLUME_BLOCKSIZE_BE_MULTIPLE_OF_512        = EC(221011, "volume block size be a multiple of 512B, like 1KiB, 2KiB, 3KiB...")
 	// 222: command options (client/fs)
 	ERR_FS_MOUNTPOINT_REQUIRE_ABSOLUTE_PATH = EC(222000, "mount point must be an absolute path")
+	// 223: command options (export)
+	ERR_EXPORT_TOOLSV2_CONF_REQUIRE_ABSOLUTE_PATH = EC(223000, "/path/to/curve.yaml must be an absolute path")
 
 	// 230: command options (playground)
 	ERR_UNSUPPORT_PLAYGROUND_KIND                      = EC(230000, "unsupport playground kind")
