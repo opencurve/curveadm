@@ -49,8 +49,11 @@ var (
 		"name",
 		comm.REQUIRE_STRING,
 		false,
-		nil,
+		func(hc *HostConfig) interface{} {
+			return hc.getString(CONFIG_HOST)
+		},
 	)
+
 	CONFIG_HOSTNAME = itemset.Insert(
 		"hostname",
 		comm.REQUIRE_STRING,
