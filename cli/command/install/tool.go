@@ -5,6 +5,7 @@ import (
 	"github.com/opencurve/curveadm/cli/cli"
 	comm "github.com/opencurve/curveadm/internal/common"
 	"github.com/opencurve/curveadm/internal/configure/topology"
+	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/playbook"
 	cliutil "github.com/opencurve/curveadm/internal/utils"
 	"github.com/spf13/cobra"
@@ -18,6 +19,7 @@ var (
 
 type installOptions struct {
 	host string
+	path string
 }
 
 func NewInstallToolCommand(curveadm *cli.CurveAdm) *cobra.Command {
@@ -35,6 +37,7 @@ func NewInstallToolCommand(curveadm *cli.CurveAdm) *cobra.Command {
 
 	flags := cmd.Flags()
 	flags.StringVar(&options.host, "host", "localhost", "Specify target host")
+	flags.StringVar(&options.path, "path", "/usr/local/bin/curve", "Specify target install path of tool v2")
 
 	return cmd
 }
@@ -43,7 +46,10 @@ func genInstallToolPlaybook(curveadm *cli.CurveAdm,
 	dcs []*topology.DeployConfig,
 	options installOptions,
 ) (*playbook.Playbook, error) {
-	configs := curveadm.FilterDeployConfigByRole(dcs, topology.ROLE_MDS)[:1]
+	configs := curveadm.FilterDeployConfig(dcs, topology.FilterOption{Id: "*", Role: topology.ROLE_MDS, Host: options.host})[:1]
+	if len(configs) == 0 {
+		return nil, errno.ERR_NO_SERVICES_MATCHED
+	}
 	steps := INSTALL_TOOL_PLAYBOOK_STEPS
 	pb := playbook.NewPlaybook(curveadm)
 	for _, step := range steps {
@@ -51,7 +57,8 @@ func genInstallToolPlaybook(curveadm *cli.CurveAdm,
 			Type:    step,
 			Configs: configs,
 			Options: map[string]interface{}{
-				comm.KEY_CLIENT_HOST: options.host,
+				comm.KEY_INSTALL_HOST: options.host,
+				comm.KEY_INSTALL_PATH: options.path,
 			},
 		})
 	}

@@ -71,6 +71,9 @@ to watch the formatting progress.
 `
 	PROMPT_CANCEL_OPERATION = `[x] {{.operation}} canceled`
 
+	PROMPT_PATH_EXIST = `{{.path}} already exists.
+`
+
 	DEFAULT_CONFIRM_PROMPT = "Do you want to continue?"
 )
 
@@ -234,5 +237,11 @@ func PromptCancelOpetation(operation string) string {
 func PromptAutoUpgrade(version string) string {
 	prompt := NewPrompt(PROMPT_AUTO_UPGRADE)
 	prompt.data["version"] = version
+	return prompt.Build()
+}
+
+func PromptPathExist(path string) string {
+	prompt := NewPrompt(color.YellowString(PROMPT_PATH_EXIST) + DEFAULT_CONFIRM_PROMPT)
+	prompt.data["path"] = path
 	return prompt.Build()
 }
