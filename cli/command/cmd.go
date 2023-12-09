@@ -84,6 +84,7 @@ func addSubCommands(cmd *cobra.Command, curveadm *cli.CurveAdm) {
 		NewStopCommand(curveadm),       // curveadm stop
 		NewSupportCommand(curveadm),    // curveadm support
 		NewUpgradeCommand(curveadm),    // curveadm upgrade
+		NewExportCommand(curveadm),     // curveadm export
 		// commonly used shorthands
 		hosts.NewSSHCommand(curveadm),      // curveadm ssh
 		hosts.NewPlaybookCommand(curveadm), // curveadm playbook

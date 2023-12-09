@@ -39,7 +39,7 @@ import (
 const (
 	DEFAULT_CONFIG_DELIMITER  = "="
 	ETCD_CONFIG_DELIMITER     = ": "
-	TOOLS_V2_CONFIG_DELIMITER = ": "
+	TOOLS_V2_CONFIG_DELIMITER = ":"
 
 	CURVE_CRONTAB_FILE = "/tmp/curve_crontab"
 )

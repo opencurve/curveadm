@@ -139,15 +139,11 @@ func (vars *Variables) Rendering(s string) (string, error) {
 		return s, nil
 	}
 
-	var err error
 	value := vars.r.ReplaceAllStringFunc(s, func(name string) string {
-		val, e := vars.Get(name[2 : len(name)-1])
-		if e != nil && err == nil {
-			err = e
-		}
+		val, _ := vars.Get(name[2 : len(name)-1])
 		return val
 	})
-	return value, err
+	return value, nil
 }
 
 func (vars *Variables) Debug() {
