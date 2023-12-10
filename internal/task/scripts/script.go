@@ -61,4 +61,7 @@ var (
 
 	//go:embed shell/create_fs.sh
 	CREATE_FS string
+
+	//go:embed shell/mark_server_pendding.sh
+	MARK_SERVER_PENDDING string
 )

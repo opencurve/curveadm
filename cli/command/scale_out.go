@@ -144,7 +144,7 @@ func NewScaleOutCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	return cmd
 }
 
-func readTopology(curveadm *cli.CurveAdm, filename string) (string, error) {
+func readTopology(curveadm *cli.CurveAdm, filename string, clean bool) (string, error) {
 	if !utils.PathExist(filename) {
 		return "", errno.ERR_TOPOLOGY_FILE_NOT_FOUND.
 			F("%s: no such file", utils.AbsPath(filename))
@@ -156,7 +156,9 @@ func readTopology(curveadm *cli.CurveAdm, filename string) (string, error) {
 	}
 
 	oldData := curveadm.ClusterTopologyData()
-	curveadm.WriteOut("%s", utils.Diff(oldData, data))
+	if !clean {
+		curveadm.WriteOut("%s", utils.Diff(oldData, data))
+	}
 	return data, nil
 }
 
@@ -384,7 +386,7 @@ func runScaleOut(curveadm *cli.CurveAdm, options scaleOutOptions) error {
 	}
 
 	// 2) read topology from file
-	data, err := readTopology(curveadm, options.filename)
+	data, err := readTopology(curveadm, options.filename, false)
 	if err != nil {
 		return err
 	}

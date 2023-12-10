@@ -399,7 +399,11 @@ var (
 	ERR_ENCRYPT_FILE_FAILED                  = EC(410021, "encrypt file failed")
 	ERR_CLIENT_ID_NOT_FOUND                  = EC(410022, "client id not found")
 	ERR_ENABLE_ETCD_AUTH_FAILED              = EC(410023, "enable etcd auth failed")
-
+	ERR_MARK_CHUNKSERVER_PENDDING            = EC(410024, "mark chunkserver pendding status failed when migrate")
+	RRR_GET_CLUSTER_MDSADDR                  = EC(410025, "failed to get cluster mds addr")
+	ERR_GET_CHUNKSERVER_COPYSET              = EC(410026, "failed to get chunkserver copyset")
+	ERR_GET_MIGRATE_COPYSET                  = EC(410027, "migrate chunkserver copyset info must be 2")
+	ERR_CONTAINER_NOT_REMOVED                = EC(410027, "container not removed")
 	// 420: common (curvebs client)
 	ERR_VOLUME_ALREADY_MAPPED             = EC(420000, "volume already mapped")
 	ERR_VOLUME_CONTAINER_LOSED            = EC(420001, "volume container is losed")

@@ -94,6 +94,7 @@ const (
 	CREATE_VOLUME
 	MAP_IMAGE
 	UNMAP_IMAGE
+	MARK_SERVER_PENGDDING
 
 	// monitor
 	PULL_MONITOR_IMAGE
@@ -278,6 +279,8 @@ func (p *Playbook) createTasks(step *PlaybookStep) (*tasks.Tasks, error) {
 			t, err = bs.NewDeleteTargetTask(curveadm, nil)
 		case LIST_TARGETS:
 			t, err = bs.NewListTargetsTask(curveadm, nil)
+		case MARK_SERVER_PENGDDING:
+			t, err = bs.NewMarkServerPendding(curveadm, config.GetDC(i))
 		// fs
 		case CHECK_CLIENT_S3:
 			t, err = checker.NewClientS3ConfigureTask(curveadm, config.GetCC(i))

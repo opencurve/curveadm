@@ -263,26 +263,40 @@ func ScaleOutClusterPool(old *CurveClusterTopo, dcs []*topology.DeployConfig, po
 	old.NPools = old.NPools + 1
 }
 
-func MigrateClusterServer(old *CurveClusterTopo, migrates []*MigrateServer) {
+func MigrateClusterServer(old *CurveClusterTopo, migrates []*MigrateServer, removeMigratedServer bool) {
 	m := map[string]*topology.DeployConfig{} // key: from.Name, value: to.DeployConfig
 	for _, migrate := range migrates {
 		m[formatName(migrate.From)] = migrate.To
 	}
 
-	for i, server := range old.Servers {
-		dc, ok := m[server.Name]
-		if !ok {
-			continue
-		}
+	// add server that will migrate to
+	for fromName, toDc := range m {
+		server := Server{}
+		server.InternalIp = toDc.GetListenIp()
+		server.ExternalIp = toDc.GetListenExternalIp()
+		server.InternalPort = toDc.GetListenPort()
+		server.ExternalPort = toDc.GetListenExternalPort()
+		server.Name = formatName(toDc)
 
-		server.InternalIp = dc.GetListenIp()
-		server.ExternalIp = dc.GetListenExternalIp()
-		server.Name = formatName(dc)
-		if server.InternalPort != 0 && server.ExternalPort != 0 {
-			server.InternalPort = dc.GetListenPort()
-			server.ExternalPort = dc.GetListenExternalPort()
+		for _, oldServer := range old.Servers {
+			if oldServer.Name == fromName {
+				server.PhysicalPool = oldServer.PhysicalPool
+				server.Poolset = oldServer.Poolset
+				server.Pool = oldServer.Pool
+				server.Zone = oldServer.Zone
+			}
 		}
-		old.Servers[i] = server
+		old.Servers = append(old.Servers, server)
+	}
+
+	// remove server that has migrated
+	if removeMigratedServer {
+		for i := 0; i < len(old.Servers); i++ {
+			_, ok := m[old.Servers[i].Name]
+			if ok {
+				old.Servers = append(old.Servers[:i], old.Servers[i+1:]...)
+			}
+		}
 	}
 }
 
