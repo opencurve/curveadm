@@ -122,6 +122,8 @@ var (
 		{name: "cluster_snapshotclone_proxy_addr", kind: []string{KIND_CURVEBS}},
 		{name: "cluster_snapshotclone_dummy_port", kind: []string{KIND_CURVEBS}},
 		{name: "cluster_snapshotclone_nginx_upstream", kind: []string{KIND_CURVEBS}},
+		{name: "cluster_snapshot_addr"},       // tools-v2: compatible with some old version image
+		{name: "cluster_snapshot_dummy_addr"}, // tools-v2
 		{name: "cluster_metaserver_addr", kind: []string{KIND_CURVEFS}},
 	}
 )
@@ -301,6 +303,10 @@ func getValue(name string, dcs []*DeployConfig, idx int) string {
 		return joinDummyPort(dcs, ROLE_SNAPSHOTCLONE)
 	case "cluster_snapshotclone_nginx_upstream":
 		return joinNginxUpstreamServer(dcs)
+	case "cluster_snapshot_addr":
+		return joinPeer(dcs, ROLE_SNAPSHOTCLONE, SELECT_LISTEN_PORT)
+	case "cluster_snapshot_dummy_addr":
+		return joinPeer(dcs, ROLE_SNAPSHOTCLONE, SELECT_LISTEN_DUMMY_PORT)
 	case "cluster_metaserver_addr":
 		return joinPeer(dcs, ROLE_METASERVER, SELECT_LISTEN_PORT)
 	}
