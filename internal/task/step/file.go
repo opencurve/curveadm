@@ -196,7 +196,7 @@ func (s *InstallFile) Execute(ctx *context.Context) error {
 }
 
 func (s *Filter) kvSplit(line string, key, value *string) error {
-	pattern := fmt.Sprintf(REGEX_KV_SPLIT, s.KVFieldSplit, s.KVFieldSplit)
+	pattern := fmt.Sprintf(REGEX_KV_SPLIT, strings.TrimSpace(s.KVFieldSplit), s.KVFieldSplit)
 	regex, err := regexp.Compile(pattern)
 	if err != nil {
 		return errno.ERR_BUILD_REGEX_FAILED.E(err)
