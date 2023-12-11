@@ -42,6 +42,7 @@ func NewConfigCommand(curveadm *cli.CurveAdm) *cobra.Command {
 		NewShowCommand(curveadm),
 		NewDiffCommand(curveadm),
 		NewCommitCommand(curveadm),
+		NewExportCommand(curveadm),
 	)
 	return cmd
 }

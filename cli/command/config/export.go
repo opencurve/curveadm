@@ -22,7 +22,7 @@
 
 // __SIGN_BY_YOUAREFREE123__
 
-package command
+package config
 
 import (
 	"path"
