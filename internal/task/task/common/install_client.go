@@ -142,7 +142,7 @@ func NewInstallClientTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*
 	release := getRelease(curveadm)
 	subname := fmt.Sprintf("host=%s release=%s", host, release)
 	name := utils.Choose(kind == KIND_CURVEBS, "CurveBS", "CurveFS")
-	t := task.NewTask(fmt.Sprintf("Install %s Client", name), subname, hc.GetSSHConfig())
+	t := task.NewTask(fmt.Sprintf("Install %s Client", name), subname, hc.GetConnectConfig())
 
 	// add step to task
 	var input, output string

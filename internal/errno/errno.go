@@ -123,6 +123,14 @@ func (e *ErrorCode) Error() string {
 	return tui.PromptErrorCode(e.code, e.description, e.clue, gLogpath)
 }
 
+func (e *ErrorCode) IsHttpErr() bool {
+	return e.code/10000 == 70
+}
+
+func (e *ErrorCode) HttpCode() int {
+	return e.code % 1000
+}
+
 /*
  * 0xx: init curveadm
  *
@@ -253,8 +261,8 @@ var (
 	ERR_UNSUPPORT_CLEAN_ITEM           = EC(210005, "unsupport clean item")
 	ERR_NO_SERVICES_MATCHED            = EC(210006, "no services matched")
 	// TODO: please check pool set disk type
-	ERR_INVALID_DISK_TYPE = EC(210007, "poolset disk type must be lowercase and can only be one of ssd, hdd and nvme")
-
+	ERR_INVALID_DISK_TYPE     = EC(210007, "poolset disk type must be lowercase and can only be one of ssd, hdd and nvme")
+	ERR_UNSUPPORT_DEPLOY_TYPE = EC(210008, "unknown deploy type")
 	// 220: commad options (client common)
 	ERR_UNSUPPORT_CLIENT_KIND = EC(220000, "unsupport client kind")
 	// 221: command options (client/bs)
@@ -447,7 +455,8 @@ var (
 	ERR_METASERVER_REQUIRES_3_HOSTS       = EC(503009, "metaserver requires at least 3 hosts to distrubute zones")
 
 	// 510: checker (ssh)
-	ERR_SSH_CONNECT_FAILED = EC(510000, "SSH connect failed")
+	ERR_SSH_CONNECT_FAILED  = EC(510000, "SSH connect failed")
+	ERR_HTTP_CONNECT_FAILED = EC(510001, "HTTP connect failed")
 
 	// 520: checker (permission)
 	ERR_USER_NOT_FOUND                                     = EC(520000, "user not found")
@@ -548,6 +557,13 @@ var (
 
 	// 690: execuetr task (others)
 	ERR_START_CRONTAB_IN_CONTAINER_FAILED = EC(690000, "start crontab in container failed")
+
+	// 70: http service
+	ERR_UNSUPPORT_REQUEST_URI     = EC(701400, "unsupport request uri")
+	ERR_UNSUPPORT_METHOD_ARGUMENT = EC(702400, "unsupport method argument")
+	ERR_HTTP_METHOD_MISMATCHED    = EC(703400, "http method mismatch")
+	ERR_BAD_REQUEST_FORM_PARAM    = EC(704400, "bad request form param")
+	ERR_UNSUPPORT_HTTP_METHOD     = EC(705405, "unsupport http method")
 
 	// 900: others
 	ERR_CANCEL_OPERATION = EC(CODE_CANCEL_OPERATION, "cancel operation")

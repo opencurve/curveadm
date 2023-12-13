@@ -33,13 +33,12 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/melbahja/goph"
 	log "github.com/opencurve/curveadm/pkg/log/glg"
 )
 
 type (
 	Module struct {
-		sshClient *SSHClient
+		remoteClient RemoteClient
 	}
 
 	ExecOptions struct {
@@ -60,33 +59,31 @@ func (e *TimeoutError) Error() string {
 		e.timeout)
 }
 
-func NewModule(sshClient *SSHClient) *Module {
-	return &Module{sshClient: sshClient}
+func NewModule(remoteClient RemoteClient) *Module {
+	return &Module{remoteClient: remoteClient}
 }
 
 func (m *Module) Shell() *Shell {
-	return NewShell(m.sshClient)
+	return NewShell(m.remoteClient)
 }
 
 func (m *Module) File() *FileManager {
-	return NewFileManager(m.sshClient)
+	return NewFileManager(m.remoteClient)
 }
 
 func (m *Module) DockerCli() *DockerCli {
-	return NewDockerCli(m.sshClient)
+	return NewDockerCli(m.remoteClient)
 }
 
 // common utils
-func remoteAddr(client *SSHClient) string {
+func remoteAddr(client RemoteClient) string {
 	if client == nil {
 		return "-"
 	}
-
-	config := client.Config()
-	return fmt.Sprintf("%s@%s:%d", config.User, config.Host, config.Port)
+	return client.RemoteAddr()
 }
 
-func execCommand(sshClient *SSHClient,
+func execCommand(remoteClient RemoteClient,
 	tmpl *template.Template,
 	data map[string]interface{},
 	options ExecOptions) (string, error) {
@@ -108,14 +105,8 @@ func execCommand(sshClient *SSHClient,
 	command = strings.TrimLeft(command, " ")
 
 	// (3) handle 'become_user'
-	if sshClient != nil {
-		becomeMethod := sshClient.Config().BecomeMethod
-		becomeFlags := sshClient.Config().BecomeFlags
-		becomeUser := sshClient.Config().BecomeUser
-		if len(becomeUser) > 0 && !options.ExecInLocal {
-			become := strings.Join([]string{becomeMethod, becomeFlags, becomeUser}, " ")
-			command = strings.Join([]string{become, command}, " ")
-		}
+	if remoteClient != nil {
+		command = remoteClient.WrapperCommand(command, options.ExecInLocal)
 	}
 
 	// (4) create context for timeout
@@ -134,11 +125,7 @@ func execCommand(sshClient *SSHClient,
 		cmd.Env = []string{"LANG=en_US.UTF-8"}
 		out, err = cmd.CombinedOutput()
 	} else {
-		var cmd *goph.Cmd
-		cmd, err = sshClient.Client().CommandContext(ctx, command)
-		if err == nil {
-			out, err = cmd.CombinedOutput()
-		}
+		out, err = remoteClient.RunCommand(ctx, command)
 	}
 
 	if ctx.Err() == context.DeadlineExceeded {
@@ -146,7 +133,7 @@ func execCommand(sshClient *SSHClient,
 	}
 
 	log.SwitchLevel(err)("Execute command",
-		log.Field("remoteAddr", remoteAddr(sshClient)),
+		log.Field("remoteAddr", remoteAddr(remoteClient)),
 		log.Field("command", command),
 		log.Field("output", strings.TrimSuffix(string(out), "\n")),
 		log.Field("error", err))

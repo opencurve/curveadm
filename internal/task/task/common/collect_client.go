@@ -47,7 +47,7 @@ func NewCollectClientTask(curveadm *cli.CurveAdm, v interface{}) (*task.Task, er
 	containerId := client.ContainerId
 	subname := fmt.Sprintf("host=%s kind=%s containerId=%s",
 		hc.GetHost(), client.Kind, tui.TrimContainerId(containerId))
-	t := task.NewTask("Collect Client", subname, hc.GetSSHConfig())
+	t := task.NewTask("Collect Client", subname, hc.GetConnectConfig())
 
 	// add step to task
 	var out string

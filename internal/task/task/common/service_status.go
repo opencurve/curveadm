@@ -265,7 +265,7 @@ func NewGetServiceStatusTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) 
 	// new task
 	subname := fmt.Sprintf("host=%s role=%s containerId=%s",
 		dc.GetHost(), dc.GetRole(), tui.TrimContainerId(containerId))
-	t := task.NewTask("Get Service Status", subname, hc.GetSSHConfig())
+	t := task.NewTask("Get Service Status", subname, hc.GetConnectConfig())
 
 	// add step to task
 	var status string
