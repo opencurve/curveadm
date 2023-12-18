@@ -29,6 +29,7 @@ import (
 	"github.com/opencurve/curveadm/internal/configure/curveadm"
 	"github.com/opencurve/curveadm/internal/utils"
 	"github.com/opencurve/curveadm/pkg/module"
+	"github.com/opencurve/curveadm/pkg/variable"
 )
 
 func (hc *HostConfig) get(i *comm.Item) interface{} {
@@ -77,6 +78,10 @@ func (hc *HostConfig) GetBecomeUser() string     { return hc.getString(CONFIG_BE
 func (hc *HostConfig) GetLabels() []string       { return hc.labels }
 func (hc *HostConfig) GetEnvs() []string         { return hc.envs }
 
+func (hc *HostConfig) GetInstances() int                 { return hc.instances }
+func (hc *HostConfig) GetInstancesSequence() int         { return hc.instancesSequence }
+func (hc *HostConfig) GetVariables() *variable.Variables { return hc.variables }
+
 func (hc *HostConfig) GetUser() string {
 	user := hc.getString(CONFIG_USER)
 	if user == "${user}" {
@@ -84,7 +89,6 @@ func (hc *HostConfig) GetUser() string {
 	}
 	return user
 }
-
 func (hc *HostConfig) GetSSHConfig() *module.SSHConfig {
 	hostname := hc.GetSSHHostname()
 	if len(hostname) == 0 {

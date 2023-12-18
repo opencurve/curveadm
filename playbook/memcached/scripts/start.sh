@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 g_container_name="memcached-"${PORT}
+g_exporter_container_name="memcached-exporter-"${EXPORTER_PORT}
 g_docker_cmd="${SUDO_ALIAS} ${ENGINE}"
 g_rm_cmd="${SUDO_ALIAS} rm -rf"
 g_mkdir_cmd="${SUDO_ALIAS} mkdir -p"
@@ -34,6 +35,10 @@ precheck() {
 start_container() {
     ${g_docker_cmd} start ${g_container_name} >& /dev/null
     success "start container[${g_container_name}]\n"
+    if [ "${EXPORTER_PORT}" ];then
+        ${g_docker_cmd} start ${g_exporter_container_name} >& /dev/null
+        success "start container[${g_exporter_container_name}]\n"
+    fi
 }
 
 get_status_container() {

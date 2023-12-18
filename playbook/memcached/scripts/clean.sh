@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 g_container_name="memcached-"${PORT}
+g_exporter_container_name="memcached-exporter-"${EXPORTER_PORT}
 g_docker_cmd="${SUDO_ALIAS} ${ENGINE}"
 g_rm_cmd="${SUDO_ALIAS} rm -rf"
 
@@ -23,6 +24,13 @@ precheck() {
         die "container [${g_container_name}] not exists!!!\n"
         exit 1
     fi
+    if [ "${EXPORTER_PORT}" ];then
+        container_id=`${g_docker_cmd} ps --all --format "{{.ID}}" --filter name=${g_exporter_container_name}`
+        if [ -z ${container_id} ]; then
+            die "container [${g_exporter_container_name}] not exists!!!\n"
+            exit 1
+        fi
+    fi
 }
 
 stop_container() {
@@ -32,6 +40,14 @@ stop_container() {
         exit 1
     fi
     success "rm container[${g_container_name}]\n"
+    if [ "${EXPORTER_PORT}" ];then
+        msg=`${g_docker_cmd} rm ${g_exporter_container_name}`
+        if [ $? -ne 0 ];then
+            die "${msg}\n"
+            exit 1
+        fi
+        success "rm container[${g_exporter_container_name}]\n"
+    fi
 }
 
 rm_cachefile() {

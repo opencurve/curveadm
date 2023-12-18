@@ -28,16 +28,20 @@ import (
 	"bytes"
 	"strings"
 
+	"github.com/spf13/viper"
+
 	"github.com/opencurve/curveadm/internal/build"
 	"github.com/opencurve/curveadm/internal/configure/os"
 	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/utils"
-	"github.com/spf13/viper"
+	log "github.com/opencurve/curveadm/pkg/log/glg"
+	"github.com/opencurve/curveadm/pkg/variable"
 )
 
 const (
-	KEY_LABELS = "labels"
-	KEY_ENVS   = "envs"
+	KEY_LABELS    = "labels"
+	KEY_ENVS      = "envs"
+	KEY_INSTANCES = "instances"
 
 	PERMISSIONS_600 = 384 // -rw------- (256 + 128 = 384)
 )
@@ -49,10 +53,16 @@ type (
 	}
 
 	HostConfig struct {
-		sequence int
-		config   map[string]interface{}
-		labels   []string
-		envs     []string
+		sequence  int
+		config    map[string]interface{}
+		labels    []string
+		envs      []string
+		variables *variable.Variables
+		//instances and instancesSequence only used in the memcached deploy
+		//instances is the num of memcached servers will be deployed in the same host
+		instances int
+		//instancesSquence is the sequence num of memcached servers in the same host
+		instancesSequence int
 	}
 )
 
@@ -71,7 +81,7 @@ func merge(parent, child map[string]interface{}) {
 	}
 }
 
-func (hc *HostConfig) convertLables() error {
+func (hc *HostConfig) convertLabels() error {
 	value := hc.config[KEY_LABELS]
 	slice, ok := (value).([]interface{})
 	if !ok {
@@ -107,14 +117,84 @@ func (hc *HostConfig) convertEnvs() error {
 			hc.envs = append(hc.envs, v)
 		}
 	}
+	return nil
+}
 
+func (hc *HostConfig) convertInstances() error {
+	value := hc.config[KEY_INSTANCES]
+	instancesStr, instances, ok := "", 0, false
+	if instancesStr, ok = utils.All2Str(value); !ok {
+		return errno.ERR_UNSUPPORT_CONFIGURE_VALUE_TYPE.
+			F("hosts[%d].%s = %v", hc.sequence, KEY_INSTANCES, value)
+	}
+	if instances, ok = utils.Str2Int(instancesStr); !ok {
+		return errno.ERR_CONFIGURE_VALUE_REQUIRES_INTEGER.
+			F("hosts[%d].%s = %v", hc.sequence, KEY_INSTANCES, value)
+	}
+	if instances <= 0 {
+		return errno.ERR_CONFIGURE_VALUE_REQUIRES_POSITIVE_INTEGER.
+			F("hosts[%d].%s = %v", hc.sequence, KEY_INSTANCES, value)
+	}
+	hc.instances = instances
+	return nil
+}
+
+// convert config item to its required type after rendering,
+// return error if convert failed
+func (hc *HostConfig) convert() error {
+	for key, value := range hc.config {
+		if key == KEY_LABELS || key == KEY_ENVS || key == KEY_INSTANCES {
+			continue
+		}
+		if itemset.Get(key) == nil {
+			return errno.ERR_UNSUPPORT_HOSTS_CONFIGURE_ITEM.
+				F("hosts[%d].%s = %v", hc.sequence, key, value)
+		}
+		if v, err := itemset.Build(key, value); err != nil {
+			return err
+		} else {
+			hc.config[key] = v
+		}
+	}
+	privateKeyFile := hc.GetPrivateKeyFile()
+	if len(hc.GetName()) == 0 {
+		return errno.ERR_NAME_FIELD_MISSING.
+			F("hosts[%d].host/name = nil", hc.sequence)
+	}
+	if len(hc.GetHostname()) == 0 {
+		return errno.ERR_HOSTNAME_FIELD_MISSING.
+			F("hosts[%d].hostname = nil", hc.sequence)
+	}
+	if !utils.IsValidAddress(hc.GetHostname()) {
+		return errno.ERR_HOSTNAME_REQUIRES_VALID_IP_ADDRESS.
+			F("hosts[%d].hostname = %s", hc.sequence, hc.GetHostname())
+	}
+	if hc.GetSSHPort() > os.GetMaxPortNum() {
+		return errno.ERR_HOSTS_SSH_PORT_EXCEED_MAX_PORT_NUMBER.
+			F("hosts[%d].ssh_port = %d", hc.sequence, hc.GetSSHPort())
+	}
+	if !strings.HasPrefix(privateKeyFile, "/") {
+		return errno.ERR_PRIVATE_KEY_FILE_REQUIRE_ABSOLUTE_PATH.
+			F("hosts[%d].private_key_file = %s", hc.sequence, privateKeyFile)
+	}
+
+	if !hc.GetForwardAgent() {
+		if !utils.PathExist(privateKeyFile) {
+			return errno.ERR_PRIVATE_KEY_FILE_NOT_EXIST.
+				F("%s: no such file", privateKeyFile)
+		}
+		if utils.GetFilePermissions(privateKeyFile) != PERMISSIONS_600 {
+			return errno.ERR_PRIVATE_KEY_FILE_REQUIRE_600_PERMISSIONS.
+				F("%s: mode (%d)", privateKeyFile, utils.GetFilePermissions(privateKeyFile))
+		}
+	}
 	return nil
 }
 
 func (hc *HostConfig) Build() error {
 	for key, value := range hc.config {
 		if key == KEY_LABELS { // convert labels
-			if err := hc.convertLables(); err != nil {
+			if err := hc.convertLabels(); err != nil {
 				return err
 			}
 			hc.config[key] = nil // delete labels section
@@ -123,7 +203,13 @@ func (hc *HostConfig) Build() error {
 			if err := hc.convertEnvs(); err != nil {
 				return err
 			}
-			hc.config[key] = nil // delete labels section
+			hc.config[key] = nil // delete envs section
+			continue
+		} else if key == KEY_INSTANCES { // convert instances
+			if err := hc.convertInstances(); err != nil {
+				return err
+			}
+			hc.config[key] = nil // delete instances section
 			continue
 		}
 
@@ -142,27 +228,32 @@ func (hc *HostConfig) Build() error {
 
 	privateKeyFile := hc.GetPrivateKeyFile()
 	if len(hc.GetName()) == 0 {
-		return errno.ERR_HOST_FIELD_MISSING.
+		return errno.ERR_NAME_FIELD_MISSING.
 			F("hosts[%d].host/name = nil", hc.sequence)
-	} else if len(hc.GetHostname()) == 0 {
+	}
+	if len(hc.GetHostname()) == 0 {
 		return errno.ERR_HOSTNAME_FIELD_MISSING.
 			F("hosts[%d].hostname = nil", hc.sequence)
-	} else if !utils.IsValidAddress(hc.GetHostname()) {
+	}
+	if !utils.IsValidAddress(hc.GetHostname()) {
 		return errno.ERR_HOSTNAME_REQUIRES_VALID_IP_ADDRESS.
 			F("hosts[%d].hostname = %s", hc.sequence, hc.GetHostname())
-	} else if hc.GetSSHPort() > os.GetMaxPortNum() {
+	}
+	if hc.GetSSHPort() > os.GetMaxPortNum() {
 		return errno.ERR_HOSTS_SSH_PORT_EXCEED_MAX_PORT_NUMBER.
 			F("hosts[%d].ssh_port = %d", hc.sequence, hc.GetSSHPort())
-	} else if !strings.HasPrefix(privateKeyFile, "/") {
+	}
+	if !strings.HasPrefix(privateKeyFile, "/") {
 		return errno.ERR_PRIVATE_KEY_FILE_REQUIRE_ABSOLUTE_PATH.
 			F("hosts[%d].private_key_file = %s", hc.sequence, privateKeyFile)
 	}
 
-	if hc.GetForwardAgent() == false {
+	if !hc.GetForwardAgent() {
 		if !utils.PathExist(privateKeyFile) {
 			return errno.ERR_PRIVATE_KEY_FILE_NOT_EXIST.
 				F("%s: no such file", privateKeyFile)
-		} else if utils.GetFilePermissions(privateKeyFile) != PERMISSIONS_600 {
+		}
+		if utils.GetFilePermissions(privateKeyFile) != PERMISSIONS_600 {
 			return errno.ERR_PRIVATE_KEY_FILE_REQUIRE_600_PERMISSIONS.
 				F("%s: mode (%d)", privateKeyFile, utils.GetFilePermissions(privateKeyFile))
 		}
@@ -170,11 +261,96 @@ func (hc *HostConfig) Build() error {
 	return nil
 }
 
+// "PORT=112${instancesSquence}" -> "PORT=11201"
+func (hc *HostConfig) renderVariables() error {
+	//0. get vars
+	vars := hc.GetVariables()
+	if err := vars.Build(); err != nil {
+		log.Error("Build variables failed",
+			log.Field("error", err))
+		return errno.ERR_RESOLVE_VARIABLE_FAILED.E(err)
+	}
+	//1. all config to str
+	for k, v := range hc.config {
+		if v == nil {
+			continue
+		}
+		if strv, ok := utils.All2Str(v); !ok {
+			return errno.ERR_UNSUPPORT_CONFIGURE_VALUE_TYPE.
+				F("%s: %v", k, v)
+		} else {
+			hc.config[k] = strv
+		}
+	}
+	//2. rendering
+	//render labels and envs
+	err := func(allStrs ...[]string) error {
+		for k := range allStrs {
+			strs := allStrs[k]
+			for i := range strs {
+				realValue, err := vars.Rendering(strs[i])
+				if err != nil {
+					return err
+				}
+				strs[i] = realValue
+			}
+		}
+		return nil
+	}(hc.labels, hc.envs)
+	if err != nil {
+		return errno.ERR_RENDERING_VARIABLE_FAILED.E(err)
+	}
+	//render config
+	for k, v := range hc.config {
+		if v == nil {
+			continue
+		}
+		realv, err := vars.Rendering(v.(string))
+		if err != nil {
+			return errno.ERR_RENDERING_VARIABLE_FAILED.E(err)
+		}
+		hc.config[k] = realv
+		build.DEBUG(build.DEBUG_TOPOLOGY,
+			build.Field{Key: k, Value: v},
+			build.Field{Key: k, Value: realv})
+	}
+	//3. convert config item to its required type after rendering,
+	//	 return error if convert failed
+	return hc.convert()
+}
+
 func NewHostConfig(sequence int, config map[string]interface{}) *HostConfig {
+	vars := variable.NewVariables()
 	return &HostConfig{
-		sequence: sequence,
-		config:   config,
-		labels:   []string{},
+		sequence:  sequence,
+		config:    config,
+		labels:    []string{},
+		envs:      []string{},
+		variables: vars,
+		//instances and instancesSquence only used in the memcached deploy
+		instances:         1,
+		instancesSequence: 1,
+	}
+}
+
+// deepcopy a HostConfig with instancesSquence and return it (new variables)
+func copyHostConfig(src *HostConfig, instancesSquence int) *HostConfig {
+	//deepcopy labels
+	newlabels := make([]string, len(src.labels))
+	copy(newlabels, src.labels)
+	//deepcopy envs
+	newenvs := make([]string, len(src.envs))
+	copy(newenvs, src.envs)
+	//create a new variables
+	vars := variable.NewVariables()
+	return &HostConfig{
+		sequence:          src.sequence,
+		config:            utils.DeepCopy(src.config),
+		labels:            newlabels,
+		envs:              newenvs,
+		variables:         vars,
+		instances:         src.instances,
+		instancesSequence: instancesSquence,
 	}
 }
 
@@ -182,7 +358,6 @@ func ParseHosts(data string) ([]*HostConfig, error) {
 	if len(data) == 0 {
 		return nil, errno.ERR_EMPTY_HOSTS
 	}
-
 	parser := viper.NewWithOptions(viper.KeyDelimiter("::"))
 	parser.SetConfigType("yaml")
 	err := parser.ReadConfig(bytes.NewBuffer([]byte(data)))
@@ -210,8 +385,22 @@ func ParseHosts(data string) ([]*HostConfig, error) {
 			return nil, errno.ERR_DUPLICATE_NAME.
 				F("duplicate host: %s", hc.GetName())
 		}
-		hcs = append(hcs, hc)
+		//produce the instances of hc, append to hcs. (used in memcached deploy)
+		instances := hc.GetInstances()
+		for instancesSquence := 1; instancesSquence <= instances; instancesSquence++ {
+			hc_new := copyHostConfig(hc, instancesSquence)
+			hcs = append(hcs, hc_new)
+		}
 		exist[hc.GetName()] = true
+	}
+	//add Variables and Rendering
+	for idx, hc := range hcs {
+		if err = AddHostVariables(hcs, idx); err != nil {
+			return nil, err // already is error code
+		} else if err = hc.renderVariables(); err != nil {
+			return nil, err // already is error code
+		}
+		hc.GetVariables().Debug()
 	}
 	build.DEBUG(build.DEBUG_HOSTS, hosts)
 	return hcs, nil
