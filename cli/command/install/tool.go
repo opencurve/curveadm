@@ -18,8 +18,9 @@ var (
 )
 
 type installOptions struct {
-	host string
-	path string
+	host     string
+	path     string
+	confPath string
 }
 
 func NewInstallToolCommand(curveadm *cli.CurveAdm) *cobra.Command {
@@ -38,6 +39,7 @@ func NewInstallToolCommand(curveadm *cli.CurveAdm) *cobra.Command {
 	flags := cmd.Flags()
 	flags.StringVar(&options.host, "host", "localhost", "Specify target host")
 	flags.StringVar(&options.path, "path", "/usr/local/bin/curve", "Specify target install path of tool v2")
+	flags.StringVar(&options.confPath, "confPath", "~/.curve/curve.yaml", "Specify target config path of tool v2")
 
 	return cmd
 }
@@ -57,8 +59,8 @@ func genInstallToolPlaybook(curveadm *cli.CurveAdm,
 			Type:    step,
 			Configs: configs,
 			Options: map[string]interface{}{
-				comm.KEY_INSTALL_HOST: options.host,
-				comm.KEY_INSTALL_PATH: options.path,
+				comm.KEY_INSTALL_PATH:      options.path,
+				comm.KEY_INSTALL_CONF_PATH: options.confPath,
 			},
 		})
 	}

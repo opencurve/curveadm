@@ -10,6 +10,7 @@ import (
 	"github.com/opencurve/curveadm/internal/task/task"
 	tui "github.com/opencurve/curveadm/internal/tui/common"
 	"github.com/opencurve/curveadm/pkg/module"
+	"path/filepath"
 )
 
 func checkPathExist(path string, sshConfig *module.SSHConfig, curveadm *cli.CurveAdm) error {
@@ -30,9 +31,9 @@ func checkPathExist(path string, sshConfig *module.SSHConfig, curveadm *cli.Curv
 
 func NewInstallToolTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task.Task, error) {
 	layout := dc.GetProjectLayout()
-	host := curveadm.MemStorage().Get(comm.KEY_INSTALL_HOST).(string)
 	path := curveadm.MemStorage().Get(comm.KEY_INSTALL_PATH).(string)
-	hc, err := curveadm.GetHost(host)
+	confPath := curveadm.MemStorage().Get(comm.KEY_INSTALL_CONF_PATH).(string)
+	hc, err := curveadm.GetHost(dc.GetHost())
 	if err != nil {
 		return nil, err
 	}
@@ -46,8 +47,11 @@ func NewInstallToolTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*tas
 	if err = checkPathExist(path, hc.GetSSHConfig(), curveadm); err != nil {
 		return nil, err
 	}
+	if err = checkPathExist(confPath, hc.GetSSHConfig(), curveadm); err != nil {
+		return nil, err
+	}
 
-	subname := fmt.Sprintf("host=%s", host)
+	subname := fmt.Sprintf("host=%s", dc.GetHost())
 	t := task.NewTask("Install tool v2", subname, hc.GetSSHConfig())
 
 	t.AddStep(&step.CopyFromContainer{
@@ -57,13 +61,13 @@ func NewInstallToolTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*tas
 		ExecOptions:      curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.CreateDirectory{
-		Paths:       []string{"~/.curve"},
+		Paths:       []string{filepath.Dir(confPath)},
 		ExecOptions: curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.CopyFromContainer{
 		ContainerSrcPath: layout.ToolsV2ConfSystemPath,
 		ContainerId:      containerId,
-		HostDestPath:     "~/.curve/curve.yaml",
+		HostDestPath:     confPath,
 		ExecOptions:      curveadm.ExecOptions(),
 	})
 
