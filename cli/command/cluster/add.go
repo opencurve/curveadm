@@ -40,7 +40,8 @@ const (
 	ADD_EXAMPLE = `Examples:
   $ curveadm add my-cluster                            # Add a cluster named 'my-cluster'
   $ curveadm add my-cluster -m "deploy for test"       # Add a cluster with description
-  $ curveadm add my-cluster -f /path/to/topology.yaml  # Add a cluster with specified topology`
+  $ curveadm add my-cluster -f /path/to/topology.yaml  # Add a cluster with specified topology
+  $ curveadm add my-cluster --type develop             # Add a cluster with specified type (develop,production,test)`
 )
 
 var (
@@ -144,7 +145,7 @@ func checkTopology(curveadm *cli.CurveAdm, data string, options addOptions) erro
 }
 
 func checkAddOptions(cmd *cobra.Command) error {
-	deployType, err := cmd.Flags().GetString("deploy-type")
+	deployType, err := cmd.Flags().GetString("type")
 	if err != nil {
 		return err
 	}
