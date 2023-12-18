@@ -24,6 +24,8 @@ package common
 
 import (
 	"fmt"
+	"regexp"
+	"strings"
 
 	"github.com/opencurve/curveadm/cli/cli"
 	comm "github.com/opencurve/curveadm/internal/common"
@@ -34,6 +36,7 @@ import (
 	"github.com/opencurve/curveadm/internal/task/task"
 	tui "github.com/opencurve/curveadm/internal/tui/common"
 	"github.com/opencurve/curveadm/internal/utils"
+	"github.com/opencurve/curveadm/pkg/module"
 )
 
 const (
@@ -48,9 +51,17 @@ type (
 	}
 
 	step2FormatClientStatus struct {
-		client     storage.Client
-		status     *string
-		memStorage *utils.SafeMap
+		client      storage.Client
+		status      *string
+		memStorage  *utils.SafeMap
+		containerId string
+		address     *string
+	}
+
+	step2GetAddress struct {
+		containerId string
+		address     *string
+		execOptions module.ExecOptions
 	}
 
 	ClientStatus struct {
@@ -59,6 +70,7 @@ type (
 		Kind        string
 		ContainerId string
 		Status      string
+		Address     string
 		AuxInfo     string
 		CfgPath     string
 	}
@@ -109,6 +121,7 @@ func (s *step2InitClientStatus) Execute(ctx *context.Context) error {
 		Kind:        client.Kind,
 		ContainerId: client.ContainerId,
 		Status:      comm.CLIENT_STATUS_UNKNOWN,
+		Address:     "",
 		AuxInfo:     client.AuxInfo,
 		CfgPath:     *s.cfgPath,
 	})
@@ -117,6 +130,7 @@ func (s *step2InitClientStatus) Execute(ctx *context.Context) error {
 
 func (s *step2FormatClientStatus) Execute(ctx *context.Context) error {
 	status := *s.status
+	address := *s.address
 	if len(status) == 0 { // container losed
 		status = comm.CLIENT_STATUS_LOSED
 	}
@@ -129,6 +143,7 @@ func (s *step2FormatClientStatus) Execute(ctx *context.Context) error {
 		// update the status
 		s := m[id]
 		s.Status = status
+		s.Address = address
 		m[id] = s
 		kv.Set(comm.KEY_ALL_CLIENT_STATUS, m)
 		return nil
@@ -154,6 +169,69 @@ func NewInitClientStatusTask(curveadm *cli.CurveAdm, v interface{}) (*task.Task,
 	return t, nil
 }
 
+func (s *step2GetAddress) Execute(ctx *context.Context) error {
+	cmd := ctx.Module().DockerCli().TopContainer(s.containerId)
+	out, err := cmd.Execute(s.execOptions)
+	if err != nil {
+		return nil
+	}
+
+	lines := strings.Split(out, "\n")
+	var pid string
+	if len(lines) > 1 {
+		reg := regexp.MustCompile(`\s+`)
+		res := reg.Split(lines[1], -1)
+		if len(res) > 1 {
+			pid = res[1]
+		}
+	}
+
+	if len(pid) == 0 {
+		return nil
+	}
+
+	// execute "ss" command in container
+	cli := ctx.Module().Shell().SocketStatistics("")
+	cli.AddOption("--no-header")
+	cli.AddOption("--processes")
+	cli.AddOption("--listening")
+	command, err := cli.String()
+	if err != nil {
+		return nil
+	}
+
+	cmd = ctx.Module().DockerCli().ContainerExec(s.containerId, command)
+	out, err = cmd.Execute(s.execOptions)
+	if err != nil {
+		return nil
+	}
+
+	// handle output
+	lines = strings.Split(out, "\n")
+	for _, line := range lines {
+		address := s.extractAddress(line, pid)
+		if len(address) > 0 {
+			*s.address = address
+			return nil
+		}
+	}
+
+	return nil
+}
+
+// e.g: tcp LISTEN 0 128 10.246.159.123:2379 *:* users:(("etcd",pid=7,fd=5))
+// e.g: tcp LISTEN 0 128 *:2379 *:* users:(("etcd",pid=7,fd=5))
+func (s *step2GetAddress) extractAddress(line, pid string) string {
+	regex, err := regexp.Compile(`^.* ((\d+\.\d+\.\d+\.\d+)|\*:\d+).*pid=` + pid + ".*$")
+	if err == nil {
+		mu := regex.FindStringSubmatch(line)
+		if len(mu) > 1 {
+			return mu[1]
+		}
+	}
+	return ""
+}
+
 func NewGetClientStatusTask(curveadm *cli.CurveAdm, v interface{}) (*task.Task, error) {
 	client := v.(storage.Client)
 	hc, err := curveadm.GetHost(client.Host)
@@ -168,6 +246,7 @@ func NewGetClientStatusTask(curveadm *cli.CurveAdm, v interface{}) (*task.Task, 
 
 	// add step
 	var status string
+	var address string
 	t.AddStep(&step.ListContainers{
 		ShowAll:     true,
 		Format:      `"{{.Status}}"`,
@@ -175,10 +254,17 @@ func NewGetClientStatusTask(curveadm *cli.CurveAdm, v interface{}) (*task.Task, 
 		Out:         &status,
 		ExecOptions: curveadm.ExecOptions(),
 	})
+	t.AddStep(&step2GetAddress{
+		containerId: containerId,
+		address:     &address,
+		execOptions: curveadm.ExecOptions(),
+	})
 	t.AddStep(&step2FormatClientStatus{
-		client:     client,
-		status:     &status,
-		memStorage: curveadm.MemStorage(),
+		client:      client,
+		status:      &status,
+		memStorage:  curveadm.MemStorage(),
+		containerId: containerId,
+		address:     &address,
 	})
 
 	return t, nil
