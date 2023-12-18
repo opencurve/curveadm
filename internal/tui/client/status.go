@@ -39,7 +39,7 @@ func statusDecorate(status string) string {
 	return status
 }
 
-func sortStatuses(statuses []task.ClientStatus) {
+func sortStatues(statuses []task.ClientStatus) {
 	sort.Slice(statuses, func(i, j int) bool {
 		s1, s2 := statuses[i], statuses[j]
 		if s1.Kind == s2.Kind {
@@ -59,7 +59,6 @@ func FormatStatus(statuses []task.ClientStatus, verbose bool) string {
 		"Host",
 		"Container Id",
 		"Status",
-		"Address",
 		"Aux Info",
 	}
 	first, second := tui.FormatTitle(title)
@@ -67,7 +66,7 @@ func FormatStatus(statuses []task.ClientStatus, verbose bool) string {
 	lines = append(lines, second)
 
 	// status
-	sortStatuses(statuses)
+	sortStatues(statuses)
 	for _, status := range statuses {
 		lines = append(lines, []interface{}{
 			status.Id,
@@ -75,7 +74,6 @@ func FormatStatus(statuses []task.ClientStatus, verbose bool) string {
 			status.Host,
 			tui.TrimContainerId(status.ContainerId),
 			tui.DecorateMessage{Message: status.Status, Decorate: statusDecorate},
-			status.Address,
 			status.AuxInfo,
 		})
 	}

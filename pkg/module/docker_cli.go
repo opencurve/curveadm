@@ -46,7 +46,6 @@ const (
 	TEMPLATE_INSPECT_CONTAINER   = "{{.engine}} inspect {{.options}} {{.container}}"
 	TEMPLATE_CONTAINER_LOGS      = "{{.engine}} logs {{.options}} {{.container}}"
 	TEMPLATE_UPDATE_CONTAINER    = "{{.engine}} update {{.options}} {{.container}}"
-	TEMPLATE_TOP_CONTAINER       = "{{.engine}} top {{.container}}"
 )
 
 type DockerCli struct {
@@ -166,12 +165,6 @@ func (cli *DockerCli) ContainerLogs(containerId string) *DockerCli {
 
 func (cli *DockerCli) UpdateContainer(containerId string) *DockerCli {
 	cli.tmpl = template.Must(template.New("UpdateContainer").Parse(TEMPLATE_UPDATE_CONTAINER))
-	cli.data["container"] = containerId
-	return cli
-}
-
-func (cli *DockerCli) TopContainer(containerId string) *DockerCli {
-	cli.tmpl = template.Must(template.New("TopContainer").Parse(TEMPLATE_TOP_CONTAINER))
 	cli.data["container"] = containerId
 	return cli
 }
