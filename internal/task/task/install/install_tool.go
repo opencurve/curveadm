@@ -54,6 +54,10 @@ func NewInstallToolTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*tas
 	subname := fmt.Sprintf("host=%s", dc.GetHost())
 	t := task.NewTask("Install tool v2", subname, hc.GetSSHConfig())
 
+	t.AddStep(&step.CreateDirectory{
+		Paths:       []string{filepath.Dir(path)},
+		ExecOptions: curveadm.ExecOptions(),
+	})
 	t.AddStep(&step.CopyFromContainer{
 		ContainerSrcPath: layout.ToolsV2BinaryPath,
 		ContainerId:      containerId,
