@@ -82,6 +82,20 @@ func (s *Storage) init() error {
 		CreateAuditTable,
 		CreateMonitorTable,
 		CreateAnyTable,
+		CreateClustersView,
+		InsertTrigger,
+		UpdateTrigger,
+		DeleteTrigger,
+	}
+
+	tablesOK, err := s.CheckViewExists()
+	if err != nil {
+		return err
+	}
+	if !tablesOK {
+		// allow failed to execute
+		_, err = s.db.Write(RenameClusters)
+		_, err = s.db.Write(AddTypeField)
 	}
 
 	for _, sql := range sqls {
@@ -91,14 +105,7 @@ func (s *Storage) init() error {
 		}
 	}
 
-	flag, err := s.CheckTypeFiledExist()
-	if err != nil {
-		return err
-	}
-	if !flag {
-		_, err = s.db.Write(UpdateCluster)
-	}
-	return err
+	return nil
 }
 
 func (s *Storage) write(query string, args ...any) error {
@@ -171,22 +178,22 @@ func (s *Storage) InsertCluster(name, uuid, description, topology, deployType st
 	return s.write(InsertCluster, uuid, name, description, topology, deployType)
 }
 
-func (s *Storage) CheckTypeFiledExist() (bool, error) {
-	result, err := s.db.Query(GetTypeFiled)
+func (s *Storage) CheckViewExists() (bool, error) {
+	result, err := s.db.Query(isViewExist)
 	if err != nil {
 		return false, err
 	}
 	defer result.Close()
 
-	var isFiledExist bool
+	var exists bool
 	for result.Next() {
-		err = result.Scan(&isFiledExist)
+		err = result.Scan(&exists)
 		if err != nil {
 			return false, err
 		}
 		break
 	}
-	return isFiledExist, nil
+	return exists, nil
 }
 
 func (s *Storage) DeleteCluster(name string) error {

@@ -109,7 +109,7 @@ type Cluster struct {
 var (
 	// table: clusters
 	CreateClustersTable = `
-		CREATE TABLE IF NOT EXISTS clusters (
+		CREATE TABLE IF NOT EXISTS clusters_new (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			uuid TEXT NOT NULL,
 			name TEXT NOT NULL UNIQUE,
@@ -124,27 +124,67 @@ var (
 
 	// insert cluster
 	InsertCluster = `
-		INSERT INTO clusters(uuid, name, description, topology, type, pool, create_time)
+		INSERT INTO clusters_new(uuid, name, description, topology, type, pool, create_time)
 		VALUES(?, ?, ?, ?, ?, "", datetime('now','localtime'))
 	`
-	// check new cluster column
-	GetTypeFiled = `SELECT COUNT(*) FROM pragma_table_info('clusters') WHERE name = 'type'`
+	// check if view exists
+	isViewExist = `SELECT COUNT(*) FROM sqlite_master WHERE type='view' AND name = 'clusters'`
 
 	// update new cluster column
-	UpdateCluster = `ALTER TABLE clusters ADD COLUMN type TEXT NOT NULL DEFAULT 'develop'`
+	AddTypeField = `ALTER TABLE clusters_new ADD COLUMN type TEXT NOT NULL DEFAULT 'develop'`
+
+	// rename clusters table
+	RenameClusters = `ALTER TABLE clusters RENAME TO clusters_new`
+
+	// create view for old table
+	CreateClustersView = `
+		CREATE VIEW IF NOT EXISTS clusters AS
+		SELECT id, uuid, name, description, topology, pool, create_time, current
+		FROM clusters_new
+	`
+
+	// insert tigger
+	InsertTrigger = `
+		CREATE TRIGGER IF NOT EXISTS cluster_insert_trigger
+		INSTEAD OF INSERT ON clusters
+		FOR EACH ROW 
+		BEGIN 
+			INSERT INTO clusters_new VALUES (new.id, new.uuid, new.name, new.description, new.topology, new.pool, new.create_time, new.current,'develop');
+		END
+	`
+
+	// update trigger
+	UpdateTrigger = `
+		CREATE TRIGGER IF NOT EXISTS cluster_update_trigger
+		INSTEAD OF UPDATE ON clusters
+		FOR EACH ROW
+		BEGIN
+			UPDATE clusters_new SET uuid = new.uuid, name = new.name, description = new.description, topology = new.topology, pool = new.pool, create_time = new.create_time, current = new.current WHERE id = new.id;
+		END
+	`
+
+	// delete trigger
+	DeleteTrigger = `
+		CREATE TRIGGER IF NOT EXISTS cluster_delete_trigger
+		INSTEAD OF DELETE ON clusters
+		FOR EACH ROW
+		BEGIN
+			DELETE FROM clusters_new WHERE id = old.id;
+		END ;
+	`
 
 	// delete cluster
-	DeleteCluster = `DELETE from clusters WHERE name = ?`
+	DeleteCluster = `DELETE from clusters_new WHERE name = ?`
 
 	// select cluster
-	SelectCluster = `SELECT * FROM clusters WHERE name LIKE ?`
+	SelectCluster = `SELECT * FROM clusters_new WHERE name LIKE ?`
 
 	// get current cluster
-	GetCurrentCluster = `SELECT * FROM clusters WHERE current = 1`
+	GetCurrentCluster = `SELECT * FROM clusters_new WHERE current = 1`
 
 	// checkout cluster
 	CheckoutCluster = `
-		UPDATE clusters
+		UPDATE clusters_new
 		SET current = CASE name
 			WHEN ? THEN 1
 			ELSE 0
@@ -152,10 +192,10 @@ var (
 	`
 
 	// set cluster topology
-	SetClusterTopology = `UPDATE clusters SET topology = ? WHERE id = ?`
+	SetClusterTopology = `UPDATE clusters_new SET topology = ? WHERE id = ?`
 
 	// set cluster pool
-	SetClusterPool = `UPDATE clusters SET topology = ?, pool = ? WHERE id = ?`
+	SetClusterPool = `UPDATE clusters_new SET topology = ?, pool = ? WHERE id = ?`
 )
 
 // service
