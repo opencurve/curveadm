@@ -91,14 +91,7 @@ func (s *Storage) init() error {
 		}
 	}
 
-	flag, err := s.CheckTypeFiledExist()
-	if err != nil {
-		return err
-	}
-	if !flag {
-		_, err = s.db.Write(UpdateCluster)
-	}
-	return err
+	return nil
 }
 
 func (s *Storage) write(query string, args ...any) error {
@@ -167,26 +160,8 @@ func (s *Storage) GetHostses() ([]Hosts, error) {
 }
 
 // cluster
-func (s *Storage) InsertCluster(name, uuid, description, topology, deployType string) error {
-	return s.write(InsertCluster, uuid, name, description, topology, deployType)
-}
-
-func (s *Storage) CheckTypeFiledExist() (bool, error) {
-	result, err := s.db.Query(GetTypeFiled)
-	if err != nil {
-		return false, err
-	}
-	defer result.Close()
-
-	var isFiledExist bool
-	for result.Next() {
-		err = result.Scan(&isFiledExist)
-		if err != nil {
-			return false, err
-		}
-		break
-	}
-	return isFiledExist, nil
+func (s *Storage) InsertCluster(name, uuid, description, topology string) error {
+	return s.write(InsertCluster, uuid, name, description, topology)
 }
 
 func (s *Storage) DeleteCluster(name string) error {
@@ -212,7 +187,6 @@ func (s *Storage) getClusters(query string, args ...interface{}) ([]Cluster, err
 			&cluster.Pool,
 			&cluster.CreateTime,
 			&cluster.Current,
-			&cluster.Type,
 		)
 		if err != nil {
 			return nil, err

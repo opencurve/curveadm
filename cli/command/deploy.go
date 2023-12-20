@@ -302,7 +302,6 @@ func displayDeployTitle(curveadm *cli.CurveAdm, dcs []*topology.DeployConfig) {
 	curveadm.WriteOutln("Cluster Name    : %s", curveadm.ClusterName())
 	curveadm.WriteOutln("Cluster Kind    : %s", dcs[0].GetKind())
 	curveadm.WriteOutln("Cluster Services: %s", serviceStats(dcs))
-	curveadm.WriteOutln("Cluster Type    : %s", curveadm.ClusterType())
 	curveadm.WriteOutln("")
 }
 

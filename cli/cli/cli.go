@@ -69,7 +69,6 @@ type CurveAdm struct {
 	clusterName         string // current cluster name
 	clusterTopologyData string // cluster topology
 	clusterPoolData     string // cluster pool
-	clusterType         string // cluster type like develop, production, etc.
 	monitor             storage.Monitor
 }
 
@@ -196,7 +195,7 @@ func (curveadm *CurveAdm) init() error {
 	curveadm.clusterTopologyData = cluster.Topology
 	curveadm.clusterPoolData = cluster.Pool
 	curveadm.monitor = monitor
-	curveadm.clusterType = cluster.Type
+
 	return nil
 }
 
@@ -277,7 +276,6 @@ func (curveadm *CurveAdm) ClusterUUId() string               { return curveadm.c
 func (curveadm *CurveAdm) ClusterName() string               { return curveadm.clusterName }
 func (curveadm *CurveAdm) ClusterTopologyData() string       { return curveadm.clusterTopologyData }
 func (curveadm *CurveAdm) ClusterPoolData() string           { return curveadm.clusterPoolData }
-func (curveadm *CurveAdm) ClusterType() string               { return curveadm.clusterType }
 func (curveadm *CurveAdm) Monitor() storage.Monitor          { return curveadm.monitor }
 
 func (curveadm *CurveAdm) GetHost(name string) (*hosts.HostConfig, error) {
