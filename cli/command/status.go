@@ -142,7 +142,7 @@ func genStatusPlaybook(curveadm *cli.CurveAdm,
 			Type:    step,
 			Configs: dcs,
 			ExecOptions: playbook.ExecOptions{
-				//Concurrency:   10,
+				Concurrency:   100,
 				SilentSubBar:  true,
 				SilentMainBar: step == playbook.INIT_SERVIE_STATUS,
 				SkipError:     true,
