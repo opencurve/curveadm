@@ -190,9 +190,9 @@ func getMountVolumes(dc *topology.DeployConfig) []step.Volume {
 
 func getRestartPolicy(dc *topology.DeployConfig) string {
 	switch dc.GetRole() {
-	case topology.ROLE_ETCD:
-		return POLICY_ALWAYS_RESTART
-	case topology.ROLE_MDS:
+	case topology.ROLE_ETCD,
+		topology.ROLE_MDS,
+		topology.ROLE_SNAPSHOTCLONE:
 		return POLICY_ALWAYS_RESTART
 	}
 	return POLICY_NEVER_RESTART
