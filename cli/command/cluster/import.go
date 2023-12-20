@@ -100,7 +100,7 @@ func importCluster(storage *storage.Storage, dbfile, name string) error {
 	}
 
 	// insert cluster
-	err = storage.InsertCluster(name, cluster.UUId, cluster.Description, cluster.Topology, cluster.Type)
+	err = storage.InsertCluster(name, cluster.UUId, cluster.Description, cluster.Topology)
 	if err != nil {
 		return err
 	}
