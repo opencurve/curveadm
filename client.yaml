@@ -1,0 +1,16 @@
+kind: curvefs
+s3.ak: curve
+s3.sk: Netease@2023
+s3.endpoint: 10.182.26.46:19005
+s3.bucket_name: curvefs
+container_image: quay.io/opencurve/curve/curvefs:v2.7.0-rc1_d8a1137
+mdsOpt.rpcRetryOpt.addrs: 10.182.26.46:6700,10.182.26.35:6700,10.182.26.36:6700
+log_dir: /home/caoxianfei/client/logs
+data_dir: /mnt/v27cache
+diskCache.fullRatio: 90
+diskCache.safeRatio: 70
+diskCache.trimRatio: 50
+diskCache.maxUsableSpaceBytes: 10737418240
+diskCache.maxFileNums: 1000000
+diskCache.trimCheckIntervalSec: 5
+client.loglevel: 9

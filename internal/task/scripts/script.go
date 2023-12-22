@@ -39,6 +39,10 @@ var (
 	WAIT string
 	//go:embed shell/report.sh
 	REPORT string
+	//go:embed shell/add_etcd.sh
+	ADD_ETCD string
+	//go:embed shell/remove_etcd.sh
+	REMOVE_ETCD string
 
 	// CurveBS
 
