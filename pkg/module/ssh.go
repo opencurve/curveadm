@@ -25,13 +25,20 @@
 package module
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/melbahja/goph"
 	log "github.com/opencurve/curveadm/pkg/log/glg"
 	"golang.org/x/crypto/ssh"
+)
+
+const (
+	SSH_PROTOCOL = "ssh"
 )
 
 type (
@@ -150,4 +157,46 @@ connect:
 		client: client,
 		config: config,
 	}, err
+}
+
+func (client *SSHClient) WrapperCommand(command string, execInLocal bool) string {
+	becomeMethod := client.Config().BecomeMethod
+	becomeFlags := client.Config().BecomeFlags
+	becomeUser := client.Config().BecomeUser
+	if len(becomeUser) > 0 && !execInLocal {
+		become := strings.Join([]string{becomeMethod, becomeFlags, becomeUser}, " ")
+		command = strings.Join([]string{become, command}, " ")
+	}
+	return command
+}
+
+func (client *SSHClient) RunCommand(ctx context.Context, command string) (out []byte, err error) {
+	var cmd *goph.Cmd
+	cmd, err = client.Client().CommandContext(ctx, command)
+	if err == nil {
+		cmd.Env = []string{"LANG=en_US.UTF-8"}
+		out, err = cmd.CombinedOutput()
+	}
+	return
+}
+
+func (client *SSHClient) RemoteAddr() (addr string) {
+	config := client.Config()
+	return fmt.Sprintf("%s@%s:%d", config.User, config.Host, config.Port)
+}
+
+func (client *SSHClient) Upload(localPath string, remotePath string) (err error) {
+	return client.client.Upload(localPath, remotePath)
+}
+
+func (client *SSHClient) Download(remotePath string, localPath string) (err error) {
+	return client.client.Download(remotePath, localPath)
+}
+
+func (client *SSHClient) Close() {
+	client.client.Close()
+}
+
+func (client *SSHClient) Protocol() string {
+	return SSH_PROTOCOL
 }

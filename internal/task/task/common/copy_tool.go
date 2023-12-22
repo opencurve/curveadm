@@ -35,13 +35,13 @@ import (
 	"path/filepath"
 )
 
-func checkPathExist(path string, sshConfig *module.SSHConfig, curveadm *cli.CurveAdm) error {
-	sshClient, err := module.NewSSHClient(*sshConfig)
+func checkPathExist(path string, connectConfig *module.ConnectConfig, curveadm *cli.CurveAdm) error {
+	remoteClient, err := module.NewRemoteClient(connectConfig)
 	if err != nil {
 		return errno.ERR_SSH_CONNECT_FAILED.E(err)
 	}
 
-	module := module.NewModule(sshClient)
+	module := module.NewModule(remoteClient)
 	cmd := module.Shell().Stat(path)
 	if _, err := cmd.Execute(curveadm.ExecOptions()); err == nil {
 		if pass := tui.ConfirmYes(tui.PromptPathExist(path)); !pass {
@@ -66,15 +66,15 @@ func NewCopyToolTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task.T
 		return nil, err
 	}
 
-	if err = checkPathExist(path, hc.GetSSHConfig(), curveadm); err != nil {
+	if err = checkPathExist(path, hc.GetConnectConfig(), curveadm); err != nil {
 		return nil, err
 	}
-	if err = checkPathExist(confPath, hc.GetSSHConfig(), curveadm); err != nil {
+	if err = checkPathExist(confPath, hc.GetConnectConfig(), curveadm); err != nil {
 		return nil, err
 	}
 
 	subname := fmt.Sprintf("host=%s", dc.GetHost())
-	t := task.NewTask("Copy version 2 tool to host", subname, hc.GetSSHConfig())
+	t := task.NewTask("Copy version 2 tool to host", subname, hc.GetConnectConfig())
 
 	t.AddStep(&step.CreateDirectory{
 		Paths:       []string{filepath.Dir(path)},

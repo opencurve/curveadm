@@ -79,18 +79,18 @@ const (
 
 // TODO(P1): support command pipe
 type Shell struct {
-	sshClient *SSHClient
-	options   []string
-	tmpl      *template.Template
-	data      map[string]interface{}
+	remoteClient RemoteClient
+	options      []string
+	tmpl         *template.Template
+	data         map[string]interface{}
 }
 
-func NewShell(sshClient *SSHClient) *Shell {
+func NewShell(remoteClient RemoteClient) *Shell {
 	return &Shell{
-		sshClient: sshClient,
-		options:   []string{},
-		tmpl:      nil,
-		data:      map[string]interface{}{},
+		remoteClient: remoteClient,
+		options:      []string{},
+		tmpl:         nil,
+		data:         map[string]interface{}{},
 	}
 }
 
@@ -111,7 +111,7 @@ func (s *Shell) String() (string, error) {
 
 func (s *Shell) Execute(options ExecOptions) (string, error) {
 	s.data["options"] = strings.Join(s.options, " ")
-	return execCommand(s.sshClient, s.tmpl, s.data, options)
+	return execCommand(s.remoteClient, s.tmpl, s.data, options)
 }
 
 // text

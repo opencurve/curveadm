@@ -154,7 +154,7 @@ func NewGetMonitorStatusTask(curveadm *cli.CurveAdm, cfg *configure.MonitorConfi
 	// new task
 	subname := fmt.Sprintf("host=%s role=%s containerId=%s",
 		cfg.GetHost(), cfg.GetRole(), tui.TrimContainerId(containerId))
-	t := task.NewTask("Get Monitor Status", subname, hc.GetSSHConfig())
+	t := task.NewTask("Get Monitor Status", subname, hc.GetConnectConfig())
 
 	// add step to task
 	var status string

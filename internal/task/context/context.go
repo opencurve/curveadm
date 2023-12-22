@@ -29,27 +29,27 @@ import (
 )
 
 type Context struct {
-	sshClient *module.SSHClient
-	module    *module.Module
-	register  *Register
+	remoteClient module.RemoteClient
+	module       *module.Module
+	register     *Register
 }
 
-func NewContext(sshClient *module.SSHClient) (*Context, error) {
+func NewContext(remoteClient module.RemoteClient) (*Context, error) {
 	return &Context{
-		sshClient: sshClient,
-		module:    module.NewModule(sshClient),
-		register:  NewRegister(),
+		remoteClient: remoteClient,
+		module:       module.NewModule(remoteClient),
+		register:     NewRegister(),
 	}, nil
 }
 
 func (ctx *Context) Close() {
-	if ctx.sshClient != nil {
-		ctx.sshClient.Client().Close()
+	if ctx.remoteClient != nil {
+		ctx.remoteClient.Close()
 	}
 }
 
-func (ctx *Context) SSHClient() *module.SSHClient {
-	return ctx.sshClient
+func (ctx *Context) RemoteClient() module.RemoteClient {
+	return ctx.remoteClient
 }
 
 func (ctx *Context) Module() *module.Module {

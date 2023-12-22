@@ -32,6 +32,7 @@ import (
 	"github.com/opencurve/curveadm/internal/configure/os"
 	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/utils"
+	"github.com/opencurve/curveadm/pkg/module"
 	"github.com/spf13/viper"
 )
 
@@ -158,7 +159,7 @@ func (hc *HostConfig) Build() error {
 			F("hosts[%d].private_key_file = %s", hc.sequence, privateKeyFile)
 	}
 
-	if hc.GetForwardAgent() == false {
+	if hc.GetForwardAgent() == false && hc.GetProtocol() == module.SSH_PROTOCOL {
 		if !utils.PathExist(privateKeyFile) {
 			return errno.ERR_PRIVATE_KEY_FILE_NOT_EXIST.
 				F("%s: no such file", privateKeyFile)

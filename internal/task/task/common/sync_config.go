@@ -103,7 +103,7 @@ func NewSyncConfigTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task
 	// new task
 	subname := fmt.Sprintf("host=%s role=%s containerId=%s",
 		dc.GetHost(), dc.GetRole(), tui.TrimContainerId(containerId))
-	t := task.NewTask("Sync Config", subname, hc.GetSSHConfig())
+	t := task.NewTask("Sync Config", subname, hc.GetConnectConfig())
 
 	// add step to task
 	var out string

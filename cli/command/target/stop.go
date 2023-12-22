@@ -47,7 +47,7 @@ func NewStopCommand(curveadm *cli.CurveAdm) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "stop [OPTIONS]",
-		Short: "Stop target deamon",
+		Short: "Stop target daemon",
 		Args:  cliutil.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runStop(curveadm, options)

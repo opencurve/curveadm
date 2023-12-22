@@ -154,7 +154,7 @@ func NewStartNEBDServiceTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig)
 	}
 
 	subname := fmt.Sprintf("hostname=%s image=%s", hc.GetHostname(), cc.GetContainerImage())
-	t := task.NewTask("Start NEBD Service", subname, hc.GetSSHConfig())
+	t := task.NewTask("Start NEBD Service", subname, hc.GetConnectConfig())
 
 	// add step
 	var containerId, out string

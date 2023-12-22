@@ -289,7 +289,7 @@ func NewMountFSTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.T
 	mountFSName := options.MountFSName
 	mountFSType := options.MountFSType
 	subname := fmt.Sprintf("mountFSName=%s mountFSType=%s mountPoint=%s", mountFSName, mountFSType, mountPoint)
-	t := task.NewTask("Mount FileSystem", subname, hc.GetSSHConfig())
+	t := task.NewTask("Mount FileSystem", subname, hc.GetConnectConfig())
 
 	// add step to task
 	var containerId, out string

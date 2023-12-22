@@ -32,6 +32,7 @@ import (
 	"github.com/opencurve/curveadm/internal/tui/common"
 	tuicommon "github.com/opencurve/curveadm/internal/tui/common"
 	"github.com/opencurve/curveadm/internal/utils"
+	"github.com/opencurve/curveadm/pkg/module"
 )
 
 const (
@@ -45,6 +46,7 @@ func FormatHosts(hcs []*configure.HostConfig, verbose bool) string {
 		"Hostname",
 		"User",
 		"Port",
+		"Protocol",
 		"Private Key File",
 		"Forward Agent",
 		"Become User",
@@ -60,8 +62,14 @@ func FormatHosts(hcs []*configure.HostConfig, verbose bool) string {
 
 		name := hc.GetName()
 		hostname := hc.GetHostname()
+		protocol := hc.GetProtocol()
+		var port string
+		if protocol == module.SSH_PROTOCOL {
+			port = strconv.Itoa(hc.GetSSHPort())
+		} else if protocol == module.HTTP_PROTOCOL {
+			port = strconv.Itoa(hc.GetHTTPPort())
+		}
 		user := hc.GetUser()
-		port := strconv.Itoa(hc.GetSSHPort())
 		forwardAgent := utils.Choose(hc.GetForwardAgent(), "Y", "N")
 		becomeUser := utils.Choose(len(hc.GetBecomeUser()) > 0, hc.GetBecomeUser(), "-")
 		labels := utils.Choose(len(hc.GetLabels()) > 0, strings.Join(hc.GetLabels(), ","), "-")
@@ -78,6 +86,7 @@ func FormatHosts(hcs []*configure.HostConfig, verbose bool) string {
 			hostname,
 			user,
 			port,
+			protocol,
 			privateKeyFile,
 			forwardAgent,
 			becomeUser,

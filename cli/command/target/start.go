@@ -51,7 +51,7 @@ func NewStartCommand(curveadm *cli.CurveAdm) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "start [OPTIONS]",
-		Short: "Start target deamon",
+		Short: "Start target daemon",
 		Args:  cliutil.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runStart(curveadm, options)

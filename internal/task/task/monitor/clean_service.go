@@ -73,7 +73,7 @@ func NewCleanMonitorTask(curveadm *cli.CurveAdm, cfg *configure.MonitorConfig) (
 	only := curveadm.MemStorage().Get(comm.KEY_CLEAN_ITEMS).([]string)
 	subname := fmt.Sprintf("host=%s role=%s containerId=%s clean=%s",
 		cfg.GetHost(), cfg.GetRole(), tui.TrimContainerId(containerId), strings.Join(only, ","))
-	t := task.NewTask("Clean Monitor", subname, hc.GetSSHConfig())
+	t := task.NewTask("Clean Monitor", subname, hc.GetConnectConfig())
 
 	// add step to task
 	clean := utils.Slice2Map(only)

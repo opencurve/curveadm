@@ -35,6 +35,7 @@ import (
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
 	"github.com/opencurve/curveadm/internal/utils"
+	"github.com/opencurve/curveadm/pkg/module"
 )
 
 const (
@@ -51,7 +52,7 @@ func doNothing() step.LambdaType {
 func checkHost(hc *hosts.HostConfig) step.LambdaType {
 	return func(ctx *context.Context) error {
 		privateKeyFile := hc.GetPrivateKeyFile()
-		if hc.GetForwardAgent() == false {
+		if hc.GetForwardAgent() == false && hc.GetProtocol() == module.SSH_PROTOCOL {
 			if !utils.PathExist(privateKeyFile) {
 				return errno.ERR_PRIVATE_KEY_FILE_NOT_EXIST.
 					F("%s: no such file", privateKeyFile)
@@ -73,7 +74,7 @@ func NewCheckSSHConnectTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (
 	// new task
 	method := utils.Choose(hc.GetForwardAgent(), "forwardAgent", "privateKey")
 	subname := fmt.Sprintf("host=%s method=%s", dc.GetHost(), method)
-	t := task.NewTask("Check SSH Connect <ssh>", subname, hc.GetSSHConfig())
+	t := task.NewTask("Check SSH Connect <ssh>", subname, hc.GetConnectConfig())
 
 	// add step to task
 	t.AddStep(&step.Lambda{
