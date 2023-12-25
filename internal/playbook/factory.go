@@ -84,6 +84,10 @@ const (
 	INSTALL_CLIENT
 	UNINSTALL_CLIENT
 	ATTACH_LEADER_OR_RANDOM_CONTAINER
+	ADD_ETCD_MEMBER
+	AMEND_ETCD_CONFIG
+	AMEND_MDS_CONFIG
+	REMOVE_ETCD_MEMBER
 
 	// bs
 	FORMAT_CHUNKFILE_POOL
@@ -94,6 +98,7 @@ const (
 	CREATE_VOLUME
 	MAP_IMAGE
 	UNMAP_IMAGE
+	MARK_SERVER_PENGDDING
 
 	// monitor
 	PULL_MONITOR_IMAGE
@@ -250,6 +255,14 @@ func (p *Playbook) createTasks(step *PlaybookStep) (*tasks.Tasks, error) {
 			t, err = comm.NewInstallClientTask(curveadm, config.GetCC(i))
 		case UNINSTALL_CLIENT:
 			t, err = comm.NewUninstallClientTask(curveadm, nil)
+		case ADD_ETCD_MEMBER:
+			t, err = comm.NewAddEtcdMemberTask(curveadm, config.GetDC(i))
+		case AMEND_ETCD_CONFIG:
+			t, err = comm.NewAmendEtcdConfigTask(curveadm, config.GetDC(i))
+		case AMEND_MDS_CONFIG:
+			t, err = comm.NewAmendMdsConfigTask(curveadm, config.GetDC(i))
+		case REMOVE_ETCD_MEMBER:
+			t, err = comm.NewRemoveEtcdMemberTask(curveadm, config.GetDC(i))
 		// bs
 		case FORMAT_CHUNKFILE_POOL:
 			t, err = bs.NewFormatChunkfilePoolTask(curveadm, config.GetFC(i))
@@ -278,6 +291,8 @@ func (p *Playbook) createTasks(step *PlaybookStep) (*tasks.Tasks, error) {
 			t, err = bs.NewDeleteTargetTask(curveadm, nil)
 		case LIST_TARGETS:
 			t, err = bs.NewListTargetsTask(curveadm, nil)
+		case MARK_SERVER_PENGDDING:
+			t, err = bs.NewMarkServerPendding(curveadm, config.GetDC(i))
 		// fs
 		case CHECK_CLIENT_S3:
 			t, err = checker.NewClientS3ConfigureTask(curveadm, config.GetCC(i))

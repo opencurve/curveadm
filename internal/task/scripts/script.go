@@ -39,6 +39,10 @@ var (
 	WAIT string
 	//go:embed shell/report.sh
 	REPORT string
+	//go:embed shell/add_etcd.sh
+	ADD_ETCD string
+	//go:embed shell/remove_etcd.sh
+	REMOVE_ETCD string
 
 	// CurveBS
 
@@ -61,4 +65,7 @@ var (
 
 	//go:embed shell/create_fs.sh
 	CREATE_FS string
+
+	//go:embed shell/mark_server_pendding.sh
+	MARK_SERVER_PENDDING string
 )

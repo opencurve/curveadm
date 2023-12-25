@@ -110,7 +110,14 @@ func prepare(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (clusterPoolJson
 		configure.ScaleOutClusterPool(&clusterPool, dcs, poolset)
 	} else if curveadm.MemStorage().Get(comm.KEY_MIGRATE_SERVERS) != nil { // migrate servers
 		migrates := curveadm.MemStorage().Get(comm.KEY_MIGRATE_SERVERS).([]*configure.MigrateServer)
-		configure.MigrateClusterServer(&clusterPool, migrates)
+		var removeMigratedServer bool
+		if curveadm.MemStorage().Get(comm.KEY_REMOVE_MIGRATED_SERVER) == nil {
+			removeMigratedServer = false
+		} else if curveadm.MemStorage().Get(comm.KEY_REMOVE_MIGRATED_SERVER) != nil &&
+			curveadm.MemStorage().Get(comm.KEY_REMOVE_MIGRATED_SERVER).(bool) == true {
+			removeMigratedServer = true
+		}
+		configure.MigrateClusterServer(&clusterPool, migrates, removeMigratedServer)
 	}
 
 	// 3. encode cluster pool to json string
@@ -217,6 +224,12 @@ func NewCreateTopologyTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*
 	build.DEBUG(build.DEBUG_CREATE_POOL,
 		build.Field{"pool json", clusterPoolJson})
 
+	var setClusterPool bool
+	value := curveadm.MemStorage().Get(comm.KEY_IF_UPDATE_TOPOLOG)
+	if value == nil {
+		setClusterPool = true
+	}
+
 	t.AddStep(&step.ListContainers{
 		ShowAll:     true,
 		Format:      `"{{.ID}}"`,
@@ -281,7 +294,7 @@ func NewCreateTopologyTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*
 	t.AddStep(&step.Lambda{
 		Lambda: checkCreatePoolStatus(&success, &out),
 	})
-	if pooltype == comm.POOL_TYPE_LOGICAL {
+	if pooltype == comm.POOL_TYPE_LOGICAL && setClusterPool {
 		t.AddStep(&step2SetClusterPool{
 			curveadm:    curveadm,
 			clusterPool: clusterPoolJson,

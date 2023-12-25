@@ -1,0 +1,42 @@
+kind: curvefs
+global:
+  container_image: quay.io/opencurve/curve/curvefs:v2.7.0-rc1_d8a1137
+  log_dir: ${home}/curvefs27/logs/${service_role}
+  data_dir: ${home}/curvefs27/data/${service_role}
+  variable:
+    home: /data/cxf/chunkserver0
+    machine1: curve7
+    machine2: curve15
+    machine3: curve16
+    machine4: curve21
+
+etcd_services:
+  config:
+    listen.ip: ${service_host}
+    listen.port: 23800
+    listen.client_port: 23790
+  deploy:
+    - host: ${machine1}
+    - host: ${machine2}
+    - host: ${machine3}
+mds_services:
+  config:
+    listen.ip: ${service_host}
+    listen.port: 6700
+    listen.dummy_port: 7700
+  deploy:
+    - host: ${machine1}
+    - host: ${machine2}
+    - host: ${machine3}
+
+metaserver_services:
+  config:
+    listen.ip: ${service_host}
+    listen.port: 16800
+    listen.external_port: 17800
+    trash.scanPeriodSec: 1
+    trash.expiredAfterSec: 1
+  deploy:
+    - host: ${machine1}
+    - host: ${machine2}
+    - host: ${machine3}
