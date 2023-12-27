@@ -305,7 +305,7 @@ var (
 	ERR_PARSE_HOSTS_FAILED     = EC(320003, "parse hosts failed")
 	// 321: configure (hosts.yaml: invalid configure value)
 	ERR_UNSUPPORT_HOSTS_CONFIGURE_ITEM           = EC(321000, "unsupport hosts configure item")
-	ERR_HOST_FIELD_MISSING                       = EC(321001, "host field missing")
+	ERR_NAME_FIELD_MISSING                       = EC(321001, "name field missing")
 	ERR_HOSTNAME_FIELD_MISSING                   = EC(321002, "hostname field missing")
 	ERR_HOSTS_SSH_PORT_EXCEED_MAX_PORT_NUMBER    = EC(321003, "ssh_port exceed max port number")
 	ERR_PRIVATE_KEY_FILE_REQUIRE_ABSOLUTE_PATH   = EC(321004, "SSH private key file needs to be an absolute path")
