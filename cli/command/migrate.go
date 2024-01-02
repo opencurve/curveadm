@@ -39,23 +39,30 @@ import (
 
 var (
 	MIGRATE_ETCD_STEPS = []int{
-		playbook.STOP_SERVICE,
-		playbook.CLEAN_SERVICE, // only container
+		playbook.ADD_ETCD_MEMBER,
 		playbook.PULL_IMAGE,
 		playbook.CREATE_CONTAINER,
 		playbook.SYNC_CONFIG,
+		playbook.AMEND_ETCD_CONFIG,
 		playbook.START_ETCD,
+		playbook.REMOVE_ETCD_MEMBER,
+		playbook.AMEND_SERVER_CONFIG, // modify the etcd endpoint in mds.conf
+		playbook.RESTART_SERVICE,     // restart all mds then modify the etcd endpoint
+		playbook.STOP_SERVICE,
+		playbook.CLEAN_SERVICE, // only container
 		playbook.UPDATE_TOPOLOGY,
 	}
 
 	// mds
 	MIGRATE_MDS_STEPS = []int{
-		playbook.STOP_SERVICE,
-		playbook.CLEAN_SERVICE, // only container
 		playbook.PULL_IMAGE,
 		playbook.CREATE_CONTAINER,
 		playbook.SYNC_CONFIG,
 		playbook.START_MDS,
+		playbook.AMEND_SERVER_CONFIG, // modify the mds.listen.addr in metaserver.conf
+		playbook.RESTART_SERVICE,     // restart all metaserver then modify the mds.listen.addr
+		playbook.STOP_SERVICE,
+		playbook.CLEAN_SERVICE, // only container
 		playbook.UPDATE_TOPOLOGY,
 	}
 
@@ -67,6 +74,8 @@ var (
 		playbook.CREATE_CONTAINER,
 		playbook.SYNC_CONFIG,
 		playbook.START_SNAPSHOTCLONE,
+		playbook.AMEND_SERVER_CONFIG, // modify the mds.listen.addr in metaserver.conf
+		playbook.RESTART_SERVICE,     // restart all metaserver then modify the mds.listen.addr
 		playbook.UPDATE_TOPOLOGY,
 	}
 
@@ -157,7 +166,7 @@ func checkMigrateTopology(curveadm *cli.CurveAdm, data string) error {
 	} else if len(dcs2add) < len(dcs2del) {
 		return errno.ERR_DELETE_SERVICE_WHILE_MIGRATING_IS_DENIED
 	}
-	// len(dcs2add) == len(dcs2del)
+
 	if len(dcs2add) == 0 {
 		return errno.ERR_NO_SERVICES_FOR_MIGRATING
 	}
@@ -199,6 +208,7 @@ func genMigratePlaybook(curveadm *cli.CurveAdm,
 	migrates := getMigrates(curveadm, data)
 	role := migrates[0].From.GetRole()
 	steps := MIGRATE_ROLE_STEPS[role]
+	etcdDCs := curveadm.FilterDeployConfigByRole(dcs, topology.ROLE_ETCD)
 
 	// post clean
 	if options.clean {
@@ -221,10 +231,25 @@ func genMigratePlaybook(curveadm *cli.CurveAdm,
 		config := dcs2add
 		switch step {
 		case playbook.STOP_SERVICE,
-			playbook.CLEAN_SERVICE:
+			playbook.CLEAN_SERVICE,
+			playbook.ADD_ETCD_MEMBER,
+			playbook.REMOVE_ETCD_MEMBER:
 			config = dcs2del
 		case playbook.BACKUP_ETCD_DATA:
 			config = curveadm.FilterDeployConfigByRole(dcs, topology.ROLE_ETCD)
+		// 1. migrate etcd, need to override mds config and restart all mds
+		// 2. (FS)migrate mds, need to override metaserver config and restart all metaservers
+		// 3. (BS)migrate mds, need to override chunkserver and snapshot config and restart all chunkservers and snapshotclones
+		case playbook.AMEND_SERVER_CONFIG,
+			playbook.RESTART_SERVICE:
+			if role == topology.ROLE_ETCD {
+				config = curveadm.FilterDeployConfigByRole(dcs, topology.ROLE_MDS)
+			} else if role == topology.ROLE_MDS && dcs[0].GetKind() == topology.KIND_CURVEFS {
+				config = curveadm.FilterDeployConfigByRole(dcs, topology.ROLE_METASERVER)
+			} else if role == topology.ROLE_MDS && dcs[0].GetKind() == topology.KIND_CURVEBS {
+				config = curveadm.FilterDeployConfigByRole(dcs, topology.ROLE_CHUNKSERVER)
+				config = append(config, curveadm.FilterDeployConfigByRole(dcs, topology.ROLE_SNAPSHOTCLONE)...)
+			}
 		case
 			playbook.CREATE_PHYSICAL_POOL,
 			playbook.CREATE_LOGICAL_POOL,
@@ -251,6 +276,11 @@ func genMigratePlaybook(curveadm *cli.CurveAdm,
 			optionsKV[comm.KEY_POOLSET] = poolset
 		case playbook.UPDATE_TOPOLOGY:
 			optionsKV[comm.KEY_NEW_TOPOLOGY_DATA] = data
+		case playbook.ADD_ETCD_MEMBER,
+			playbook.AMEND_ETCD_CONFIG,
+			playbook.AMEND_SERVER_CONFIG:
+			optionsKV[comm.KEY_MIGRATE_SERVERS] = migrates
+			optionsKV[comm.KEY_CLUSTER_DCS] = etcdDCs
 		}
 
 		pb.AddStep(&playbook.PlaybookStep{

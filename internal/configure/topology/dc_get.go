@@ -121,7 +121,11 @@ func (dc *DeployConfig) GetInstances() int                   { return dc.instanc
 func (dc *DeployConfig) GetHostSequence() int                { return dc.hostSequence }
 func (dc *DeployConfig) GetInstancesSequence() int           { return dc.instancesSequence }
 func (dc *DeployConfig) GetServiceConfig() map[string]string { return dc.serviceConfig }
-func (dc *DeployConfig) GetVariables() *variable.Variables   { return dc.variables }
+func (dc *DeployConfig) SetServiceConfig(key, value string) {
+	dc.serviceConfig[key] = value
+}
+
+func (dc *DeployConfig) GetVariables() *variable.Variables { return dc.variables }
 
 // (2): config item
 func (dc *DeployConfig) GetPrefix() string           { return dc.getString(CONFIG_PREFIX) }

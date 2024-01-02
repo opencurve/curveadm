@@ -84,6 +84,10 @@ const (
 	INSTALL_CLIENT
 	UNINSTALL_CLIENT
 	ATTACH_LEADER_OR_RANDOM_CONTAINER
+	ADD_ETCD_MEMBER
+	AMEND_ETCD_CONFIG
+	AMEND_SERVER_CONFIG
+	REMOVE_ETCD_MEMBER
 
 	// bs
 	FORMAT_CHUNKFILE_POOL
@@ -251,6 +255,14 @@ func (p *Playbook) createTasks(step *PlaybookStep) (*tasks.Tasks, error) {
 			t, err = comm.NewInstallClientTask(curveadm, config.GetCC(i))
 		case UNINSTALL_CLIENT:
 			t, err = comm.NewUninstallClientTask(curveadm, nil)
+		case ADD_ETCD_MEMBER:
+			t, err = comm.NewAddEtcdMemberTask(curveadm, config.GetDC(i))
+		case AMEND_ETCD_CONFIG:
+			t, err = comm.NewAmendEtcdConfigTask(curveadm, config.GetDC(i))
+		case AMEND_SERVER_CONFIG:
+			t, err = comm.NewAmendServerConfigTask(curveadm, config.GetDC(i))
+		case REMOVE_ETCD_MEMBER:
+			t, err = comm.NewRemoveEtcdMemberTask(curveadm, config.GetDC(i))
 		// bs
 		case FORMAT_CHUNKFILE_POOL:
 			t, err = bs.NewFormatChunkfilePoolTask(curveadm, config.GetFC(i))

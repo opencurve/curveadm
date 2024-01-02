@@ -118,9 +118,9 @@ var (
 		{name: "cluster_mds_dummy_addr"},
 		{name: "cluster_mds_dummy_port"},
 		{name: "cluster_chunkserver_addr", kind: []string{KIND_CURVEBS}},
-		{name: "cluster_snapshotclone_addr", kind: []string{KIND_CURVEBS}},
+		{name: "cluster_snapshotclone_addr"},
 		{name: "cluster_snapshotclone_proxy_addr", kind: []string{KIND_CURVEBS}},
-		{name: "cluster_snapshotclone_dummy_port", kind: []string{KIND_CURVEBS}},
+		{name: "cluster_snapshotclone_dummy_port"},
 		{name: "cluster_snapshotclone_nginx_upstream", kind: []string{KIND_CURVEBS}},
 		{name: "cluster_snapshot_addr"},       // tools-v2: compatible with some old version image
 		{name: "cluster_snapshot_dummy_addr"}, // tools-v2
