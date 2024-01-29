@@ -152,9 +152,14 @@ func getEnvironments(dc *topology.DeployConfig) []string {
 		preloads = append(preloads, "/usr/local/lib/libsmc-preload.so")
 	}
 
-	return []string{
+	envs := []string{
 		fmt.Sprintf("'LD_PRELOAD=%s'", strings.Join(preloads, " ")),
 	}
+	env := dc.GetEnv()
+	if len(env) > 0 {
+		envs = append(envs, strings.Split(env, " ")...)
+	}
+	return envs
 }
 
 func getMountVolumes(dc *topology.DeployConfig) []step.Volume {
