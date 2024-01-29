@@ -68,9 +68,10 @@ type (
 )
 
 // you should add config item to itemset iff you want to:
-//   (1) check the configuration item value, like type, valid value OR
-//   (2) filter out the configuration item for service config OR
-//   (3) set the default value for configuration item
+//
+//	(1) check the configuration item value, like type, valid value OR
+//	(2) filter out the configuration item for service config OR
+//	(3) set the default value for configuration item
 var (
 	itemset = &itemSet{
 		items:    []*item{},
@@ -124,6 +125,13 @@ var (
 
 	CONFIG_CORE_DIR = itemset.insert(
 		"core_dir",
+		REQUIRE_STRING,
+		true,
+		nil,
+	)
+
+	CONFIG_ENV = itemset.insert(
+		"env",
 		REQUIRE_STRING,
 		true,
 		nil,
