@@ -23,6 +23,8 @@
 package hosts
 
 import (
+	"strings"
+
 	"github.com/opencurve/curveadm/cli/cli"
 	"github.com/opencurve/curveadm/internal/configure/hosts"
 	"github.com/opencurve/curveadm/internal/tui"
@@ -32,7 +34,7 @@ import (
 
 type listOptions struct {
 	verbose bool
-	labels  []string
+	labels  string
 }
 
 func NewListCommand(curveadm *cli.CurveAdm) *cobra.Command {
@@ -51,7 +53,7 @@ func NewListCommand(curveadm *cli.CurveAdm) *cobra.Command {
 
 	flags := cmd.Flags()
 	flags.BoolVarP(&options.verbose, "verbose", "v", false, "Verbose output for hosts")
-	flags.StringSliceVarP(&options.labels, "labels", "l", []string{}, "Specify the host labels")
+	flags.StringVarP(&options.labels, "labels", "l", "", "Specify the host labels")
 
 	return cmd
 }
@@ -156,7 +158,8 @@ func runList(curveadm *cli.CurveAdm, options listOptions) error {
 	var err error
 	data := curveadm.Hosts()
 	if len(data) > 0 {
-		hcs, err = filter(data, options.labels) // filter hosts
+		labels := strings.Split(options.labels, ":")
+		hcs, err = filter(data, labels) // filter hosts
 		if err != nil {
 			return err
 		}

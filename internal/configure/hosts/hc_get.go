@@ -74,8 +74,14 @@ func (hc *HostConfig) GetSSHPort() int           { return hc.getInt(CONFIG_SSH_P
 func (hc *HostConfig) GetPrivateKeyFile() string { return hc.getString(CONFIG_PRIVATE_CONFIG_FILE) }
 func (hc *HostConfig) GetForwardAgent() bool     { return hc.getBool(CONFIG_FORWARD_AGENT) }
 func (hc *HostConfig) GetBecomeUser() string     { return hc.getString(CONFIG_BECOME_USER) }
-func (hc *HostConfig) GetLabels() []string       { return hc.labels }
 func (hc *HostConfig) GetEnvs() []string         { return hc.envs }
+
+func (hc *HostConfig) GetLabels() []string {
+	if len(hc.labels) == 0 {
+		return []string{hc.GetHost()}
+	}
+	return hc.labels
+}
 
 func (hc *HostConfig) GetUser() string {
 	user := hc.getString(CONFIG_USER)
