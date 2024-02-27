@@ -91,15 +91,18 @@ func (hc *HostConfig) GetUser() string {
 	return user
 }
 
-func (hc *HostConfig) GetSSHConfig() *module.SSHConfig {
+func (hc *HostConfig) GetProtocol() string { return hc.getString(CONFIG_PROTOCOL) }
+
+func (hc *HostConfig) GetConnectConfig() *module.ConnectConfig {
 	hostname := hc.GetSSHHostname()
 	if len(hostname) == 0 {
 		hostname = hc.GetHostname()
 	}
-	return &module.SSHConfig{
+	return &module.ConnectConfig{
 		User:              hc.GetUser(),
 		Host:              hostname,
-		Port:              (uint)(hc.GetSSHPort()),
+		SSHPort:           (uint)(hc.GetSSHPort()),
+		HTTPPort:          (uint)(hc.GetHTTPPort()),
 		PrivateKeyPath:    hc.GetPrivateKeyFile(),
 		ForwardAgent:      hc.GetForwardAgent(),
 		BecomeMethod:      "sudo",
@@ -107,5 +110,8 @@ func (hc *HostConfig) GetSSHConfig() *module.SSHConfig {
 		BecomeUser:        hc.GetBecomeUser(),
 		ConnectTimeoutSec: curveadm.GlobalCurveAdmConfig.GetSSHTimeout(),
 		ConnectRetries:    curveadm.GlobalCurveAdmConfig.GetSSHRetries(),
+		Protocol:          hc.GetProtocol(),
 	}
 }
+
+func (hc *HostConfig) GetHTTPPort() int { return hc.getInt(CONFIG_HTTP_PORT) }

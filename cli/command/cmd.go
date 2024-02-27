@@ -32,6 +32,7 @@ import (
 	"github.com/opencurve/curveadm/cli/command/cluster"
 	"github.com/opencurve/curveadm/cli/command/config"
 	copycmd "github.com/opencurve/curveadm/cli/command/copy"
+	"github.com/opencurve/curveadm/cli/command/daemon"
 	"github.com/opencurve/curveadm/cli/command/hosts"
 	"github.com/opencurve/curveadm/cli/command/monitor"
 	"github.com/opencurve/curveadm/cli/command/pfs"
@@ -68,6 +69,7 @@ func addSubCommands(cmd *cobra.Command, curveadm *cli.CurveAdm) {
 		pfs.NewPFSCommand(curveadm),               // curveadm pfs ...
 		monitor.NewMonitorCommand(curveadm),       // curveadm monitor ...
 		copycmd.NewCopyCommand(curveadm),          // curveadm copy ...
+		daemon.NewDaemonCommand(curveadm),         // curveadm daemon ...
 
 		NewAuditCommand(curveadm),      // curveadm audit
 		NewCleanCommand(curveadm),      // curveadm clean

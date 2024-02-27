@@ -57,7 +57,7 @@ func NewBackupEtcdDataTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*
 
 	subname := fmt.Sprintf("host=%s role=%s containerId=%s",
 		dc.GetHost(), dc.GetRole(), tui.TrimContainerId(containerId))
-	t := task.NewTask("Backup Etcd Data", subname, hc.GetSSHConfig())
+	t := task.NewTask("Backup Etcd Data", subname, hc.GetConnectConfig())
 
 	t.AddStep(&step.ContainerExec{
 		ContainerId: &containerId,

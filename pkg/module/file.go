@@ -41,35 +41,36 @@ var (
 )
 
 type FileManager struct {
-	sshClient *SSHClient
+	remoteClient RemoteClient
 }
 
-func NewFileManager(sshClient *SSHClient) *FileManager {
-	return &FileManager{sshClient: sshClient}
+func NewFileManager(remoteClient RemoteClient) *FileManager {
+	return &FileManager{remoteClient: remoteClient}
 }
 
 func (f *FileManager) Upload(localPath, remotePath string) error {
-	if f.sshClient == nil {
+	if f.remoteClient == nil {
 		return ERR_UNREACHED
 	}
 
-	err := f.sshClient.Client().Upload(localPath, remotePath)
+	err := f.remoteClient.Upload(localPath, remotePath)
 	log.SwitchLevel(err)("UploadFile",
-		log.Field("remoteAddress", remoteAddr(f.sshClient)),
+		log.Field("remoteAddress", remoteAddr(f.remoteClient)),
 		log.Field("localPath", localPath),
 		log.Field("remotePath", remotePath),
-		log.Field("error", err))
+		log.Field("error", err),
+		log.Field("protocol", f.remoteClient.Protocol()))
 	return err
 }
 
 func (f *FileManager) Download(remotePath, localPath string) error {
-	if f.sshClient == nil {
+	if f.remoteClient == nil {
 		return ERR_UNREACHED
 	}
 
-	err := f.sshClient.Client().Download(remotePath, localPath)
+	err := f.remoteClient.Download(remotePath, localPath)
 	log.SwitchLevel(err)("DownloadFile",
-		log.Field("remoteAddress", remoteAddr(f.sshClient)),
+		log.Field("remoteAddress", remoteAddr(f.remoteClient)),
 		log.Field("remotePath", remotePath),
 		log.Field("localPath", localPath),
 		log.Field("error", err))

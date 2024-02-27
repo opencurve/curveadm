@@ -47,8 +47,12 @@ backup() {
 }
 
 setup() {
-    mkdir -p "${g_curveadm_home}"/{bin,data,module,logs,temp}
+    setup_curveadm
+    setup_daemon
+}
 
+setup_curveadm() {
+    mkdir -p "${g_curveadm_home}"/{bin,data,module,logs,temp}
     # generate config file
     local confpath="${g_curveadm_home}/curveadm.cfg"
     if [ ! -f "${confpath}" ]; then
@@ -65,6 +69,20 @@ timeout = 10
 
 [database]
 url = "${g_db_path}"
+__EOF__
+    fi
+}
+
+setup_daemon() {
+    mkdir -p "${g_curveadm_home}"/daemon/{logs,conf}
+    # generate daemon service config file
+    local httpConfpath="${g_curveadm_home}/daemon/conf/pigeon.yaml"
+    if [ ! -f $httpConfpath ]; then
+        cat << __EOF__ > $httpConfpath
+servers:
+  - name: curveadm
+    log_level: info
+    listen: :11000
 __EOF__
     fi
 }

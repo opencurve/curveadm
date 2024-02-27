@@ -63,7 +63,7 @@ func NewEnableEtcdAuthTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*
 	// new task
 	subname := fmt.Sprintf("host=%s role=%s containerId=%s",
 		dc.GetHost(), dc.GetRole(), tui.TrimContainerId(containerId))
-	t := task.NewTask("Enable Etcd Auth", subname, hc.GetSSHConfig())
+	t := task.NewTask("Enable Etcd Auth", subname, hc.GetConnectConfig())
 
 	script := scripts.ENABLE_ETCD_AUTH
 	layout := dc.GetProjectLayout()

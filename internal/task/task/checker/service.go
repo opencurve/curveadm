@@ -138,7 +138,7 @@ func NewCheckChunkfilePoolTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig
 	}
 
 	subname := fmt.Sprintf("host=%s role=%s", dc.GetHost(), dc.GetRole())
-	t := task.NewTask("Check Chunkfile Pool <service>", subname, hc.GetSSHConfig())
+	t := task.NewTask("Check Chunkfile Pool <service>", subname, hc.GetConnectConfig())
 
 	t.AddStep(&step2CheckChunkfilePool{
 		dc:          dc,
@@ -171,7 +171,7 @@ func NewCheckMdsAddressTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) 
 
 	address := cc.GetClusterMDSAddr()
 	subname := fmt.Sprintf("host=%s address=%s", host, address)
-	t := task.NewTask("Check MDS Address", subname, hc.GetSSHConfig())
+	t := task.NewTask("Check MDS Address", subname, hc.GetConnectConfig())
 
 	return t, nil
 }

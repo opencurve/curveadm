@@ -120,7 +120,7 @@ func NewCreateContainerTask(curveadm *cli.CurveAdm, cfg *configure.MonitorConfig
 
 	// new task
 	subname := fmt.Sprintf("host=%s role=%s", host, cfg.GetRole())
-	t := task.NewTask("Create Container", subname, hc.GetSSHConfig())
+	t := task.NewTask("Create Container", subname, hc.GetConnectConfig())
 
 	// add step to task
 	var oldContainerId, containerId string

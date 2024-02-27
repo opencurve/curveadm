@@ -52,10 +52,10 @@ func prepareOptions(curveadm *cli.CurveAdm, host string, become bool, extra map[
 		return nil, err
 	}
 
-	config := hc.GetSSHConfig()
+	config := hc.GetConnectConfig()
 	options["user"] = config.User
 	options["host"] = config.Host
-	options["port"] = config.Port
+	options["port"] = config.SSHPort
 
 	opts := []string{
 		"-o StrictHostKeyChecking=no",

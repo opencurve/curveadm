@@ -190,7 +190,7 @@ func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *configure.FormatConf
 	chunkSize := fc.GetChunkSize()
 	subname := fmt.Sprintf("host=%s device=%s mountPoint=%s usage=%d%%",
 		fc.GetHost(), device, mountPoint, usagePercent)
-	t := task.NewTask("Start Format Chunkfile Pool", subname, hc.GetSSHConfig())
+	t := task.NewTask("Start Format Chunkfile Pool", subname, hc.GetConnectConfig())
 
 	// add step to task
 	var output, containerId, oldUuid, uuid, content string

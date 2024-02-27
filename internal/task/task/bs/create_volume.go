@@ -106,7 +106,7 @@ func NewCreateVolumeTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*t
 	}
 
 	subname := fmt.Sprintf("hostname=%s image=%s", hc.GetHostname(), cc.GetContainerImage())
-	t := task.NewTask("Create Volume", subname, hc.GetSSHConfig())
+	t := task.NewTask("Create Volume", subname, hc.GetConnectConfig())
 
 	// add step
 	var out string

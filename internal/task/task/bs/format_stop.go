@@ -79,7 +79,7 @@ func NewStopFormatTask(curveadm *cli.CurveAdm, fc *configure.FormatConfig) (*tas
 	containerName := device2ContainerName(device)
 	subname := fmt.Sprintf("host=%s device=%s mountPoint=%s containerName=%s",
 		fc.GetHost(), device, mountPoint, containerName)
-	t := task.NewTask("Stop Format Chunkfile Pool", subname, hc.GetSSHConfig())
+	t := task.NewTask("Stop Format Chunkfile Pool", subname, hc.GetConnectConfig())
 
 	var oldContainerId string
 	var oldUuid string

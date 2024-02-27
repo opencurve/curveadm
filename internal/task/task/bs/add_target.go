@@ -52,7 +52,7 @@ func NewAddTargetTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task
 	}
 
 	subname := fmt.Sprintf("host=%s volume=%s", options.Host, volume)
-	t := task.NewTask("Add Target", subname, hc.GetSSHConfig())
+	t := task.NewTask("Add Target", subname, hc.GetConnectConfig())
 
 	// add step
 	var output string

@@ -87,7 +87,7 @@ func NewGetHostDate(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task.Ta
 	}
 
 	subname := fmt.Sprintf("host=%s start=%d", dc.GetHost(), time.Now().Unix())
-	t := task.NewTask("Get Host Date <date>", subname, hc.GetSSHConfig())
+	t := task.NewTask("Get Host Date <date>", subname, hc.GetConnectConfig())
 
 	var start int64
 	var out string

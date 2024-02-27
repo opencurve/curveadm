@@ -26,10 +26,10 @@ import (
 	"fmt"
 	"strings"
 
-	comm "github.com/opencurve/curveadm/internal/common"
-	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/cli/cli"
+	comm "github.com/opencurve/curveadm/internal/common"
 	"github.com/opencurve/curveadm/internal/configure"
+	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/task/context"
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
@@ -122,7 +122,7 @@ func NewGetFormatStatusTask(curveadm *cli.CurveAdm, fc *configure.FormatConfig) 
 	// new task
 	device := fc.GetDevice()
 	subname := fmt.Sprintf("host=%s device=%s", fc.GetHost(), fc.GetDevice())
-	t := task.NewTask("Get Format Status", subname, hc.GetSSHConfig())
+	t := task.NewTask("Get Format Status", subname, hc.GetConnectConfig())
 
 	// add step to task
 	var deviceUsage, containerStatus string

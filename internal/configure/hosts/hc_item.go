@@ -32,7 +32,10 @@ import (
 )
 
 const (
-	DEFAULT_SSH_PORT = 22
+	DEFAULT_SSH_PORT  = 22
+	DEFAULT_HTTP_PORT = 8000
+	SSH_PROTOCOL      = "ssh"
+	HTTP_PROTOCOL     = "http"
 )
 
 var (
@@ -105,5 +108,19 @@ var (
 		comm.REQUIRE_STRING,
 		false,
 		nil,
+	)
+
+	CONFIG_PROTOCOL = itemset.Insert(
+		"protocol",
+		comm.REQUIRE_STRING,
+		false,
+		SSH_PROTOCOL,
+	)
+
+	CONFIG_HTTP_PORT = itemset.Insert(
+		"http_port",
+		comm.REQUIRE_POSITIVE_INTEGER,
+		false,
+		DEFAULT_HTTP_PORT,
 	)
 )
