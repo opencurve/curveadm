@@ -63,7 +63,7 @@ var (
 	SetVersion = `UPDATE version SET version = ?, lastconfirm = ? WHERE id = ?`
 
 	// select version
-	SelectVersion = `SELECT * FROM version`
+	SelectVersion = `SELECT id, version, lastconfirm FROM version`
 )
 
 // hosts
@@ -90,7 +90,7 @@ var (
 	SetHosts = `UPDATE hosts SET data = ?, lastmodified_time = datetime('now','localtime') WHERE id = ?`
 
 	// select hosts
-	SelectHosts = `SELECT * FROM hosts`
+	SelectHosts = `SELECT id, data, lastmodified_time FROM hosts`
 )
 
 // cluster
@@ -130,10 +130,10 @@ var (
 	DeleteCluster = `DELETE from clusters WHERE name = ?`
 
 	// select cluster
-	SelectCluster = `SELECT * FROM clusters WHERE name LIKE ?`
+	SelectCluster = `SELECT id, uuid, name, description, topology, pool, create_time, current, type FROM clusters WHERE name LIKE ?`
 
 	// get current cluster
-	GetCurrentCluster = `SELECT * FROM clusters WHERE current = 1`
+	GetCurrentCluster = `SELECT id, uuid, name, description, topology, pool, create_time, current, type FROM clusters WHERE current = 1`
 
 	// checkout cluster
 	CheckoutCluster = `
@@ -173,10 +173,10 @@ var (
 	InsertService = `INSERT INTO containers(id, cluster_id, container_id) VALUES(?, ?, ?)`
 
 	// select service
-	SelectService = `SELECT * FROM containers WHERE id = ?`
+	SelectService = `SELECT id, cluster_id, container_id FROM containers WHERE id = ?`
 
 	// select services in cluster
-	SelectServicesInCluster = `SELECT * FROM containers WHERE cluster_id = ?`
+	SelectServicesInCluster = `SELECT id, cluster_id, container_id FROM containers WHERE cluster_id = ?`
 
 	// set service container id
 	SetContainerId = `UPDATE containers SET container_id = ? WHERE id = ?`
@@ -209,10 +209,10 @@ var (
 	SetClientAuxInfo = `UPDATE clients SET aux_info = ? WHERE id = ?`
 
 	// select clients
-	SelectClients = `SELECT * FROM clients`
+	SelectClients = `SELECT id, kind, host, container_id, aux_info FROM clients`
 
 	// select client by id
-	SelectClientById = `SELECT * FROM clients WHERE id = ?`
+	SelectClientById = `SELECT id, kind, host, container_id, aux_info FROM clients WHERE id = ?`
 
 	// delete client
 	DeleteClient = `DELETE from clients WHERE id = ?`
@@ -249,10 +249,10 @@ var (
 	SetPlaygroundStatus = `UPDATE playgrounds SET status = ? WHERE name = ?`
 
 	// select playground
-	SelectPlayground = `SELECT * FROM playgrounds WHERE name LIKE ?`
+	SelectPlayground = `SELECT id, name, create_time, mount_point, status FROM playgrounds WHERE name LIKE ?`
 
 	// select playground by id
-	SelectPlaygroundById = `SELECT * FROM playgrounds WHERE id = ?`
+	SelectPlaygroundById = `SELECT id, name, create_time, mount_point, status FROM playgrounds WHERE id = ?`
 
 	// delete playground
 	DeletePlayground = `DELETE from playgrounds WHERE name = ?`
@@ -291,10 +291,10 @@ var (
 	SetAuditLogStatus = `UPDATE audit SET status = ?, error_code = ? WHERE id = ?`
 
 	// select audit log
-	SelectAuditLog = `SELECT * FROM audit`
+	SelectAuditLog = `SELECT id, execute_time, work_directory, command, status, error_code FROM audit`
 
 	// select audit log by id
-	SelectAuditLogById = `SELECT * FROM audit WHERE id = ?`
+	SelectAuditLogById = `SELECT id, execute_time, work_directory, command, status, error_code FROM audit WHERE id = ?`
 )
 
 // any: we can store anything
@@ -319,7 +319,7 @@ var (
 	SetAnyItem = `UPDATE any SET data = ? WHERE id = ?`
 
 	// select item by id
-	SelectAnyItem = `SELECT * FROM any WHERE id = ?`
+	SelectAnyItem = `SELECT id, data FROM any WHERE id = ?`
 
 	// delete item
 	DeleteAnyItem = `DELETE from any WHERE id = ?`
