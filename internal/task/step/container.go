@@ -155,6 +155,12 @@ type (
 		Success     *bool
 		module.ExecOptions
 	}
+
+	TopContainer struct {
+		ContainerId string
+		Out         *string
+		module.ExecOptions
+	}
 )
 
 func (s *EngineInfo) Execute(ctx *context.Context) error {
@@ -323,4 +329,10 @@ func (s *ContainerLogs) Execute(ctx *context.Context) error {
 	cli := ctx.Module().DockerCli().ContainerLogs(s.ContainerId)
 	out, err := cli.Execute(s.ExecOptions)
 	return PostHandle(s.Success, s.Out, out, err, errno.ERR_GET_CONTAINER_LOGS_FAILED.FD("(%s logs ID)", s.ExecWithEngine))
+}
+
+func (s *TopContainer) Execute(ctx *context.Context) error {
+	cli := ctx.Module().DockerCli().TopContainer(s.ContainerId)
+	out, err := cli.Execute(s.ExecOptions)
+	return PostHandle(nil, s.Out, out, err, errno.ERR_TOP_CONTAINER_FAILED.FD("(%s top ID)", s.ExecWithEngine))
 }
