@@ -339,6 +339,8 @@ func genScaleOutPlaybook(curveadm *cli.CurveAdm,
 			options[comm.KEY_CREATE_POOL_TYPE] = comm.POOL_TYPE_PHYSICAL
 			options[comm.KEY_SCALE_OUT_CLUSTER] = dcs2scaleOut
 			options[comm.KEY_NEW_TOPOLOGY_DATA] = data
+			options[comm.KEY_NUMBER_OF_CHUNKSERVER] = calcNumOfChunkserver(curveadm, dcs) +
+				calcNumOfChunkserver(curveadm, dcs2scaleOut)
 			options[comm.KEY_POOLSET] = poolset
 		case CREATE_LOGICAL_POOL:
 			options[comm.KEY_CREATE_POOL_TYPE] = comm.POOL_TYPE_LOGICAL

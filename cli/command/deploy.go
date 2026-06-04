@@ -252,10 +252,12 @@ func genDeployPlaybook(curveadm *cli.CurveAdm,
 		if step == CREATE_PHYSICAL_POOL {
 			options[comm.KEY_CREATE_POOL_TYPE] = comm.POOL_TYPE_PHYSICAL
 			options[comm.KEY_POOLSET] = poolset
+			options[comm.KEY_NUMBER_OF_CHUNKSERVER] = calcNumOfChunkserver(curveadm, dcs)
 		} else if step == CREATE_LOGICAL_POOL {
 			options[comm.KEY_CREATE_POOL_TYPE] = comm.POOL_TYPE_LOGICAL
 			options[comm.POOLSET] = poolset
 			options[comm.POOLSET_DISK_TYPE] = diskType
+			options[comm.KEY_NUMBER_OF_CHUNKSERVER] = calcNumOfChunkserver(curveadm, dcs)
 		}
 
 		pb.AddStep(&playbook.PlaybookStep{

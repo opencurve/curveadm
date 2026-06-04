@@ -82,20 +82,20 @@ func NewStopFormatTask(curveadm *cli.CurveAdm, fc *configure.FormatConfig) (*tas
 	t := task.NewTask("Stop Format Chunkfile Pool", subname, hc.GetSSHConfig())
 
 	var oldContainerId string
-	var oldUUID string
+	var oldUuid string
 
 	// 1: list block device and edit fstab delete record
 	t.AddStep(&step.BlockId{
 		Device:      device,
 		Format:      "value",
 		MatchTag:    "UUID",
-		Out:         &oldUUID,
+		Out:         &oldUuid,
 		ExecOptions: curveadm.ExecOptions(),
 	})
 	t.AddStep(&step2EditFSTab{
 		host:       host,
 		device:     device,
-		oldUUID:    &oldUUID,
+		oldUuid:    &oldUuid,
 		mountPoint: mountPoint,
 		curveadm:   curveadm,
 		skipAdd:    true,

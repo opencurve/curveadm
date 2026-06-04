@@ -24,6 +24,7 @@ package bs
 
 import (
 	"fmt"
+	"path"
 	"regexp"
 	"strings"
 	"time"
@@ -57,8 +58,8 @@ type (
 		host       string
 		device     string
 		mountPoint string
-		oldUUID    *string
-		uuid       string
+		oldUuid    *string
+		uuid       *string
 		skipAdd    bool
 		curveadm   *cli.CurveAdm
 	}
@@ -96,9 +97,9 @@ func checkDeviceUUID(host, device string, success *bool, uuid *string) step.Lamb
 
 func (s *step2EditFSTab) expression(express2del, express2add *string) step.LambdaType {
 	return func(ctx *context.Context) error {
-		*express2del = fmt.Sprintf("/UUID=%s/d", *s.oldUUID)
+		*express2del = fmt.Sprintf("/UUID=%s/d", *s.oldUuid)
 		*express2add = fmt.Sprintf("$ a UUID=%s  %s  ext4  rw,errors=remount-ro  0  0  # %s",
-			s.uuid, s.mountPoint, WARNING_EDIT)
+			*s.uuid, s.mountPoint, WARNING_EDIT)
 		return nil
 	}
 }
@@ -121,16 +122,16 @@ func (s *step2EditFSTab) execute(ctx *context.Context) error {
 		Format:      "value",
 		MatchTag:    "UUID",
 		Success:     &success,
-		Out:         &s.uuid,
+		Out:         s.uuid,
 		ExecOptions: curveadm.ExecOptions(),
 	})
 	steps = append(steps, &step.Lambda{
-		Lambda: checkDeviceUUID(s.host, s.device, &success, &s.uuid),
+		Lambda: checkDeviceUUID(s.host, s.device, &success, s.uuid),
 	})
 	steps = append(steps, &step.Lambda{ // generate record
 		Lambda: s.expression(&express2del, &express2add),
 	})
-	if len(*s.oldUUID) > 0 {
+	if len(*s.oldUuid) > 0 {
 		steps = append(steps, &step.Sed{ // remove old record
 			Files:       []string{os.GetFSTabPath()},
 			Expression:  &express2del,
@@ -163,6 +164,13 @@ func (s *step2EditFSTab) Execute(ctx *context.Context) error {
 	})
 }
 
+func prepare(uuid, content *string) step.LambdaType {
+	return func(ctx *context.Context) error {
+		*content = fmt.Sprintf("uuid=%s\nuuidmd5=%s", *uuid, utils.MD5Sum(*uuid))
+		return nil
+	}
+}
+
 func device2ContainerName(device string) string {
 	return fmt.Sprintf("curvebs-format-%s", utils.MD5Sum(device))
 }
@@ -185,7 +193,7 @@ func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *configure.FormatConf
 	t := task.NewTask("Start Format Chunkfile Pool", subname, hc.GetSSHConfig())
 
 	// add step to task
-	var output, containerId, oldUUID string
+	var output, containerId, oldUuid, uuid, content string
 	var success bool
 	containerName := device2ContainerName(device)
 	layout := topology.GetCurveBSProjectLayout()
@@ -206,13 +214,13 @@ func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *configure.FormatConf
 	t.AddStep(&step.Lambda{
 		Lambda: skipFormat(&output, containerName),
 	})
-	// 2: mkfs, mount device, edit fstab, tune2fs
+	// 2: mkfs, mount device, edit fstab, tune2fs, write disk.meta
 	t.AddStep(&step.BlockId{
 		Device:      device,
 		Format:      "value",
 		MatchTag:    "UUID",
 		Success:     &success,
-		Out:         &oldUUID,
+		Out:         &oldUuid,
 		ExecOptions: curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.UmountFilesystem{
@@ -237,7 +245,8 @@ func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *configure.FormatConf
 	t.AddStep(&step2EditFSTab{
 		host:       host,
 		device:     device,
-		oldUUID:    &oldUUID,
+		oldUuid:    &oldUuid,
+		uuid:       &uuid,
 		mountPoint: mountPoint,
 		curveadm:   curveadm,
 	})
@@ -245,6 +254,14 @@ func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *configure.FormatConf
 		Device:                   device,
 		ReservedBlocksPercentage: "0",
 		ExecOptions:              curveadm.ExecOptions(),
+	})
+	t.AddStep(&step.Lambda{ // write disk.meta
+		Lambda: prepare(&uuid, &content),
+	})
+	t.AddStep(&step.InstallFile{
+		Content:      &content,
+		HostDestPath: path.Join(mountPoint, "disk.meta"),
+		ExecOptions:  curveadm.ExecOptions(),
 	})
 	// 3: run container to format chunkfile pool
 	t.AddStep(&step.PullImage{

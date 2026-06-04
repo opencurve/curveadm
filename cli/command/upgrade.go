@@ -39,9 +39,9 @@ import (
 var (
 	UPGRADE_PLAYBOOK_STEPS = []int{
 		// TODO(P0): we can skip it for upgrade one service more than once
+		playbook.PULL_IMAGE,
 		playbook.STOP_SERVICE,
 		playbook.CLEAN_SERVICE,
-		playbook.PULL_IMAGE,
 		playbook.CREATE_CONTAINER,
 		playbook.SYNC_CONFIG,
 		playbook.START_SERVICE,
